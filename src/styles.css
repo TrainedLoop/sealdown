@@ -845,3 +845,48 @@ button:disabled {
   background: #16a34a;
   vertical-align: middle;
 }
+
+.header-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.title-separator {
+  color: var(--border);
+}
+
+.doc-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* Front matter */
+.markdown-body table.front-matter {
+  display: table;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  border-collapse: separate;
+  font: 0.85rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.markdown-body table.front-matter th,
+.markdown-body table.front-matter td {
+  border: 0;
+  padding: 0.2rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-body table.front-matter th {
+  width: 1%;
+  white-space: nowrap;
+  font-weight: 400;
+  color: var(--muted);
+}

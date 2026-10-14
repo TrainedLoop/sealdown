@@ -15,6 +15,7 @@ import { MarkdownView } from './MarkdownView.tsx'
 import { useMode, type Mode } from './mode.ts'
 import { readPref, writePref } from './prefs.ts'
 import { StatusBar } from './StatusBar.tsx'
+import { useDocumentTitle } from './docTitle.ts'
 import { QrCode } from './QrCode.tsx'
 import type { Theme } from './theme.ts'
 
@@ -45,6 +46,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
     setSyncScrollState(on)
   }
   const [saved, setSaved] = useState(true)
+  useDocumentTitle(text)
   const [shared, setShared] = useState<Shared | null>(null)
   const [busy, setBusy] = useState(false)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)

@@ -22,5 +22,5 @@ test('a document without rules is a single slide', () => {
 })
 
 test('empty slides are dropped', () => {
-  expect(slides('---\n\n# One\n\n---\n\n---\n\n# Two\n\n---')).toHaveLength(2)
+  expect(slides('# One\n\n---\n\n---\n\n# Two\n\n---')).toHaveLength(2)
 })

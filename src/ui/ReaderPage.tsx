@@ -17,6 +17,7 @@ import { PasswordPrompt } from './PasswordPrompt.tsx'
 import { Presentation } from './Presentation.tsx'
 import type { Theme } from './theme.ts'
 import { Toc } from './Toc.tsx'
+import { useDocumentTitle } from './docTitle.ts'
 
 type ReadableRoute = Extract<Route, { kind: 'inline' | 'stored' | 'inline-protected' | 'stored-protected' }>
 
@@ -94,6 +95,7 @@ function Document({ text, theme }: { text: string; theme: Theme }) {
   const wrapper = useRef<HTMLDivElement>(null)
   const [slides, setSlides] = useState<string[] | null>(null)
   const html = useMemo(() => renderMarkdown(text), [text])
+  useDocumentTitle(text)
   // DOMParser documents don't fetch images, unlike a detached element.
   const toc = useMemo(() => extractToc(new DOMParser().parseFromString(html, 'text/html').body), [html])
 

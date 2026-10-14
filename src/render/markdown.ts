@@ -1,5 +1,7 @@
 import { tex } from '@mdit/plugin-tex'
 import alerts from 'markdown-it-github-alerts'
+import frontMatter from 'markdown-it-front-matter'
+import { parseFrontMatter } from './frontMatter.ts'
 import MarkdownItFactory, { type MarkdownIt } from 'markdown-it'
 import anchor from 'markdown-it-anchor'
 import taskLists from 'markdown-it-task-lists'
@@ -15,9 +17,25 @@ function slugify(text: string): string {
   return slug || 'section'
 }
 
+// Set by the front-matter plugin while a document renders (rendering is synchronous).
+let currentFrontMatter: string | null = null
+
+function frontMatterTable(yaml: string, escape: (text: string) => string): string {
+  const rows = parseFrontMatter(yaml)
+    .map(({ key, value }) => {
+      const shown = escape(Array.isArray(value) ? value.join(', ') : value)
+      return key === null ? `<tr><td colspan="2">${shown}</td></tr>` : `<tr><th>${escape(key)}</th><td>${shown}</td></tr>`
+    })
+    .join('')
+  return rows ? `<table class="front-matter" data-source-line="1"><tbody>${rows}</tbody></table>\n` : ''
+}
+
 function createMarkdown(): MarkdownIt {
   const md = new MarkdownItFactory({ html: true, linkify: true })
   const escape = md.utils.escapeHtml
+  md.use(frontMatter, (yaml: string) => {
+    currentFrontMatter = yaml
+  })
 
   // Block elements remember their first source line, so the preview can follow the editor's scroll.
   md.core.ruler.push('source_lines', (state) => {
@@ -57,5 +75,8 @@ let md: MarkdownIt | undefined
 /** Markdown → sanitized HTML with placeholders for Mermaid, math and code blocks. */
 export function renderMarkdown(text: string): string {
   md ??= createMarkdown()
-  return sanitize(md.render(text))
+  currentFrontMatter = null
+  const body = md.render(text)
+  const meta = currentFrontMatter === null ? '' : frontMatterTable(currentFrontMatter, md.utils.escapeHtml)
+  return sanitize(meta + body)
 }
