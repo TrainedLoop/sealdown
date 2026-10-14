@@ -56,7 +56,7 @@ Same stack as `danielporto-site`:
 - Sanitization: **DOMPurify**.
 - Database: **Supabase** (Postgres) with `pg_cron`.
 - Tests: Vitest, Supabase CLI (local database in Docker), Playwright (end-to-end and visual).
-- CI/CD: GitHub Actions, Renovate, GitHub Pages.
+- CI/CD: GitHub Actions, GitHub Pages.
 
 Rejected approaches: unified/remark (flexibility the project doesn't use, slower, more moving parts) and framework-free TypeScript (the weight that matters is Mermaid's, not React's; the UI would be hand-rolled).
 
