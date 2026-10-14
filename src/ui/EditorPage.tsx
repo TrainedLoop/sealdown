@@ -7,6 +7,7 @@ import { defaultStorage } from '../storage/storage.ts'
 import { loadDraft, saveDraft } from './draft.ts'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
+import { QrCode } from './QrCode.tsx'
 import type { Theme } from './theme.ts'
 
 type Tab = 'code' | 'preview'
@@ -116,6 +117,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
             value={shared.url}
             onFocus={(e) => e.currentTarget.select()}
           />
+          <QrCode key={shared.url} url={shared.url} />
         </div>
       )}
 

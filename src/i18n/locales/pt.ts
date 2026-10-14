@@ -26,6 +26,11 @@ const pt: typeof en = {
     png: 'PNG',
     diagramActions: 'Baixar diagrama',
   },
+  qr: {
+    button: 'QR code',
+    alt: 'QR code do link',
+    tooLong: 'Este link é longo demais para um QR code.',
+  },
   theme: { dark: 'Tema escuro', light: 'Tema claro' },
   lang: { switchTo: 'English' },
   errors: {

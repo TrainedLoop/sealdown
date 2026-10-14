@@ -24,6 +24,11 @@ const en = {
     png: 'PNG',
     diagramActions: 'Download diagram',
   },
+  qr: {
+    button: 'QR code',
+    alt: 'QR code for the link',
+    tooLong: 'This link is too long for a QR code.',
+  },
   theme: { dark: 'Dark theme', light: 'Light theme' },
   lang: { switchTo: 'Português' },
   errors: {

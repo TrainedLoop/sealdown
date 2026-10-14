@@ -398,3 +398,16 @@ button:disabled {
   font-size: 0.8rem;
   padding: 0.2rem 0.6rem;
 }
+
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.qr-image {
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+}
