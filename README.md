@@ -50,11 +50,14 @@ blocks another.
 - Locally, `pnpm db:start` and `pnpm db:reset` apply them. `supabase/seed.sql` only creates the empty
   schema so the local API can start before dbmate runs.
 - In production, apply pending migrations with the session pooler URI from the dashboard
-  (Connect → Session pooler), keeping the password out of shell history and chat:
+  (Connect → Session pooler). Put it in `.env.local`, which git ignores and Vite never exposes:
 
   ```sh
-  DATABASE_URL='postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres' pnpm db:migrate
+  # .env.local
+  DATABASE_URL=postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres?sslmode=require
   ```
+
+  Then `pnpm db:migrate` (or `pnpm db:migrate status`).
 
 ## Keeping Mermaid current
 
