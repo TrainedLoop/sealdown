@@ -721,3 +721,42 @@ button:disabled {
     width: auto;
   }
 }
+
+/* Callouts (GitHub alerts) */
+.markdown-body .markdown-alert {
+  --alert: var(--accent);
+  margin: 1rem 0;
+  padding: 0.6rem 1rem;
+  border-left: 4px solid var(--alert);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--alert) 8%, transparent);
+}
+
+.markdown-body .markdown-alert > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+  color: var(--alert);
+}
+
+.markdown-body .markdown-alert-title svg {
+  fill: currentColor;
+}
+
+.markdown-body .markdown-alert-note { --alert: #3b82f6; }
+.markdown-body .markdown-alert-tip { --alert: #16a34a; }
+.markdown-body .markdown-alert-important { --alert: #8b5cf6; }
+.markdown-body .markdown-alert-warning { --alert: #d97706; }
+.markdown-body .markdown-alert-caution { --alert: #dc2626; }
+
+:root[data-theme='dark'] .markdown-body .markdown-alert-note { --alert: #60a5fa; }
+:root[data-theme='dark'] .markdown-body .markdown-alert-tip { --alert: #4ade80; }
+:root[data-theme='dark'] .markdown-body .markdown-alert-important { --alert: #a78bfa; }
+:root[data-theme='dark'] .markdown-body .markdown-alert-warning { --alert: #fbbf24; }
+:root[data-theme='dark'] .markdown-body .markdown-alert-caution { --alert: #f87171; }

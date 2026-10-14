@@ -82,3 +82,17 @@ test('emoji-only headings still get a usable, unique id', () => {
   for (const id of ids) expect(id).toMatch(/section/)
   expect(new Set(ids).size).toBe(2)
 })
+
+describe('callouts', () => {
+  test.each(['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'])('%s renders as a titled box with an icon', (type) => {
+    const root = renderToDom(`> [!${type}]\n> Be careful.`)
+    const box = root.querySelector(`.markdown-alert-${type.toLowerCase()}`)
+    expect(box).not.toBeNull()
+    expect(box!.querySelector('.markdown-alert-title svg path')).not.toBeNull()
+    expect(box!.textContent).toContain('Be careful.')
+  })
+
+  test('a plain quote stays a quote', () => {
+    expect(renderToDom('> just a quote').querySelector('blockquote')).not.toBeNull()
+  })
+})

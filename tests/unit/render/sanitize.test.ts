@@ -30,3 +30,10 @@ test.each(vectors)('%s is neutralized', (input) => {
 test('safe inline HTML is kept', () => {
   expect(renderToDom('<details><summary>More</summary>Hidden</details>').querySelector('details summary')).not.toBeNull()
 })
+
+test('scripts inside a callout are still neutralized', () => {
+  const root = renderToDom('> [!WARNING]\n> <img src=x onerror=alert(1)> <script>alert(1)</script>')
+  expect(root.querySelector('.markdown-alert-warning')).not.toBeNull()
+  expect(root.querySelector('script')).toBeNull()
+  expect(root.querySelector('[onerror]')).toBeNull()
+})

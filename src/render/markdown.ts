@@ -1,4 +1,5 @@
 import { tex } from '@mdit/plugin-tex'
+import alerts from 'markdown-it-github-alerts'
 import MarkdownItFactory, { type MarkdownIt } from 'markdown-it'
 import anchor from 'markdown-it-anchor'
 import taskLists from 'markdown-it-task-lists'
@@ -39,6 +40,8 @@ function createMarkdown(): MarkdownIt {
 
   md.use(anchor, { slugify })
   md.use(taskLists)
+  // GitHub-style callouts: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION].
+  md.use(alerts)
   md.use(tex, {
     mathFence: true,
     render: (content, displayMode) =>
