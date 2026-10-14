@@ -413,3 +413,34 @@ button:disabled {
   white-space: pre-wrap;
   font: 0.85rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+.editor-tools {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.editor-tools select,
+.file-button {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+}
+
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-button:focus-within {
+  outline: 2px solid var(--accent);
+}

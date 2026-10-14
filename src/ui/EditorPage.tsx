@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { diagramTypes, track } from '../analytics.ts'
+import type { EditorApi } from '../editor/CodeEditor.tsx'
+import { diagramTemplates } from '../editor/templates.ts'
 import { renderMarkdown } from '../render/markdown.ts'
 import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
@@ -21,12 +23,20 @@ const DRAFT_DELAY_MS = 500
 
 const CodeEditor = lazy(() => import('../editor/CodeEditor.tsx'))
 
+const MAX_FILE_BYTES = 5 * 1024 * 1024
+const TEXT_FILE = /\.(md|markdown|mdown|txt)$/i
+const templates = diagramTemplates()
+
+type FileProblem = 'not-text' | 'too-large'
+
 export function EditorPage({ theme }: { theme: Theme }) {
   const { t } = useTranslation()
   const [text, setText] = useState(loadDraft)
   const [tab, setTab] = useState<Tab>('code')
   const [shared, setShared] = useState<Shared | null>(null)
   const [busy, setBusy] = useState(false)
+  const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
+  const editorApi = useRef<EditorApi | null>(null)
 
   // The latest text, for work that outlives a render: the unmount flush and in-flight generation.
   const latest = useRef(text)
@@ -41,6 +51,30 @@ export function EditorPage({ theme }: { theme: Theme }) {
   function edit(next: string) {
     setText(next)
     setShared(null) // a link for the previous text would be misleading
+  }
+
+  async function openFile(file: File, via: 'picker' | 'drop') {
+    setFileProblem(null)
+    if (!TEXT_FILE.test(file.name) && !(file.type.startsWith('text/') || file.type === '')) {
+      setFileProblem('not-text')
+      return
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setFileProblem('too-large')
+      return
+    }
+    const content = await file.text()
+    if (text.trim() !== '' && text !== content && !window.confirm(t('editor.replaceText'))) return
+    track('file_opened', { via })
+    setTab('code')
+    edit(content)
+  }
+
+  function insertDiagram(name: string) {
+    const template = templates.find((item) => item.name === name)
+    if (!template || !editorApi.current) return
+    track('diagram_inserted', { type: name })
+    editorApi.current.insert(`\n\`\`\`mermaid\n${template.source}\n\`\`\`\n`)
   }
 
   async function generate() {
@@ -101,11 +135,44 @@ export function EditorPage({ theme }: { theme: Theme }) {
             </button>
           ))}
         </div>
+        <div className="editor-tools">
+          {tab === 'code' && (
+            <select
+              aria-label={t('editor.insertDiagram')}
+              value=""
+              onChange={(e) => insertDiagram(e.target.value)}
+            >
+              <option value="">{t('editor.insertDiagram')}</option>
+              {templates.map((template) => (
+                <option key={template.name} value={template.name}>
+                  {template.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <label className="file-button">
+            {t('editor.openFile')}
+            <input
+              type="file"
+              accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) void openFile(file, 'picker')
+              }}
+            />
+          </label>
+        </div>
         <button type="button" className="primary" disabled={busy || text.trim() === ''} onClick={generate}>
           {t(busy ? 'editor.generating' : 'editor.generate')}
         </button>
       </div>
 
+      {fileProblem && (
+        <div className="notice" role="alert">
+          <p>{t(fileProblem === 'not-text' ? 'editor.fileNotText' : 'editor.fileTooLarge')}</p>
+        </div>
+      )}
       {shared?.kind === 'too-large' && <ErrorMessage kind="too-large" />}
       {shared?.kind === 'failed' && <ErrorMessage kind="generate-failed" />}
       {shared?.kind === 'link' && (
@@ -124,9 +191,29 @@ export function EditorPage({ theme }: { theme: Theme }) {
       )}
 
       {tab === 'code' ? (
-        <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
-          <CodeEditor value={text} onChange={edit} label={t('editor.placeholder')} />
-        </Suspense>
+        <div
+          className="editor-drop"
+          // Capture phase: CodeMirror would otherwise insert a dropped file's text at the drop point.
+          onDragOverCapture={(e) => {
+            if (e.dataTransfer.types.includes('Files')) e.preventDefault()
+          }}
+          onDropCapture={(e) => {
+            const file = e.dataTransfer.files[0]
+            if (!file) return
+            e.preventDefault()
+            e.stopPropagation()
+            void openFile(file, 'drop')
+          }}
+        >
+          <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
+            <CodeEditor
+              value={text}
+              onChange={edit}
+              label={t('editor.placeholder')}
+              onReady={(api) => (editorApi.current = api)}
+            />
+          </Suspense>
+        </div>
       ) : text.trim() === '' ? (
         <p className="status">{t('editor.empty')}</p>
       ) : (

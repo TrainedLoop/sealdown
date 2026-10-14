@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { inlineHash } from '../e2e/helpers.ts'
 
-// When Mermaid adds a diagram type, add an example to reference.md and refresh the baselines
+// When Mermaid adds a diagram type, add an example to src/templates/diagrams.md and refresh the baselines
 // (`pnpm test:visual --update-snapshots`), reviewing every changed image.
-const reference = readFileSync(new URL('./reference.md', import.meta.url), 'utf8')
+const reference = readFileSync(new URL('../../src/templates/diagrams.md', import.meta.url), 'utf8')
 const fenceCount = reference.match(/^```mermaid$/gm)?.length ?? 0
 
 for (const theme of ['light', 'dark'] as const) {

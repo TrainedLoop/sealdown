@@ -69,7 +69,7 @@ pnpm up mermaid @mermaid-js/mermaid-zenuml --latest
 pnpm test:visual
 ```
 
-`tests/visual/reference.md` holds one example of every diagram type; the visual tests compare
+`src/templates/diagrams.md` holds one example of every diagram type; the visual tests compare
 their screenshots with the approved baselines. Review any image diffs in the Playwright report,
 then refresh the baselines:
 
@@ -78,7 +78,7 @@ pnpm test:visual --update-snapshots
 ```
 
 When Mermaid adds a diagram type, add an example under its own `##` heading in
-`tests/visual/reference.md` and refresh the baselines. Keep examples deterministic (for instance,
+`src/templates/diagrams.md` and refresh the baselines. Keep examples deterministic (for instance,
 give `gitGraph` commits explicit ids). The Playwright Docker image tag follows `@playwright/test`,
 so updating Playwright also changes screenshots.
 

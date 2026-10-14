@@ -11,6 +11,11 @@ const en = {
     shareUrl: 'Share link',
     empty: 'Nothing to preview yet.',
     loading: 'Loading editor…',
+    openFile: 'Open .md',
+    insertDiagram: 'Insert diagram',
+    replaceText: 'Replace the text in the editor with this file?',
+    fileNotText: "This file isn't a Markdown or text file.",
+    fileTooLarge: 'This file is larger than 5 MB.',
   },
   reader: {
     editCopy: 'Edit a copy',

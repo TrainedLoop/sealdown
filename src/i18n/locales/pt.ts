@@ -13,6 +13,11 @@ const pt: typeof en = {
     shareUrl: 'Link de compartilhamento',
     empty: 'Nada para mostrar ainda.',
     loading: 'Carregando editor…',
+    openFile: 'Abrir .md',
+    insertDiagram: 'Inserir diagrama',
+    replaceText: 'Substituir o texto do editor por este arquivo?',
+    fileNotText: 'Este arquivo não é Markdown nem texto.',
+    fileTooLarge: 'Este arquivo tem mais de 5 MB.',
   },
   reader: {
     editCopy: 'Editar uma cópia',
