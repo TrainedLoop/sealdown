@@ -87,5 +87,5 @@ end $$;
 revoke execute on all functions in schema rendermd from public, anon, authenticated;
 grant execute on function rendermd.create_doc(text), rendermd.get_doc(text), rendermd.ping() to anon;
 
-create extension if not exists pg_cron;
+create extension if not exists pg_cron with schema pg_catalog;
 select cron.schedule('rendermd-prune-docs', '0 * * * *', 'select rendermd.prune_docs()');
