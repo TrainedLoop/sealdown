@@ -117,8 +117,8 @@ alter table docs enable row level security;  -- no policies: direct access block
 
 Access happens **only** through `security definer` functions, exposed as RPC:
 
-- `create_doc(content bytea) → text`: generates the id, inserts and returns the id.
-- `get_doc(id text) → bytea`: returns the content and updates `last_accessed_at`; returns null if it doesn't exist.
+- `create_doc(content text) → text`: takes the encrypted bytes as standard base64, generates the id, inserts and returns the id.
+- `get_doc(doc_id text) → text`: returns the content as standard base64 and updates `last_accessed_at`; returns null if it doesn't exist.
 - `ping() → int`: trivial query used by the keepalive.
 
 Nobody can list, edit or delete through the API.
