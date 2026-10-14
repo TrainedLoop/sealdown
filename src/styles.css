@@ -407,3 +407,9 @@ button:disabled {
   background: #fff;
   padding: 8px;
 }
+
+.cm-tooltip-lint {
+  max-width: 480px;
+  white-space: pre-wrap;
+  font: 0.85rem/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

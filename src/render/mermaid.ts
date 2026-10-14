@@ -136,6 +136,12 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
   }
 }
 
+/** Throws Mermaid's parse error for invalid source (used by the editor's lint). */
+export async function parseDiagram(source: string): Promise<void> {
+  const mermaid = await loadMermaid()
+  await mermaid.parse(source)
+}
+
 /** SVG for downloads: plain-text labels, because HTML labels (foreignObject) taint a canvas. */
 export function renderDiagramForExport(source: string, theme: Theme): Promise<string> {
   return renderSvg(source, theme, false)
