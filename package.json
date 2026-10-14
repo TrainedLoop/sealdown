@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "typecheck": "tsc -b",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:start": "supabase start",
+    "db:test": "supabase test db"
   },
   "dependencies": {
     "react": "^19.3.0",
@@ -23,6 +25,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^30.1.2",
     "oxlint": "^1.88.0",
+    "supabase": "^2.120.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.4"
