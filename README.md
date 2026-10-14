@@ -12,8 +12,12 @@ account, no server-side rendering.
 | `#/s/<id>.<key>` | Larger documents (over 4 KB encoded): encrypted in the browser with AES-GCM and stored in Supabase. The key exists only in the link. |
 
 Everything after `#` stays in the browser; it is never sent to a server. Supabase only ever sees
-ciphertext and cannot read stored documents. Stored documents never expire on a timer: when the
-database nears its 400 MB cap, the least recently opened ones are removed first.
+ciphertext and cannot read stored documents. Stored documents never expire on a timer: when they
+exceed rendermd's 100 MB budget, the least recently opened ones are removed first.
+
+The Supabase project is shared with other small projects, so everything rendermd owns lives in the
+`rendermd` schema. Add `rendermd` to the project's exposed schemas (Settings → API → Exposed
+schemas, or `supabase config push`).
 
 ## Development
 

@@ -14,6 +14,8 @@ export class StorageUnavailableError extends Error {
   }
 }
 
+const SCHEMA = 'rendermd'
+
 export function createSupabaseStorage(
   config: { url?: string; anonKey?: string },
   fetchImpl: typeof fetch = (...args) => fetch(...args),
@@ -24,9 +26,10 @@ export function createSupabaseStorage(
     let response: Response
     try {
       // Only the apikey header: publishable keys are not JWTs, so they don't go in Authorization.
+      // Content-Profile selects the app's schema, which must be in the project's exposed schemas.
       response = await fetchImpl(`${url}/rest/v1/rpc/${name}`, {
         method: 'POST',
-        headers: { apikey: anonKey, 'content-type': 'application/json' },
+        headers: { apikey: anonKey, 'content-profile': SCHEMA, 'content-type': 'application/json' },
         body: JSON.stringify(body),
       })
     } catch (cause) {

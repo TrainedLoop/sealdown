@@ -73,7 +73,7 @@ flowchart LR
     UI --> S
     S --> ST
   end
-  ST -- "RPC create_doc / get_doc<br/>(ciphertext only)" --> DB[("Supabase<br/>docs table + pg_cron")]
+  ST -- "RPC create_doc / get_doc<br/>(ciphertext only)" --> DB[("Supabase<br/>rendermd schema + pg_cron")]
   GH["GitHub Actions<br/>deploy, tests, keepalive"] -- ping every 3 days --> DB
   GH -- deploy --> Pages["GitHub Pages<br/>static site"]
 ```
@@ -103,8 +103,10 @@ Each module has one responsibility and a small interface, testable in isolation.
 
 ### 4.3 Database (Supabase)
 
+The Supabase project, and its ~500 MB free-tier database, is shared with other small projects, each in its own schema. Everything rendermd owns lives in the `rendermd` schema, which must be listed in the project's exposed API schemas; requests select it with the `Content-Profile: rendermd` header.
+
 ```sql
-create table docs (
+create table rendermd.docs (
   id               text primary key,         -- 10 random base62 characters
   content          bytea not null,            -- IV + compressed, encrypted content
   created_at       timestamptz not null default now(),
@@ -112,18 +114,18 @@ create table docs (
   constraint content_max_1mb check (octet_length(content) <= 1048576)
 );
 
-alter table docs enable row level security;  -- no policies: direct access blocked
+alter table rendermd.docs enable row level security;  -- no policies: direct access blocked
 ```
 
 Access happens **only** through `security definer` functions, exposed as RPC:
 
-- `create_doc(content text) → text`: takes the encrypted bytes as standard base64, generates the id, inserts and returns the id.
+- `create_doc(content text) → text`: takes the encrypted bytes as standard base64, generates the id, inserts and returns the id. Refuses (error `53100`) when the whole database exceeds ~450 MB, so a burst between prunes can't make the shared database read-only; clients then fall back to the long link.
 - `get_doc(doc_id text) → text`: returns the content as standard base64 and updates `last_accessed_at`; returns null if it doesn't exist.
 - `ping() → int`: trivial query used by the keepalive.
 
 Nobody can list, edit or delete through the API.
 
-**Cleanup:** `prune_docs()` runs hourly via `pg_cron`. It orders by `last_accessed_at` descending, sums the running size and deletes everything past **400 MB**. The cap sits below the free tier's ~500 MB because space freed by `DELETE` is reused by autovacuum but not returned to disk immediately. (Free-tier limits to be confirmed during implementation.)
+**Cleanup:** `prune_docs()` runs hourly via `pg_cron` (job `rendermd-prune-docs`). It orders by `last_accessed_at` descending, sums the running size and deletes everything past rendermd's budget of **100 MB**, leaving the rest of the shared database to other projects. Space freed by `DELETE` is reused by autovacuum but not returned to disk immediately.
 
 ## 5. Data flow
 

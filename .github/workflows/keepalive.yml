@@ -17,7 +17,8 @@ jobs:
       - name: Ping Supabase
         run: |
           curl --fail --silent --show-error -X POST "$SUPABASE_URL/rest/v1/rpc/ping" \
-            -H "apikey: $SUPABASE_ANON_KEY" -H 'content-type: application/json' -d '{}'
+            -H "apikey: $SUPABASE_ANON_KEY" -H 'content-profile: rendermd' \
+            -H 'content-type: application/json' -d '{}'
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
