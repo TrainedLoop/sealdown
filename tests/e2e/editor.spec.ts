@@ -116,3 +116,9 @@ test('the editor keeps a fixed height and scrolls its content', async ({ page })
   const scroller = page.locator('.cm-scroller')
   expect(await scroller.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
 })
+
+test('the editor shows line numbers', async ({ page }) => {
+  await page.goto('/')
+  await editor(page).fill('one\ntwo\nthree')
+  await expect(page.locator('.cm-lineNumbers .cm-gutterElement', { hasText: /^3$/ })).toBeVisible()
+})
