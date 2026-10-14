@@ -1,0 +1,67 @@
+import { expect, test, type Page } from '@playwright/test'
+
+const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
+
+function largeDoc(title: string): string {
+  const words = Array.from({ length: 4000 }, () => Math.random().toString(36).slice(2, 9))
+  return `# ${title}\n\n${words.join(' ')}`
+}
+
+async function share(page: Page, text: string): Promise<string> {
+  await page.goto('/')
+  await editor(page).fill(text)
+  await page.getByRole('button', { name: 'Generate link' }).click()
+  return page.getByTestId('share-url').inputValue()
+}
+
+test('large document is stored and opens from a short link', async ({ page, context }) => {
+  const url = await share(page, largeDoc('Stored doc'))
+  expect(url).toMatch(/#\/s\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{43}$/)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  const reader = await context.newPage()
+  await reader.goto(url)
+  await expect(reader.getByRole('heading', { name: 'Stored doc' })).toBeVisible()
+})
+
+test('editing a copy creates a new document and keeps the original', async ({ page, context }) => {
+  const original = await share(page, largeDoc('First version'))
+  await page.goto(original)
+  await page.getByRole('button', { name: 'Edit a copy' }).click()
+  const text = await editor(page).inputValue()
+  await editor(page).fill(text.replace('# First version', '# Second version'))
+  await page.getByRole('button', { name: 'Generate link' }).click()
+  const copy = await page.getByTestId('share-url').inputValue()
+  expect(copy).not.toBe(original)
+
+  const reader = await context.newPage()
+  await reader.goto(copy)
+  await expect(reader.getByRole('heading', { name: 'Second version' })).toBeVisible()
+  await reader.goto(original)
+  await expect(reader.getByRole('heading', { name: 'First version' })).toBeVisible()
+})
+
+test('unknown id shows the expired message', async ({ page }) => {
+  await page.goto(`/#/s/ZZZZZZZZZZ.${'A'.repeat(43)}`)
+  await expect(page.getByRole('alert')).toContainText('This document has expired')
+})
+
+test('wrong key shows the incomplete-link message', async ({ page }) => {
+  const url = await share(page, largeDoc('Secret'))
+  const hash = url.slice(url.indexOf('#'))
+  const keyStart = hash.indexOf('.') + 1
+  // Change the first key character: the last one carries unused padding bits.
+  const tampered = hash.slice(0, keyStart) + (hash[keyStart] === 'A' ? 'B' : 'A') + hash.slice(keyStart + 1)
+  await page.goto('/' + tampered)
+  await expect(page.getByRole('alert')).toContainText('This link looks incomplete')
+})
+
+test('network failure offers a retry that recovers', async ({ page }) => {
+  const url = await share(page, largeDoc('Retry me'))
+  await page.route('**/rest/v1/rpc/get_doc', (route) => route.abort())
+  await page.goto(url)
+  const alert = page.getByRole('alert')
+  await expect(alert).toContainText("Couldn't load the document right now")
+  await page.unroute('**/rest/v1/rpc/get_doc')
+  await alert.getByRole('button', { name: 'Try again' }).click()
+  await expect(page.getByRole('heading', { name: 'Retry me' })).toBeVisible()
+})

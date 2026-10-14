@@ -13,7 +13,8 @@
     "test": "vitest run",
     "db:start": "supabase start",
     "db:test": "supabase test db",
-    "test:e2e": "scripts/playwright-docker.sh"
+    "test:e2e": "scripts/playwright-docker.sh",
+    "test:e2e:stored": "scripts/e2e-stored.sh"
   },
   "dependencies": {
     "@mdit/plugin-tex": "^1.1.2",
