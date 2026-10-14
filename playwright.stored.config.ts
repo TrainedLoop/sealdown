@@ -5,10 +5,10 @@ import base from './playwright.config.ts'
 export default defineConfig({
   ...base,
   projects: [{ name: 'stored', testDir: 'tests/e2e', testMatch: 'stored.spec.ts', use: base.projects?.[0]?.use }],
-  use: { ...base.use, baseURL: 'http://localhost:4174/' },
+  use: { ...base.use, baseURL: 'http://localhost:4318/' },
   webServer: {
-    command: 'node_modules/.bin/vite build --outDir dist-stored && node_modules/.bin/vite preview --outDir dist-stored --port 4174 --strictPort',
-    url: 'http://localhost:4174/',
+    command: 'node_modules/.bin/vite build --outDir dist-stored && node_modules/.bin/vite preview --outDir dist-stored --port 4318 --strictPort',
+    url: 'http://localhost:4318/',
     reuseExistingServer: false,
     env: {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL ?? '',

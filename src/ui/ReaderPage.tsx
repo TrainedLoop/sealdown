@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { track } from '../analytics.ts'
 import { hydrate } from '../render/hydrate.ts'
 import { renderMarkdown } from '../render/markdown.ts'
 import { extractToc } from '../render/toc.ts'
@@ -24,11 +25,19 @@ export function ReaderPage({ route, theme }: { route: Extract<Route, { kind: 'in
 
   useEffect(() => {
     let cancelled = false
-    openRoute(JSON.parse(routeKey), defaultStorage).then(
-      (text) => !cancelled && setState({ kind: 'ready', text }),
+    const opened = JSON.parse(routeKey) as typeof route
+    const storage = opened.kind === 'stored' ? 'stored' : 'inline'
+    openRoute(opened, defaultStorage).then(
+      (text) => {
+        if (cancelled) return
+        track('link_opened', { storage, protected: false, ok: true })
+        setState({ kind: 'ready', text })
+      },
       (error: unknown) => {
         if (cancelled) return
-        setState({ kind: 'error', error: error instanceof LinkError ? error.kind : 'corrupt' })
+        const kind = error instanceof LinkError ? error.kind : 'corrupt'
+        track('link_opened', { storage, protected: false, ok: false, error: kind })
+        setState({ kind: 'error', error: kind })
       },
     )
     return () => {
@@ -67,6 +76,7 @@ function Document({ text, theme }: { text: string; theme: Theme }) {
   async function exportPdf() {
     const article = wrapper.current?.querySelector<HTMLElement>('.markdown-body')
     if (!article) return
+    track('export', { format: 'pdf' })
     // Print light whatever the reader uses: dark pages waste ink and diagrams bake their colors in.
     const root = document.documentElement
     const previous = root.dataset.theme
@@ -86,7 +96,13 @@ function Document({ text, theme }: { text: string; theme: Theme }) {
         <button type="button" onClick={editCopy}>
           {t('reader.editCopy')}
         </button>
-        <button type="button" onClick={() => downloadBlob(new Blob([text], { type: 'text/markdown' }), 'document.md')}>
+        <button
+          type="button"
+          onClick={() => {
+            track('export', { format: 'md' })
+            downloadBlob(new Blob([text], { type: 'text/markdown' }), 'document.md')
+          }}
+        >
           {t('export.md')}
         </button>
         <button type="button" onClick={exportPdf}>

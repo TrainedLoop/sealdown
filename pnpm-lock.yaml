@@ -139,6 +139,9 @@ importers:
       mermaid:
         specifier: ^12.2.0
         version: 12.2.0
+      posthog-js:
+        specifier: ^1.438.9
+        version: 1.438.9(@types/react@19.3.0)(react@19.3.0)
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -620,6 +623,15 @@ packages:
     resolution: {integrity: sha512-oTN9FNYuN6bqQMwiho6jJKLCG2/QOYCixGXuCjRmzOq23eODeukuY2XiAVoVpAECbuezMt1MHQjAiQxK8F+Y+g==}
     engines: {node: '>=20'}
     hasBin: true
+
+  '@posthog/browser-common@0.9.4':
+    resolution: {integrity: sha512-QlG0WZFG9iTp9cmXTypB4cgnxBAD3GImrj9AwmA84uh8uy5vIVgVLjoTTdOAW29XL+kh/eLn/5ZtBQt2JQfR+w==}
+
+  '@posthog/core@1.58.1':
+    resolution: {integrity: sha512-z0ISzMUoF1izukfLIUSjGZBdO5H2BPdqN8MX27OKYGQ1sDj/r+WW9Nq7m5WsQY56NOxVsFtHClx9iHj6MYM3Tg==}
+
+  '@posthog/types@1.415.3':
+    resolution: {integrity: sha512-y90ARRBbyXcZDwuXXXvAnbjiuxQ+4FmUI4sasI19AHOPgdWPyd2Kpo0c0B2pKIR+fq+BcRokhF35eAdA54Mfbw==}
 
   '@react-aria/focus@3.22.1':
     resolution: {integrity: sha512-CPxtkyrBi/HYY5P3lE/57sQ6qfa0lN8E55TOm89H0kNGv0lKt+/0zP7lWERzBjRr5IxBVrQX4gFEowBN52LPaA==}
@@ -1133,6 +1145,9 @@ packages:
     resolution: {integrity: sha512-QrWXB+ZQSVPmIWIhtEO9H+gwHaMGYiF5ChvoJ+K9ZGHG/sVsa6yiesAD1GC/x46sET00Xlwo1u49RVVVzvcSkw==}
     engines: {node: '>= 10'}
 
+  core-js@3.50.0:
+    resolution: {integrity: sha512-BRWgOLKkFeCgRudR6zrs8p9XJZcE14grzKMMssoYrk6krtuEZ7MTKPIY5RzOnqsEKIR9kst7wNzphttraT+Yqw==}
+
   cose-base@1.0.3:
     resolution: {integrity: sha512-s9whTXInMSgAp/NVXVNuVxVKzGH2qck3aQlVHxDCdAEPgtMKwc4Wq6/QKhgdEdgbLSi9rBTAcPoRa6JpiG4ksg==}
 
@@ -1358,6 +1373,9 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
+
+  fflate@0.4.9:
+    resolution: {integrity: sha512-zdxgIEddhfsyCaWpJ2SdXEP8ZMrKJ6+5jl4OupODcywU0IhRk6gdXuVGcPICyfx2H97hVK7xmJtRLPjkxAX8Vw==}
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -1632,6 +1650,25 @@ packages:
     resolution: {integrity: sha512-zkd+e9S1AQHhmaBKye9zlFHWjOwVgqXl1q3ECYy8561K7qxR2cREf/STLskulBFd78k6AOFeA+ff1TtEzk9bAA==}
     engines: {node: ^10 || ^12 || >=14}
 
+  posthog-js@1.438.9:
+    resolution: {integrity: sha512-/KTZQF3sPlQbgLAlSncxv3z8dz4yex+JmIbCmGKIYkIVupdqESiqXx3SadPkWKgqgHtnQGbPSqRVe4vgpXnrGw==}
+    peerDependencies:
+      '@types/react': '>=16.8.0'
+      react: '>=16.8.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      react:
+        optional: true
+
+  preact@10.29.8:
+    resolution: {integrity: sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==}
+    peerDependencies:
+      preact-render-to-string: '>=5'
+    peerDependenciesMeta:
+      preact-render-to-string:
+        optional: true
+
   punycode.js@2.3.1:
     resolution: {integrity: sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA==}
     engines: {node: '>=6'}
@@ -1639,6 +1676,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  query-selector-shadow-dom@1.0.1:
+    resolution: {integrity: sha512-lT5yCqEBgfoMYpf3F2xQRK7zEr1rhIIZuceDK6+xRkJQ4NMbHTwXqk4NkwDwQMNqXgG9r9fyHnzwNVs6zV5KRw==}
 
   react-aria@3.53.1:
     resolution: {integrity: sha512-dikisyOjJd3D2fFrIDWmVWzqiLz5B86GzZv1zxs7xI4dVc0JIz/1Wa52I20gYvVL2WXeFXlygYsle/QcOMhtcg==}
@@ -1872,6 +1912,12 @@ packages:
   w3c-xmlserializer@6.0.0:
     resolution: {integrity: sha512-4Nsy8K5Tr6SPDH9jhKJOHf7ChDrc1zufZTVSF7x72hwuEXBqxqk9G6cK+K2NRUtB3iELRJqjXb4JPDMBjMTl2Q==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
+
+  web-vitals@6.2.1:
+    resolution: {integrity: sha512-rLcLXA2sx6+9dE88NHFubwTtGxpK4yYBLj6qHPdFoCaLr0cXGb4efOqtKLlm4loGA4OEKHIQKMKzZkKyOh5ctw==}
+
+  web-vitals@6.2.3:
+    resolution: {integrity: sha512-Dmy+vdO1UPMqXiAtZSNayhl4f794Bxfd94W4HIj2HlYtczEQfEOon969memlcpcHrTuOKLa5baFjX7WbgmOq+A==}
 
   webidl-conversions@8.0.1:
     resolution: {integrity: sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ==}
@@ -2214,6 +2260,17 @@ snapshots:
   '@playwright/test@1.64.0':
     dependencies:
       playwright: 1.64.0
+
+  '@posthog/browser-common@0.9.4':
+    dependencies:
+      '@posthog/core': 1.58.1
+      '@posthog/types': 1.415.3
+
+  '@posthog/core@1.58.1':
+    dependencies:
+      '@posthog/types': 1.415.3
+
+  '@posthog/types@1.415.3': {}
 
   '@react-aria/focus@3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -2615,6 +2672,8 @@ snapshots:
 
   commander@7.2.0: {}
 
+  core-js@3.50.0: {}
+
   cose-base@1.0.3:
     dependencies:
       layout-base: 1.0.2
@@ -2870,6 +2929,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.7
 
+  fflate@0.4.9: {}
+
   fsevents@2.3.3:
     optional: true
 
@@ -3117,9 +3178,31 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.2
 
+  posthog-js@1.438.9(@types/react@19.3.0)(react@19.3.0):
+    dependencies:
+      '@posthog/browser-common': 0.9.4
+      '@posthog/core': 1.58.1
+      '@posthog/types': 1.415.3
+      core-js: 3.50.0
+      dompurify: 3.4.17
+      fflate: 0.4.9
+      preact: 10.29.8
+      query-selector-shadow-dom: 1.0.1
+      web-vitals: 6.2.3
+      web-vitals-soft-navs: web-vitals@6.2.1
+    optionalDependencies:
+      '@types/react': 19.3.0
+      react: 19.3.0
+    transitivePeerDependencies:
+      - preact-render-to-string
+
+  preact@10.29.8: {}
+
   punycode.js@2.3.1: {}
 
   punycode@2.3.1: {}
+
+  query-selector-shadow-dom@1.0.1: {}
 
   react-aria@3.53.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
@@ -3329,6 +3412,10 @@ snapshots:
   w3c-xmlserializer@6.0.0:
     dependencies:
       xml-name-validator: 5.0.0
+
+  web-vitals@6.2.1: {}
+
+  web-vitals@6.2.3: {}
 
   webidl-conversions@8.0.1: {}
 

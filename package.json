@@ -30,6 +30,7 @@
     "markdown-it-anchor": "^10.0.0",
     "markdown-it-task-lists": "^2.1.1",
     "mermaid": "^12.2.0",
+    "posthog-js": "^1.438.9",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.16"

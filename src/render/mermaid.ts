@@ -1,4 +1,5 @@
 import type { Mermaid } from 'mermaid'
+import { track } from '../analytics.ts'
 import { i18n } from '../i18n/index.ts'
 import type { Theme } from '../ui/theme.ts'
 import { downloadBlob, svgToPngBlob } from '../ui/download.ts'
@@ -69,12 +70,14 @@ function diagramActions(figure: HTMLElement, index: number, theme: Theme): HTMLE
   const name = `diagram-${index + 1}`
   actions.append(
     actionButton(i18n.t('export.svg'), () => {
+      track('export', { format: 'svg' })
       const svg = figure.querySelector('.diagram-svg > svg')
       // XML serialization: outerHTML would write <br> inside labels as unclosed HTML.
       if (svg) downloadBlob(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }), `${name}.svg`)
     }),
     actionButton(i18n.t('export.png'), async () => {
       figure.querySelector('.png-failed')?.remove()
+      track('export', { format: 'png' })
       try {
         const svg = await renderDiagramForExport(figure.dataset.source ?? '', theme)
         downloadBlob(await svgToPngBlob(svg, PNG_BACKGROUND[theme]), `${name}.png`)

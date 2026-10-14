@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { diagramTypes, track } from '../analytics.ts'
 import { renderMarkdown } from '../render/markdown.ts'
 import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
@@ -49,6 +50,15 @@ export function EditorPage({ theme }: { theme: Theme }) {
       })
       // Edited while the link was being made: that link is for a version that no longer exists.
       if (latest.current !== source) return
+      const types = diagramTypes(source)
+      track('link_created', {
+        result: result.kind === 'too-large' ? 'too_large' : result.kind,
+        storage: result.kind !== 'too-large' && result.url.includes('#/s/') ? 'stored' : 'inline',
+        protected: false,
+        size_kb: Math.round(new Blob([source]).size / 1024),
+        diagram_count: types.length,
+        diagram_types: types,
+      })
       if (result.kind === 'too-large') {
         setShared({ kind: 'too-large' })
         return
@@ -62,7 +72,10 @@ export function EditorPage({ theme }: { theme: Theme }) {
       }
       setShared({ kind: 'link', url: result.url, fallback: result.kind === 'fallback', copied })
     } catch {
-      if (latest.current === source) setShared({ kind: 'failed' })
+      if (latest.current === source) {
+        track('link_created', { result: 'failed', protected: false })
+        setShared({ kind: 'failed' })
+      }
     } finally {
       setBusy(false)
     }
