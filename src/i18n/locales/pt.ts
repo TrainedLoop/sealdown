@@ -39,6 +39,13 @@ const pt: typeof en = {
     open: 'Abrir',
     opening: 'Abrindo…',
   },
+  present: {
+    button: 'Apresentar',
+    dialog: 'Apresentação',
+    previous: 'Slide anterior',
+    next: 'Próximo slide',
+    close: 'Sair',
+  },
   qr: {
     button: 'QR code',
     alt: 'QR code do link',

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { track } from '../analytics.ts'
 import { hydrate } from '../render/hydrate.ts'
 import { renderMarkdown } from '../render/markdown.ts'
+import { splitSlides } from '../render/slides.ts'
 import { extractToc } from '../render/toc.ts'
 import type { Route } from '../router/route.ts'
 import { LinkError, type LinkErrorKind } from '../share/errors.ts'
@@ -13,6 +14,7 @@ import { loadDraft, saveDraft } from './draft.ts'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
 import { PasswordPrompt } from './PasswordPrompt.tsx'
+import { Presentation } from './Presentation.tsx'
 import type { Theme } from './theme.ts'
 import { Toc } from './Toc.tsx'
 
@@ -90,9 +92,12 @@ export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Them
 function Document({ text, theme }: { text: string; theme: Theme }) {
   const { t } = useTranslation()
   const wrapper = useRef<HTMLDivElement>(null)
+  const [slides, setSlides] = useState<string[] | null>(null)
   const html = useMemo(() => renderMarkdown(text), [text])
   // DOMParser documents don't fetch images, unlike a detached element.
   const toc = useMemo(() => extractToc(new DOMParser().parseFromString(html, 'text/html').body), [html])
+
+  const closePresentation = useCallback(() => setSlides(null), [])
 
   function editCopy() {
     const draft = loadDraft()
@@ -136,7 +141,18 @@ function Document({ text, theme }: { text: string; theme: Theme }) {
         <button type="button" onClick={exportPdf}>
           {t('export.pdf')}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            const split = splitSlides(html)
+            track('present_started', { slides: split.length })
+            setSlides(split)
+          }}
+        >
+          {t('present.button')}
+        </button>
       </div>
+      {slides && <Presentation slides={slides} theme={theme} onClose={closePresentation} />}
       <div className={toc.length >= 3 ? 'reader-body with-toc' : 'reader-body'}>
         <Toc entries={toc} />
         <MarkdownView html={html} theme={theme} />

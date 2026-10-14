@@ -17,6 +17,7 @@
   .app-header,
   .reader-toolbar,
   .toc,
+  .presentation,
   .diagram-actions,
   .load-failed {
     display: none !important;

@@ -503,3 +503,62 @@ button:disabled {
 .password-prompt button {
   align-self: flex-start;
 }
+
+/* Presentation */
+.presentation {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  outline: none;
+  touch-action: pan-y;
+}
+
+.presentation .slide {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 6vw;
+}
+
+.presentation .slide .markdown-body {
+  width: 100%;
+  max-width: 1100px;
+  font-size: clamp(1.1rem, 1.6vw + 0.6rem, 1.9rem);
+}
+
+.presentation .slide .markdown-body h1,
+.presentation .slide .markdown-body h2 {
+  border-bottom: 0;
+}
+
+.presentation-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 16px calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+
+.slide-counter {
+  min-width: 4.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.presentation .diagram-actions {
+  display: none;
+}
+
+/* Mermaid caps diagrams at their natural width; on a slide, let them grow with the text. */
+.presentation figure.diagram svg {
+  width: 100%;
+  max-width: min(100%, 1000px) !important;
+  max-height: 60vh;
+}

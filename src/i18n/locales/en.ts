@@ -37,6 +37,13 @@ const en = {
     open: 'Open',
     opening: 'Opening…',
   },
+  present: {
+    button: 'Present',
+    dialog: 'Presentation',
+    previous: 'Previous slide',
+    next: 'Next slide',
+    close: 'Exit',
+  },
   qr: {
     button: 'QR code',
     alt: 'QR code for the link',
