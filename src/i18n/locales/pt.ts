@@ -69,6 +69,11 @@ const pt: typeof en = {
     next: 'Próximo slide',
     close: 'Sair',
   },
+  diagram: {
+    expand: 'Ampliar',
+    copy: 'Copiar imagem',
+    dialog: 'Diagrama',
+  },
   code: {
     copy: 'Copiar código',
     copyShort: 'Copiar',
@@ -95,6 +100,7 @@ const pt: typeof en = {
     tooLarge: 'Este documento é grande demais para compartilhar por link. Baixe o .md ou exporte um PDF.',
     diagram: 'Não foi possível renderizar este diagrama:',
     png: 'Este diagrama não pode ser exportado como PNG neste navegador. Baixe o SVG.',
+    copyImage: 'Não foi possível copiar a imagem. Baixe o SVG ou o PNG.',
     loadFailed: 'Não foi possível carregar o que este bloco precisa.',
   },
   common: { retry: 'Tentar de novo' },

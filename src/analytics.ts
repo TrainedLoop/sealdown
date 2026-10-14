@@ -27,6 +27,8 @@ export type EventName =
   | 'mode_changed'
   | 'format_applied'
   | 'code_copied'
+  | 'diagram_expanded'
+  | 'diagram_copied'
 
 type Props = Record<string, string | number | boolean | string[]>
 

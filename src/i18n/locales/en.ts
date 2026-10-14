@@ -67,6 +67,11 @@ const en = {
     next: 'Next slide',
     close: 'Exit',
   },
+  diagram: {
+    expand: 'Expand',
+    copy: 'Copy image',
+    dialog: 'Diagram',
+  },
   code: {
     copy: 'Copy code',
     copyShort: 'Copy',
@@ -92,6 +97,7 @@ const en = {
     tooLarge: 'This document is too large to share by link. Download the .md or export a PDF instead.',
     diagram: "This diagram couldn't be rendered:",
     png: "This diagram can't be exported as PNG in this browser. Download the SVG instead.",
+    copyImage: "Couldn't copy the image. Download the SVG or PNG instead.",
     loadFailed: "Couldn't load what this block needs.",
   },
   common: { retry: 'Try again' },

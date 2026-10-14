@@ -3,6 +3,7 @@ import { track } from '../analytics.ts'
 import { i18n } from '../i18n/index.ts'
 import type { Theme } from '../ui/theme.ts'
 import { downloadBlob, svgToPngBlob } from '../ui/download.ts'
+import { openLightbox } from './lightbox.ts'
 import { createNotice } from './notice.ts'
 
 let loading: Promise<Mermaid> | undefined
@@ -68,7 +69,37 @@ function diagramActions(figure: HTMLElement, index: number, theme: Theme): HTMLE
   actions.setAttribute('role', 'group')
   actions.setAttribute('aria-label', i18n.t('export.diagramActions'))
   const name = `diagram-${index + 1}`
+  const showProblem = (message: string) => {
+    figure.querySelector('.png-failed')?.remove()
+    const notice = createNotice(message)
+    notice.classList.add('png-failed')
+    actions.after(notice)
+  }
+  const pngOf = async () =>
+    svgToPngBlob(await renderDiagramForExport(figure.dataset.source ?? '', theme), PNG_BACKGROUND[theme])
+
+  const expand = actionButton(i18n.t('diagram.expand'), () => {
+    const svg = figure.querySelector<SVGSVGElement>('.diagram-svg > svg')
+    if (!svg) return
+    track('diagram_expanded')
+    openLightbox(svg, expand)
+  })
+  const copyImage = actionButton(i18n.t('diagram.copy'), async () => {
+    figure.querySelector('.png-failed')?.remove()
+    try {
+      // A promise inside ClipboardItem keeps the user gesture valid while the PNG renders (Safari).
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngOf() })])
+      track('diagram_copied', { ok: true })
+      copyImage.textContent = i18n.t('code.copied')
+      setTimeout(() => (copyImage.textContent = i18n.t('diagram.copy')), 2000)
+    } catch {
+      track('diagram_copied', { ok: false })
+      showProblem(i18n.t('errors.copyImage'))
+    }
+  })
   actions.append(
+    expand,
+    copyImage,
     actionButton(i18n.t('export.svg'), () => {
       track('export', { format: 'svg' })
       const svg = figure.querySelector('.diagram-svg > svg')
@@ -79,13 +110,10 @@ function diagramActions(figure: HTMLElement, index: number, theme: Theme): HTMLE
       figure.querySelector('.png-failed')?.remove()
       track('export', { format: 'png' })
       try {
-        const svg = await renderDiagramForExport(figure.dataset.source ?? '', theme)
-        downloadBlob(await svgToPngBlob(svg, PNG_BACKGROUND[theme]), `${name}.png`)
+        downloadBlob(await pngOf(), `${name}.png`)
       } catch {
         // Some diagram types still produce markup the browser refuses to rasterize.
-        const notice = createNotice(i18n.t('errors.png'))
-        notice.classList.add('png-failed')
-        actions.after(notice)
+        showProblem(i18n.t('errors.png'))
       }
     }),
   )
