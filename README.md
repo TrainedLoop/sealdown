@@ -17,7 +17,7 @@ exceed rendermd's 100 MB budget, the least recently opened ones are removed firs
 
 The Supabase project is shared with other small projects, so everything rendermd owns lives in the
 `rendermd` schema. Add `rendermd` to the project's exposed schemas (Settings → API → Exposed
-schemas, or `supabase config push`).
+schemas). Avoid `supabase config push`: it would overwrite settings other projects rely on.
 
 ## Development
 
