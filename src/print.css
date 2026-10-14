@@ -1,0 +1,45 @@
+@media print {
+  .app-header,
+  .reader-toolbar,
+  .toc,
+  .diagram-actions,
+  .load-failed {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .page {
+    padding: 0;
+    max-width: none;
+  }
+
+  .reader-body.with-toc {
+    display: block;
+  }
+
+  .markdown-body {
+    max-width: none;
+  }
+
+  .markdown-body figure,
+  .markdown-body pre,
+  .markdown-body table,
+  .markdown-body .katex-display {
+    break-inside: avoid;
+  }
+
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3 {
+    break-after: avoid;
+  }
+
+  .markdown-body a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: #555;
+  }
+}

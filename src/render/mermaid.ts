@@ -1,6 +1,7 @@
 import type { Mermaid } from 'mermaid'
 import { i18n } from '../i18n/index.ts'
 import type { Theme } from '../ui/theme.ts'
+import { downloadBlob, svgToPngBlob } from '../ui/download.ts'
 import { createNotice } from './notice.ts'
 
 let loading: Promise<Mermaid> | undefined
@@ -30,6 +31,36 @@ function configure(mermaid: Mermaid, theme: Theme, htmlLabels = true) {
     theme: theme === 'dark' ? 'dark' : 'default',
     htmlLabels,
   })
+}
+
+// Matches --surface in styles.css, so PNGs look like the page they came from.
+const PNG_BACKGROUND: Record<Theme, string> = { light: '#ffffff', dark: '#1e1f23' }
+
+function actionButton(label: string, onClick: () => void): HTMLButtonElement {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.textContent = label
+  button.addEventListener('click', onClick)
+  return button
+}
+
+function diagramActions(figure: HTMLElement, index: number, theme: Theme): HTMLElement {
+  const actions = document.createElement('div')
+  actions.className = 'diagram-actions'
+  actions.setAttribute('role', 'group')
+  actions.setAttribute('aria-label', i18n.t('export.diagramActions'))
+  const name = `diagram-${index + 1}`
+  actions.append(
+    actionButton(i18n.t('export.svg'), () => {
+      const svg = figure.querySelector('.diagram-svg svg')
+      if (svg) downloadBlob(new Blob([svg.outerHTML], { type: 'image/svg+xml' }), `${name}.svg`)
+    }),
+    actionButton(i18n.t('export.png'), async () => {
+      const svg = await renderDiagramForExport(figure.dataset.source ?? '', theme)
+      downloadBlob(await svgToPngBlob(svg, PNG_BACKGROUND[theme]), `${name}.png`)
+    }),
+  )
+  return actions
 }
 
 async function renderSvg(mermaid: Mermaid, source: string): Promise<string> {
@@ -64,7 +95,7 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
   passes.set(container, pass)
 
   const mermaid = await loadMermaid()
-  for (const figure of figures) {
+  for (const [index, figure] of figures.entries()) {
     if (passes.get(container) !== pass) return
     const source = figure.dataset.source ?? ''
     configure(mermaid, theme)
@@ -81,7 +112,8 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
       content.append(pre)
     }
     if (passes.get(container) !== pass) return
-    figure.replaceChildren(content)
+    if (content.classList.contains('diagram-svg')) figure.replaceChildren(content, diagramActions(figure, index, theme))
+    else figure.replaceChildren(content)
   }
 }
 

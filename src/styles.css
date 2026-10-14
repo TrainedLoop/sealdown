@@ -321,3 +321,80 @@ button:disabled {
   color: var(--text);
   font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* Reader */
+.reader-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.reader-body.with-toc {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 1000px) {
+  .reader-body.with-toc {
+    grid-template-columns: 220px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .reader-body.with-toc .toc {
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+}
+
+.toc {
+  font-size: 0.9rem;
+}
+
+.toc-title {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc li {
+  margin: 0.25rem 0;
+}
+
+.toc a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  color: var(--accent);
+}
+
+.toc-level-2 {
+  padding-left: 0.75rem;
+}
+
+.toc-level-3 {
+  padding-left: 1.5rem;
+}
+
+.diagram-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.diagram-actions button {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+}
