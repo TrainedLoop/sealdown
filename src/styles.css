@@ -1,0 +1,190 @@
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --text: #1d1d1f;
+  --muted: #6b6b70;
+  --border: #e4e2dd;
+  --accent: #3b5bdb;
+  --accent-text: #ffffff;
+  --code-bg: #f3f1ed;
+  --notice-bg: #fff4e5;
+  --notice-border: #f0c58a;
+  --error: #c92a2a;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #16171a;
+  --surface: #1e1f23;
+  --text: #e8e8ea;
+  --muted: #9a9aa2;
+  --border: #33343a;
+  --accent: #91a7ff;
+  --accent-text: #10121a;
+  --code-bg: #24262b;
+  --notice-bg: #2b2418;
+  --notice-border: #6b5428;
+  --error: #ff8787;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--muted);
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0.75rem 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 16px 4rem;
+}
+
+.status {
+  color: var(--muted);
+}
+
+.notice {
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.notice p {
+  margin: 0 0 0.5rem;
+}
+
+.notice p:last-child {
+  margin: 0;
+}
+
+/* Document */
+.markdown-body {
+  max-width: 760px;
+  margin: 0 auto;
+  overflow-wrap: break-word;
+}
+
+.markdown-body a {
+  color: var(--accent);
+}
+
+.markdown-body h1,
+.markdown-body h2 {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3em;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  scroll-margin-top: 1rem;
+  line-height: 1.25;
+}
+
+.markdown-body code {
+  font: 0.9em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+}
+
+.markdown-body pre {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.75rem;
+}
+
+.markdown-body blockquote {
+  margin: 0;
+  padding: 0 1rem;
+  color: var(--muted);
+  border-left: 4px solid var(--border);
+}
+
+.markdown-body img {
+  max-width: 100%;
+}
+
+.markdown-body .task-list-item {
+  list-style: none;
+}
+
+.markdown-body .task-list-item input {
+  margin: 0 0.4em 0 -1.4em;
+}
