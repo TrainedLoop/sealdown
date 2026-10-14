@@ -125,6 +125,8 @@ Access happens **only** through `security definer` functions, exposed as RPC:
 
 Nobody can list, edit or delete through the API.
 
+**Migrations:** plain SQL in `db/migrations`, applied with dbmate. Its history table is `rendermd.schema_migrations`, because the Supabase CLI keeps one history per database and other projects share it.
+
 **Cleanup:** `prune_docs()` runs hourly via `pg_cron` (job `rendermd-prune-docs`). It orders by `last_accessed_at` descending, sums the running size and deletes everything past rendermd's budget of **100 MB**, leaving the rest of the shared database to other projects. Space freed by `DELETE` is reused by autovacuum but not returned to disk immediately.
 
 ## 5. Data flow

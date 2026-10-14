@@ -27,7 +27,8 @@ Requires Node (LTS), pnpm and Docker.
 pnpm install
 pnpm dev                # app at http://localhost:5173 (no Supabase: large documents fall back to long links)
 pnpm test               # unit tests
-pnpm db:start           # local Supabase in Docker
+pnpm db:start           # local Supabase in Docker, then apply migrations
+pnpm db:reset           # wipe the local database and re-apply migrations
 pnpm db:test            # database tests (pgTAP)
 pnpm test:e2e           # end-to-end tests (Playwright in its Docker image)
 pnpm test:e2e:stored    # end-to-end tests against the local Supabase
@@ -36,6 +37,24 @@ pnpm test:visual        # visual regression for every diagram type
 
 To run the app against the local database, put the `API_URL` and `PUBLISHABLE_KEY` from
 `pnpm exec supabase status` into `.env.local` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+
+## Database migrations
+
+The Supabase project is shared with other projects, and the Supabase CLI keeps a single migration
+history per database. So rendermd uses [dbmate](https://github.com/amacneil/dbmate) instead, with
+its history in `rendermd.schema_migrations`: each project tracks only its own migrations and never
+blocks another.
+
+- Migrations live in `db/migrations` as plain SQL with `-- migrate:up` / `-- migrate:down` sections.
+  Create one with `pnpm db:migrate local new <name>`.
+- Locally, `pnpm db:start` and `pnpm db:reset` apply them. `supabase/seed.sql` only creates the empty
+  schema so the local API can start before dbmate runs.
+- In production, apply pending migrations with the session pooler URI from the dashboard
+  (Connect → Session pooler), keeping the password out of shell history and chat:
+
+  ```sh
+  DATABASE_URL='postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres' pnpm db:migrate
+  ```
 
 ## Keeping Mermaid current
 

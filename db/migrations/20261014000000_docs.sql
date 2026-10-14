@@ -1,9 +1,10 @@
+-- migrate:up
 -- rendermd lives in its own schema: the Supabase project (and its 500 MB free-tier database) is
 -- shared with other small projects, each in a schema of its own.
 --
 -- Encrypted documents shared by link. The server only ever sees ciphertext:
 -- the decryption key lives in the URL fragment, which browsers never send.
-create schema rendermd;
+create schema if not exists rendermd;  -- dbmate may have created it for its history table
 grant usage on schema rendermd to anon;
 
 create table rendermd.docs (
@@ -89,3 +90,8 @@ grant execute on function rendermd.create_doc(text), rendermd.get_doc(text), ren
 
 create extension if not exists pg_cron with schema pg_catalog;
 select cron.schedule('rendermd-prune-docs', '0 * * * *', 'select rendermd.prune_docs()');
+
+-- migrate:down
+select cron.unschedule('rendermd-prune-docs');
+drop table rendermd.docs;
+drop function rendermd.create_doc(text), rendermd.get_doc(text), rendermd.ping(), rendermd.prune_docs(bigint);

@@ -11,11 +11,13 @@
     "lint": "oxlint",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "db:start": "supabase start",
+    "db:start": "supabase start && scripts/db-migrate.sh local",
     "db:test": "supabase test db",
     "test:e2e": "scripts/playwright-docker.sh --project=chromium",
     "test:e2e:stored": "scripts/e2e-stored.sh",
-    "test:visual": "scripts/playwright-docker.sh --project=visual"
+    "test:visual": "scripts/playwright-docker.sh --project=visual",
+    "db:reset": "supabase db reset && scripts/db-migrate.sh local",
+    "db:migrate": "scripts/db-migrate.sh"
   },
   "dependencies": {
     "@mdit/plugin-tex": "^1.1.2",
@@ -38,6 +40,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "dbmate": "^2.36.0",
     "jsdom": "^30.1.2",
     "oxlint": "^1.88.0",
     "supabase": "^2.120.0",
