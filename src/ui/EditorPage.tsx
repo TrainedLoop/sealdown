@@ -13,7 +13,8 @@ import { loadDraft, saveDraft } from './draft.ts'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
 import { useMode, type Mode } from './mode.ts'
-import { readPref } from './prefs.ts'
+import { readPref, writePref } from './prefs.ts'
+import { StatusBar } from './StatusBar.tsx'
 import { QrCode } from './QrCode.tsx'
 import type { Theme } from './theme.ts'
 
@@ -38,7 +39,12 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const [text, setText] = useState(loadDraft)
   const { mode, setMode, splitAvailable } = useMode()
   const previewPane = useRef<HTMLDivElement>(null)
-  const [syncScroll] = useState(() => readPref('rendermd.syncScroll') !== 'false')
+  const [syncScroll, setSyncScrollState] = useState(() => readPref('rendermd.syncScroll') !== 'false')
+  const setSyncScroll = (on: boolean) => {
+    writePref('rendermd.syncScroll', String(on))
+    setSyncScrollState(on)
+  }
+  const [saved, setSaved] = useState(true)
   const [shared, setShared] = useState<Shared | null>(null)
   const [busy, setBusy] = useState(false)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
@@ -50,7 +56,10 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const latest = useRef(text)
   useEffect(() => {
     latest.current = text
-    const timer = setTimeout(() => saveDraft(text), DRAFT_DELAY_MS)
+    const timer = setTimeout(() => {
+      saveDraft(text)
+      setSaved(true)
+    }, DRAFT_DELAY_MS)
     return () => clearTimeout(timer)
   }, [text])
   // Leaving the editor (e.g. opening a link) cancels the pending debounce, so save right away.
@@ -58,6 +67,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
 
   function edit(next: string) {
     setText(next)
+    setSaved(false)
     setShared(null) // a link for the previous text would be misleading
   }
 
@@ -279,6 +289,14 @@ export function EditorPage({ theme }: { theme: Theme }) {
           </div>
         )}
       </div>
+      {mode !== 'read' && (
+        <StatusBar
+          text={text}
+          saved={saved}
+          syncScroll={mode === 'split' ? syncScroll : undefined}
+          onSyncScrollChange={setSyncScroll}
+        />
+      )}
     </section>
   )
 }
