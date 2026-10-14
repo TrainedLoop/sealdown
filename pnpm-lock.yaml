@@ -157,12 +157,21 @@ importers:
       markdown-it-anchor:
         specifier: ^10.0.0
         version: 10.0.0(@types/markdown-it@14.2.0)(markdown-it@15.0.2)
+      markdown-it-emoji:
+        specifier: ^3.1.0
+        version: 3.1.0
+      markdown-it-footnote:
+        specifier: ^4.0.0
+        version: 4.0.0
       markdown-it-front-matter:
         specifier: ^0.2.4
         version: 0.2.4
       markdown-it-github-alerts:
         specifier: ^1.0.1
         version: 1.0.1(markdown-it@15.0.2)
+      markdown-it-mark:
+        specifier: ^4.0.0
+        version: 4.0.0
       markdown-it-task-lists:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1733,6 +1742,12 @@ packages:
       '@types/markdown-it': '*'
       markdown-it: '*'
 
+  markdown-it-emoji@3.1.0:
+    resolution: {integrity: sha512-NhmMEH2ywduD4Nty1E8uB5NqfLhAT1VR0dyvoJyStKOqCzbZmVdn/+8wj7zpDsb/fLBikpCPsWwxqKlvMmbz4g==}
+
+  markdown-it-footnote@4.0.0:
+    resolution: {integrity: sha512-WYJ7urf+khJYl3DqofQpYfEYkZKbmXmwxQV8c8mO/hGIhgZ1wOe7R4HLFNwqx7TjILbnC98fuyeSsin19JdFcQ==}
+
   markdown-it-front-matter@0.2.4:
     resolution: {integrity: sha512-25GUs0yjS2hLl8zAemVndeEzThB1p42yxuDEKbd4JlL3jiz+jsm6e56Ya8B0VREOkNxLYB4TTwaoPJ3ElMmW+w==}
 
@@ -1740,6 +1755,9 @@ packages:
     resolution: {integrity: sha512-NNATF4QdoGI07hyCitoB2YqJ1YcNVCKT89ut2VtfFY9rkeFCXe/V2lOonKQLpJiq5DjiZZepf97BJx5xOjFIAw==}
     peerDependencies:
       markdown-it: '>= 13.0.0'
+
+  markdown-it-mark@4.0.0:
+    resolution: {integrity: sha512-YLhzaOsU9THO/cal0lUjfMjrqSMPjjyjChYM7oyj4DnyaXEzA8gnW6cVJeyCrCVeyesrY2PlEdUYJSPFYL4Nkg==}
 
   markdown-it-task-lists@2.1.1:
     resolution: {integrity: sha512-TxFAc76Jnhb2OUu+n3yz9RMu4CwGfaT788br6HhEDlvWfdeJcLUsxk1Hgw2yJio0OXsxv7pyIPmvECY7bMbluA==}
@@ -3528,11 +3546,17 @@ snapshots:
       '@types/markdown-it': 14.2.0
       markdown-it: 15.0.2
 
+  markdown-it-emoji@3.1.0: {}
+
+  markdown-it-footnote@4.0.0: {}
+
   markdown-it-front-matter@0.2.4: {}
 
   markdown-it-github-alerts@1.0.1(markdown-it@15.0.2):
     dependencies:
       markdown-it: 15.0.2
+
+  markdown-it-mark@4.0.0: {}
 
   markdown-it-task-lists@2.1.1: {}
 

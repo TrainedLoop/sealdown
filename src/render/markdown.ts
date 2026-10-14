@@ -1,6 +1,9 @@
 import { tex } from '@mdit/plugin-tex'
 import alerts from 'markdown-it-github-alerts'
+import { full as emoji } from 'markdown-it-emoji'
+import footnote from 'markdown-it-footnote'
 import frontMatter from 'markdown-it-front-matter'
+import mark from 'markdown-it-mark'
 import { parseFrontMatter } from './frontMatter.ts'
 import MarkdownItFactory, { type MarkdownIt } from 'markdown-it'
 import anchor from 'markdown-it-anchor'
@@ -60,6 +63,9 @@ function createMarkdown(): MarkdownIt {
   md.use(taskLists)
   // GitHub-style callouts: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION].
   md.use(alerts)
+  md.use(footnote)
+  md.use(mark)
+  md.use(emoji)
   md.use(tex, {
     mathFence: true,
     render: (content, displayMode) =>

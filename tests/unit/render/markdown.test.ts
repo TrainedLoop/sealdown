@@ -96,3 +96,27 @@ describe('callouts', () => {
     expect(renderToDom('> just a quote').querySelector('blockquote')).not.toBeNull()
   })
 })
+
+describe('extra syntax', () => {
+  test('footnotes render with in-document links', () => {
+    const root = renderToDom('Claim.[^1]\n\n[^1]: Source.')
+    const ref = root.querySelector('sup a')
+    expect(ref?.getAttribute('href')).toMatch(/^#/)
+    expect(ref?.hasAttribute('target')).toBe(false)
+    expect(root.querySelector('.footnotes')?.textContent).toContain('Source.')
+  })
+
+  test('==highlight== becomes <mark>', () => {
+    expect(renderToDom('a ==key== b').querySelector('mark')?.textContent).toBe('key')
+  })
+
+  test('emoji shortcodes', () => {
+    expect(renderToDom('done :tada:').textContent).toContain('🎉')
+  })
+
+  test('kbd and mark HTML are kept', () => {
+    const root = renderToDom('Press <kbd>Ctrl</kbd> + <mark>K</mark>')
+    expect(root.querySelector('kbd')?.textContent).toBe('Ctrl')
+    expect(root.querySelector('mark')?.textContent).toBe('K')
+  })
+})

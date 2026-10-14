@@ -33,3 +33,16 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.locator('.markdown-body table')).toHaveScreenshot(`${theme}-table.png`)
   })
 }
+
+const syntax = readFileSync(new URL('./syntax.md', import.meta.url), 'utf8')
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`syntax reference, ${theme}`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: theme })
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto('/' + inlineHash(syntax))
+    await expect(page.locator('.markdown-alert')).toHaveCount(5)
+    await page.evaluate(() => document.fonts.ready)
+    await expect(page.locator('.markdown-body')).toHaveScreenshot(`${theme}-syntax.png`)
+  })
+}
