@@ -25,6 +25,7 @@ export type EventName =
   | 'present_started'
   | 'qr_shown'
   | 'mode_changed'
+  | 'format_applied'
 
 type Props = Record<string, string | number | boolean | string[]>
 

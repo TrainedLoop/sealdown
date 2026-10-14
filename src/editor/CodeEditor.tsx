@@ -1,11 +1,14 @@
-import { EditorState } from '@codemirror/state'
+import { EditorState, type TransactionSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
 import { parseDiagram } from '../render/mermaid.ts'
 import { editorExtensions, insertAtCursor } from './codemirror.ts'
 import { mermaidLinter } from './mermaidLint.ts'
 
-export type EditorApi = { insert(text: string): void }
+export type EditorApi = {
+  insert(text: string): void
+  apply(build: (state: EditorState) => TransactionSpec): void
+}
 
 type Props = {
   value: string
@@ -36,7 +39,13 @@ export default function CodeEditor({ value, onChange, label, onReady, onScrollLi
       }),
     })
     view.current = editor
-    onReady?.({ insert: (text) => insertAtCursor(editor, text) })
+    onReady?.({
+      insert: (text) => insertAtCursor(editor, text),
+      apply: (build) => {
+        editor.dispatch({ ...build(editor.state), scrollIntoView: true })
+        editor.focus()
+      },
+    })
     const onScroll = () => {
       const block = editor.lineBlockAtHeight(editor.scrollDOM.scrollTop)
       onScrollLineRef.current?.(editor.state.doc.lineAt(block.from).number)

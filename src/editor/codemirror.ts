@@ -1,6 +1,8 @@
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { EditorView, placeholder } from '@codemirror/view'
+import { Prec } from '@codemirror/state'
+import { EditorView, keymap, placeholder } from '@codemirror/view'
+import { toggleInline } from './format.ts'
 import { tags as t } from '@lezer/highlight'
 import { minimalSetup } from 'codemirror'
 
@@ -41,6 +43,13 @@ export function editorExtensions(label: string, onChange: (text: string) => void
     markdown(),
     syntaxHighlighting(highlight),
     EditorView.lineWrapping,
+    // High precedence: CodeMirror's default keymap binds Mod-i to "select parent syntax".
+    Prec.high(
+      keymap.of([
+        { key: 'Mod-b', run: (view) => (view.dispatch(toggleInline(view.state, '**', 'bold')), true) },
+        { key: 'Mod-i', run: (view) => (view.dispatch(toggleInline(view.state, '*', 'italic')), true) },
+      ]),
+    ),
     EditorView.contentAttributes.of({ 'aria-label': label, spellcheck: 'false' }),
     placeholder(label),
     theme,

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { diagramTypes, track } from '../analytics.ts'
 import type { EditorApi } from '../editor/CodeEditor.tsx'
 import { DiagramPicker } from '../editor/DiagramPicker.tsx'
+import { Toolbar } from '../editor/Toolbar.tsx'
 import type { DiagramTemplate } from '../editor/templates.ts'
 import { renderMarkdown } from '../render/markdown.ts'
 import { syncTarget } from '../render/scrollSync.ts'
@@ -237,6 +238,14 @@ export function EditorPage({ theme }: { theme: Theme }) {
         </div>
       )}
 
+      {mode !== 'read' && (
+        <Toolbar
+          onApply={(build) => editorApi.current?.apply(build)}
+          onUsed={(id) => track('format_applied', { format: id })}
+        >
+          <DiagramPicker theme={theme} onPick={insertDiagram} />
+        </Toolbar>
+      )}
       <div className={mode === 'split' ? 'editor-main split' : 'editor-main'}>
         {mode !== 'read' && (
           <div
@@ -253,7 +262,6 @@ export function EditorPage({ theme }: { theme: Theme }) {
               void openFile(file, 'drop')
             }}
           >
-            <DiagramPicker theme={theme} onPick={insertDiagram} />
             <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
               <CodeEditor
                 value={text}
