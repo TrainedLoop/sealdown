@@ -1,5 +1,5 @@
 import { tex } from '@mdit/plugin-tex'
-import MarkdownIt from 'markdown-it'
+import MarkdownItFactory, { type MarkdownIt } from 'markdown-it'
 import anchor from 'markdown-it-anchor'
 import taskLists from 'markdown-it-task-lists'
 import { sanitize } from './sanitize.ts'
@@ -13,7 +13,7 @@ function slugify(text: string): string {
 }
 
 function createMarkdown(): MarkdownIt {
-  const md = new MarkdownIt({ html: true, linkify: true })
+  const md = new MarkdownItFactory({ html: true, linkify: true })
   const escape = md.utils.escapeHtml
 
   // Fences are emitted as placeholders; hydrate() renders diagrams and highlighting later, on demand.
