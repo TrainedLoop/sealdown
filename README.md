@@ -39,9 +39,10 @@ schemas). Avoid `supabase config push`: it would overwrite settings other projec
 ## Metrics and privacy
 
 Usage metrics go to PostHog (the same project as danielporto-site), loaded after the page is idle:
-no cookies or storage, no autocapture, no automatic pageviews and **no session recording**, since
+no cookies or storage, no autocapture and **no session recording**, since
 recordings would capture documents. The URL fragment holds documents and keys, so a `before_send`
-hook cuts every URL in an event to origin + path. Nothing is sent with Do Not Track or Global
+hook cuts every URL in an event to origin + path. Pageviews (for Web Analytics) are sent once per kind
+of page with a `route` property, so every document counts as the same page. Nothing is sent with Do Not Track or Global
 Privacy Control on, or when `VITE_POSTHOG_KEY` is missing. PostHog also drops events from
 automated browsers.
 
@@ -49,7 +50,8 @@ Every event carries `app: rendermd` and `lang`:
 
 | Event | Properties |
 |---|---|
-| `app_opened` | `route`: editor, inline, stored, protected, error |
+| `$pageview` | `route`: editor, inline, stored, protected, error |
+| `app_opened` | `route` (first page of the visit) |
 | `link_created` | `result`, `storage`, `protected`, `size_kb`, `diagram_count`, `diagram_types` |
 | `link_opened` | `storage`, `protected`, `ok`, `error` |
 | `password_failed` | — |

@@ -5,14 +5,16 @@ import { i18n } from './i18n/index.ts'
  * Usage metrics with PostHog (the same project as danielporto-site), loaded after the page is
  * idle in a separate chunk.
  *
- * Privacy: no cookies or storage (persistence "memory"), no autocapture, no automatic pageviews,
- * no session recording (it would record documents) and no extra PostHog scripts. The URL fragment
- * holds documents and decryption keys, so every URL in an event is cut down to origin + path
- * before sending. Only the events below are sent; none carries document text. With Do Not Track
+ * Privacy: no cookies or storage (persistence "memory"), no autocapture, no session recording (it
+ * would record documents) and no extra PostHog scripts. The URL fragment holds documents and
+ * decryption keys, so every URL in an event is cut down to origin + path before sending; that
+ * includes the pageviews sent for Web Analytics, so every document counts as the same page. Only
+ * the events below are sent; none carries document text. With Do Not Track
  * or Global Privacy Control on, or without VITE_POSTHOG_KEY in the build, nothing is sent.
  */
 
 export type EventName =
+  | '$pageview'
   | 'app_opened'
   | 'link_created'
   | 'link_opened'
@@ -77,6 +79,11 @@ export function track(event: EventName, props?: Props): void {
   else queue.push([event, withLang])
 }
 
+/** A pageview for PostHog's Web Analytics; `route` is the kind of page (editor, inline, …), never the URL. */
+export function trackPageview(route: string): void {
+  track('$pageview', { route })
+}
+
 async function load() {
   const { default: posthog } = await import('posthog-js')
   posthog.init(KEY!, {
@@ -84,7 +91,8 @@ async function load() {
     persistence: 'memory',
     autocapture: false,
     capture_pageview: false,
-    capture_pageleave: false,
+    // Pageviews are sent by the app per route kind (trackPageview); pageleaves give Web Analytics durations.
+    capture_pageleave: true,
     capture_dead_clicks: false,
     capture_heatmaps: false,
     capture_exceptions: false,

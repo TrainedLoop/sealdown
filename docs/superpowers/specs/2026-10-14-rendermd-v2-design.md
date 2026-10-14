@@ -67,7 +67,7 @@ After a link is generated, a **QR code** button shows the link as a QR image (li
 
 ### 3.8 Metrics (PostHog)
 
-Same PostHog project and privacy model as `danielporto-site`: loaded lazily, `persistence: 'memory'` (no cookies or storage), no autocapture, no automatic pageviews or pageleaves, nothing when Do Not Track / Global Privacy Control is on or when `VITE_POSTHOG_KEY` is missing. Extra rules for rendermd:
+Same PostHog project and privacy model as `danielporto-site`: loaded lazily, `persistence: 'memory'` (no cookies or storage), no autocapture, no automatic pageviews (the app sends `$pageview` itself, once per kind of page, with property `route`; pageleaves on, both with URLs cut down like every event), nothing when Do Not Track / Global Privacy Control is on or when `VITE_POSTHOG_KEY` is missing. Extra rules for rendermd:
 
 - **No session recording** (it would record document text).
 - **The URL never reaches PostHog.** The fragment holds documents and keys. A `before_send` hook rewrites `$current_url` and `$referrer` (and any other URL property) to origin + path, dropping query and fragment.
