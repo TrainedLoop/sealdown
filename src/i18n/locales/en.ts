@@ -1,8 +1,9 @@
 const en = {
   app: { name: 'rendermd', tagline: 'Paste Markdown, share a rendered link.' },
   editor: {
-    code: 'Code',
-    preview: 'Preview',
+    write: 'Write',
+    split: 'Split',
+    read: 'Read',
     placeholder: 'Paste or type Markdown here. Mermaid diagrams, math and code blocks are supported.',
     generate: 'Generate link',
     generating: 'Generating…',

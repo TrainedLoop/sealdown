@@ -12,16 +12,20 @@ type Props = {
   onChange: (text: string) => void
   label: string
   onReady?: (api: EditorApi) => void
+  /** Called with the 1-based line at the top of the editor's viewport while it scrolls. */
+  onScrollLine?: (line: number) => void
 }
 
 /** CodeMirror, loaded as its own chunk (see EditorPage). Controlled: external value changes replace the document. */
-export default function CodeEditor({ value, onChange, label, onReady }: Props) {
+export default function CodeEditor({ value, onChange, label, onReady, onScrollLine }: Props) {
   const parent = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
+  const onScrollLineRef = useRef(onScrollLine)
   useEffect(() => {
     onChangeRef.current = onChange
-  }, [onChange])
+    onScrollLineRef.current = onScrollLine
+  }, [onChange, onScrollLine])
 
   useEffect(() => {
     const editor = new EditorView({
@@ -33,7 +37,13 @@ export default function CodeEditor({ value, onChange, label, onReady }: Props) {
     })
     view.current = editor
     onReady?.({ insert: (text) => insertAtCursor(editor, text) })
+    const onScroll = () => {
+      const block = editor.lineBlockAtHeight(editor.scrollDOM.scrollTop)
+      onScrollLineRef.current?.(editor.state.doc.lineAt(block.from).number)
+    }
+    editor.scrollDOM.addEventListener('scroll', onScroll, { passive: true })
     return () => {
+      editor.scrollDOM.removeEventListener('scroll', onScroll)
       editor.destroy()
       view.current = null
     }

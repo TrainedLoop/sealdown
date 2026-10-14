@@ -5,15 +5,17 @@ import type { EditorApi } from '../editor/CodeEditor.tsx'
 import { DiagramPicker } from '../editor/DiagramPicker.tsx'
 import type { DiagramTemplate } from '../editor/templates.ts'
 import { renderMarkdown } from '../render/markdown.ts'
+import { syncTarget } from '../render/scrollSync.ts'
 import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { loadDraft, saveDraft } from './draft.ts'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
+import { useMode, type Mode } from './mode.ts'
+import { readPref } from './prefs.ts'
 import { QrCode } from './QrCode.tsx'
 import type { Theme } from './theme.ts'
 
-type Tab = 'code' | 'preview'
 
 type Shared =
   | { kind: 'link'; url: string; fallback: boolean; copied: boolean }
@@ -21,6 +23,7 @@ type Shared =
   | { kind: 'failed' }
 
 const DRAFT_DELAY_MS = 500
+const MODES: Mode[] = ['write', 'split', 'read']
 
 const CodeEditor = lazy(() => import('../editor/CodeEditor.tsx'))
 
@@ -32,7 +35,9 @@ type FileProblem = 'not-text' | 'too-large'
 export function EditorPage({ theme }: { theme: Theme }) {
   const { t } = useTranslation()
   const [text, setText] = useState(loadDraft)
-  const [tab, setTab] = useState<Tab>('code')
+  const { mode, setMode, splitAvailable } = useMode()
+  const previewPane = useRef<HTMLDivElement>(null)
+  const [syncScroll] = useState(() => readPref('rendermd.syncScroll') !== 'false')
   const [shared, setShared] = useState<Shared | null>(null)
   const [busy, setBusy] = useState(false)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
@@ -76,7 +81,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
     }
     if (text.trim() !== '' && text !== content && !window.confirm(t('editor.replaceText'))) return
     track('file_opened', { via })
-    setTab('code')
+    if (mode === 'read') setMode(splitAvailable ? 'split' : 'write')
     edit(content)
   }
 
@@ -84,6 +89,14 @@ export function EditorPage({ theme }: { theme: Theme }) {
     if (!editorApi.current) return
     track('diagram_inserted', { type: template.name })
     editorApi.current.insert(`\n\`\`\`mermaid\n${template.source}\n\`\`\`\n`)
+  }
+
+  function followEditor(line: number) {
+    const pane = previewPane.current
+    const target = pane && syncTarget(pane, line)
+    if (!pane || !target) return
+    const offset = target.getBoundingClientRect().top - pane.getBoundingClientRect().top
+    pane.scrollTo({ top: pane.scrollTop + offset - 8 })
   }
 
   async function generate() {
@@ -132,16 +145,19 @@ export function EditorPage({ theme }: { theme: Theme }) {
     <section className="editor">
       <div className="editor-toolbar">
         <div role="tablist" className="tabs">
-          {(['code', 'preview'] as const).map((name) => (
+          {MODES.filter((name) => name !== 'split' || splitAvailable).map((name) => (
             <button
               key={name}
               type="button"
               role="tab"
-              aria-selected={tab === name}
-              className={tab === name ? 'tab active' : 'tab'}
-              onClick={() => setTab(name)}
+              aria-selected={mode === name}
+              className={mode === name ? 'tab active' : 'tab'}
+              onClick={() => {
+                if (mode !== name) track('mode_changed', { mode: name })
+                setMode(name)
+              }}
             >
-              {t(name === 'code' ? 'editor.code' : 'editor.preview')}
+              {t(`editor.${name}`)}
             </button>
           ))}
         </div>
@@ -221,36 +237,40 @@ export function EditorPage({ theme }: { theme: Theme }) {
         </div>
       )}
 
-      {tab === 'code' ? (
-        <div
-          className="editor-drop"
-          // Capture phase: CodeMirror would otherwise insert a dropped file's text at the drop point.
-          onDragOverCapture={(e) => {
-            if (e.dataTransfer.types.includes('Files')) e.preventDefault()
-          }}
-          onDropCapture={(e) => {
-            const file = e.dataTransfer.files[0]
-            if (!file) return
-            e.preventDefault()
-            e.stopPropagation()
-            void openFile(file, 'drop')
-          }}
-        >
-          <DiagramPicker theme={theme} onPick={insertDiagram} />
-          <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
-            <CodeEditor
-              value={text}
-              onChange={edit}
-              label={t('editor.placeholder')}
-              onReady={(api) => (editorApi.current = api)}
-            />
-          </Suspense>
-        </div>
-      ) : text.trim() === '' ? (
-        <p className="status">{t('editor.empty')}</p>
-      ) : (
-        <Preview text={text} theme={theme} />
-      )}
+      <div className={mode === 'split' ? 'editor-main split' : 'editor-main'}>
+        {mode !== 'read' && (
+          <div
+            className="editor-drop"
+            // Capture phase: CodeMirror would otherwise insert a dropped file's text at the drop point.
+            onDragOverCapture={(e) => {
+              if (e.dataTransfer.types.includes('Files')) e.preventDefault()
+            }}
+            onDropCapture={(e) => {
+              const file = e.dataTransfer.files[0]
+              if (!file) return
+              e.preventDefault()
+              e.stopPropagation()
+              void openFile(file, 'drop')
+            }}
+          >
+            <DiagramPicker theme={theme} onPick={insertDiagram} />
+            <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
+              <CodeEditor
+                value={text}
+                onChange={edit}
+                label={t('editor.placeholder')}
+                onReady={(api) => (editorApi.current = api)}
+                onScrollLine={mode === 'split' && syncScroll ? followEditor : undefined}
+              />
+            </Suspense>
+          </div>
+        )}
+        {mode !== 'write' && (
+          <div className={mode === 'split' ? 'preview-pane' : 'read-view'} ref={previewPane}>
+            {text.trim() === '' ? <p className="status">{t('editor.empty')}</p> : <Preview text={text} theme={theme} />}
+          </div>
+        )}
+      </div>
     </section>
   )
 }

@@ -99,6 +99,8 @@ export function collectDiagrams(container: HTMLElement): HTMLElement[] {
     const figure = document.createElement('figure')
     figure.className = 'diagram'
     figure.dataset.source = (pre.textContent ?? '').replace(/\n$/, '')
+    const line = pre.getAttribute('data-source-line')
+    if (line) figure.setAttribute('data-source-line', line)
     const fallback = document.createElement('pre')
     fallback.textContent = figure.dataset.source
     figure.append(fallback)

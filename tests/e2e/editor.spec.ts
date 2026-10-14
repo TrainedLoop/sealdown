@@ -16,13 +16,13 @@ function randomWords(bytes: number): string {
   return words.join(' ')
 }
 
-test('code and preview tabs', async ({ page }) => {
+test('write and read tabs', async ({ page }) => {
   await page.goto('/')
   await editor(page).fill('# Title\n\nBody')
-  await page.getByRole('tab', { name: 'Preview' }).click()
+  await page.getByRole('tab', { name: 'Read' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Title' })).toBeVisible()
   await expect(editor(page)).toBeHidden()
-  await page.getByRole('tab', { name: 'Code' }).click()
+  await page.getByRole('tab', { name: 'Write' }).click()
   await expect.poll(() => editorValue(page)).toBe('# Title\n\nBody')
 })
 

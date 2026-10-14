@@ -641,3 +641,23 @@ button:disabled {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Write / Split / Read */
+.editor-main.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.preview-pane {
+  height: 70vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  background: var(--surface);
+}
+
+.preview-pane .markdown-body {
+  max-width: none;
+}

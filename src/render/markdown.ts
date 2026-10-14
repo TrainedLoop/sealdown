@@ -18,13 +18,23 @@ function createMarkdown(): MarkdownIt {
   const md = new MarkdownItFactory({ html: true, linkify: true })
   const escape = md.utils.escapeHtml
 
+  // Block elements remember their first source line, so the preview can follow the editor's scroll.
+  md.core.ruler.push('source_lines', (state) => {
+    for (const token of state.tokens) {
+      if (token.map && token.block && token.nesting !== -1 && token.type !== 'inline') {
+        token.attrSet('data-source-line', String(token.map[0] + 1))
+      }
+    }
+  })
+
   // Fences are emitted as placeholders; hydrate() renders diagrams and highlighting later, on demand.
   md.renderer.rules.fence = (tokens, idx) => {
     const token = tokens[idx]
+    const line = token.map ? ` data-source-line="${token.map[0] + 1}"` : ''
     const lang = token.info.trim().split(/\s+/)[0] ?? ''
-    if (lang === 'mermaid') return `<pre class="mermaid-src"><code>${escape(token.content)}</code></pre>\n`
+    if (lang === 'mermaid') return `<pre class="mermaid-src"${line}><code>${escape(token.content)}</code></pre>\n`
     const cls = /^[\w+#-]+$/.test(lang) ? ` class="language-${lang}"` : ''
-    return `<pre><code${cls}>${escape(token.content)}</code></pre>\n`
+    return `<pre${line}><code${cls}>${escape(token.content)}</code></pre>\n`
   }
 
   md.use(anchor, { slugify })

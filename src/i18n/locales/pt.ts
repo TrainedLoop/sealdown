@@ -3,8 +3,9 @@ import type en from './en.ts'
 const pt: typeof en = {
   app: { name: 'rendermd', tagline: 'Cole Markdown, compartilhe um link renderizado.' },
   editor: {
-    code: 'Código',
-    preview: 'Preview',
+    write: 'Escrever',
+    split: 'Dividido',
+    read: 'Ler',
     placeholder: 'Cole ou digite Markdown aqui. Diagramas Mermaid, fórmulas e blocos de código são suportados.',
     generate: 'Gerar link',
     generating: 'Gerando…',
