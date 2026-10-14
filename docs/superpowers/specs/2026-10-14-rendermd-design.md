@@ -1,227 +1,227 @@
 # rendermd — Design
 
-- **Data:** 2026-10-14
-- **Status:** aguardando revisão
-- **URL prevista:** `https://trainedloop.github.io/rendermd/`
+- **Date:** 2026-10-14
+- **Status:** approved
+- **Planned URL:** `https://trainedloop.github.io/rendermd/`
 
-## 1. Contexto e objetivo
+## 1. Context and goal
 
-Problema real que originou o projeto: renderizar um `.md` com diagramas Mermaid e mandar para outra pessoa **um link do documento já renderizado**. As opções existentes (Gist, HackMD, Notion) exigem conta, guardam o conteúdo em claro no servidor de terceiros, mostram a interface da plataforma e usam versões antigas do Mermaid, então tipos de diagrama recentes não renderizam.
+The real problem behind the project: render a `.md` file with Mermaid diagrams and send someone **a link to the rendered document**. Existing options (Gist, HackMD, Notion) require an account, store the content in plaintext on a third-party server, show the platform's UI, and ship old Mermaid versions, so recent diagram types don't render.
 
-O rendermd é uma **ferramenta de uso real** (o portfólio vem como consequência): colar ou digitar Markdown, ver o resultado e compartilhar um link, sem conta e sem atrito.
+rendermd is a **tool for real use** (the portfolio value comes as a consequence): paste or type Markdown, see the result, and share a link, with no account and no friction.
 
-### Critérios de sucesso
+### Success criteria
 
-1. Do colar ao link copiado em poucos segundos, sem login.
-2. Todo tipo de diagrama suportado pela versão mais recente do Mermaid renderiza.
-3. Quem recebe o link vê uma página limpa, legível em claro e escuro, no celular e no desktop.
-4. Nenhum conteúdo chega legível a um servidor.
-5. Custo de operação zero (GitHub Pages + plano gratuito do Supabase + GitHub Actions em repo público).
+1. From paste to copied link in a few seconds, no login.
+2. Every diagram type supported by the latest Mermaid release renders.
+3. The recipient sees a clean page, readable in light and dark, on phone and desktop.
+4. No content reaches any server in readable form.
+5. Zero running cost (GitHub Pages + Supabase free tier + GitHub Actions on a public repo).
 
-## 2. Escopo
+## 2. Scope
 
-### Dentro da v1
+### In v1
 
-- Editor único (colar ou digitar) com alternador **Código | Preview**; rascunho salvo no navegador.
-- Gerar link: documento pequeno inteiro na URL; documento grande cifrado no navegador e salvo no Supabase.
-- Página de leitura limpa com botão **Editar uma cópia**.
-- Tema claro/escuro (segue o sistema, com botão para trocar; inclui os diagramas).
-- Exportar PDF (impressão do navegador com CSS de impressão).
-- Baixar cada diagrama como SVG ou PNG.
-- Baixar o `.md` original.
-- Sumário automático a partir dos títulos.
-- Destaque de sintaxe em blocos de código.
-- Fórmulas matemáticas (KaTeX).
-- Interface em português e inglês.
-- Limpeza automática do banco (menos acessados primeiro) e cron para o Supabase não pausar.
-- Renovate + testes visuais para manter o Mermaid atualizado.
+- Single editor (paste or type) with a **Code | Preview** toggle; draft saved in the browser.
+- Generate link: small documents live entirely in the URL; large documents are encrypted in the browser and stored in Supabase.
+- Clean reading page with an **Edit a copy** button.
+- Light/dark theme (follows the system, with a toggle; applies to diagrams too).
+- Export PDF (browser print with a print stylesheet).
+- Download each diagram as SVG or PNG.
+- Download the original `.md`.
+- Automatic table of contents from headings.
+- Syntax highlighting in code blocks.
+- Math (KaTeX).
+- UI in Portuguese and English.
+- Automatic database cleanup (least recently accessed first) and a cron to keep Supabase from pausing.
+- Renovate + visual tests to keep Mermaid up to date.
 
-### Fora da v1
+### Out of v1
 
-- Agente de IA abrindo PRs (adiado por custo).
-- Contas, login, edição do documento original.
-- Prazo de expiração escolhido por quem cria; link de exclusão.
-- Domínio próprio.
-- Upload arrastando arquivo (colar cobre o caso; pode entrar depois).
-- Rate limit de criação (exigiria backend próprio).
+- AI agent opening PRs (postponed due to cost).
+- Accounts, login, editing the original document.
+- Creator-chosen expiration; delete links.
+- Custom domain.
+- Drag-and-drop file upload (pasting covers the use case; may come later).
+- Creation rate limiting (would require a backend of our own).
 
 ## 3. Stack
 
-Mesma stack do `danielporto-site`:
+Same stack as `danielporto-site`:
 
 - React 19, Vite, TypeScript, pnpm, i18next/react-i18next, oxlint.
-- Markdown: **markdown-it** com plugins para âncoras de título, listas de tarefas, tabelas GFM e KaTeX.
-- Destaque de sintaxe: highlight.js, com linguagens carregadas sob demanda.
-- Diagramas: **mermaid**, sempre na versão mais recente.
-- Sanitização: **DOMPurify**.
-- Banco: **Supabase** (Postgres) com `pg_cron`.
-- Testes: Vitest, Supabase CLI (banco local em Docker), Playwright (ponta a ponta e visual).
+- Markdown: **markdown-it** with plugins for heading anchors, task lists, GFM tables and KaTeX.
+- Syntax highlighting: highlight.js, with languages loaded on demand.
+- Diagrams: **mermaid**, always on the latest release.
+- Sanitization: **DOMPurify**.
+- Database: **Supabase** (Postgres) with `pg_cron`.
+- Tests: Vitest, Supabase CLI (local database in Docker), Playwright (end-to-end and visual).
 - CI/CD: GitHub Actions, Renovate, GitHub Pages.
 
-Abordagens descartadas: unified/remark (flexibilidade que o projeto não usa, mais lento e com mais peças) e TypeScript sem framework (o peso que importa é o do Mermaid, não o do React; a UI ficaria manual).
+Rejected approaches: unified/remark (flexibility the project doesn't use, slower, more moving parts) and framework-free TypeScript (the weight that matters is Mermaid's, not React's; the UI would be hand-rolled).
 
-## 4. Arquitetura
+## 4. Architecture
 
 ```mermaid
 flowchart LR
-  subgraph Browser["Navegador"]
-    UI["ui<br/>editor, leitura, tema, idioma, exportações"]
-    R["render<br/>markdown-it + DOMPurify<br/>Mermaid/KaTeX/hljs sob demanda"]
-    S["share<br/>comprime, decide, cifra"]
-    ST["storage<br/>cliente Supabase"]
+  subgraph Browser
+    UI["ui<br/>editor, reader, theme, language, exports"]
+    R["render<br/>markdown-it + DOMPurify<br/>Mermaid/KaTeX/hljs on demand"]
+    S["share<br/>compress, decide, encrypt"]
+    ST["storage<br/>Supabase client"]
     UI --> R
     UI --> S
     S --> ST
   end
-  ST -- "RPC create_doc / get_doc<br/>(só conteúdo cifrado)" --> DB[("Supabase<br/>tabela docs + pg_cron")]
-  GH["GitHub Actions<br/>deploy, testes, keepalive"] -- ping a cada 3 dias --> DB
-  GH -- deploy --> Pages["GitHub Pages<br/>site estático"]
+  ST -- "RPC create_doc / get_doc<br/>(ciphertext only)" --> DB[("Supabase<br/>docs table + pg_cron")]
+  GH["GitHub Actions<br/>deploy, tests, keepalive"] -- ping every 3 days --> DB
+  GH -- deploy --> Pages["GitHub Pages<br/>static site"]
 ```
 
-### 4.1 Rotas
+### 4.1 Routes
 
-Site de página única; todo o estado de rota fica no fragmento (`#`), que nunca é enviado a servidor.
+Single-page site; all route state lives in the fragment (`#`), which is never sent to a server.
 
-| Rota | Conteúdo |
+| Route | Content |
 |---|---|
 | `#/` | Editor |
-| `#/v/<payload>` | Leitura de documento pequeno; `payload` = texto comprimido (deflate-raw) em base64url |
-| `#/s/<id>.<chave>` | Leitura de documento grande; `id` do registro no Supabase, `chave` AES-GCM em base64url |
+| `#/v/<payload>` | Small document reader; `payload` = text compressed with deflate-raw, base64url-encoded |
+| `#/s/<id>.<key>` | Large document reader; `id` of the Supabase record, `key` = AES-GCM key in base64url |
 
-Os prefixos `v` e `s` identificam a versão do formato. Uma mudança futura de codificação ganha prefixo novo, e os decodificadores antigos continuam existindo.
+The `v` and `s` prefixes identify the format version. A future encoding change gets a new prefix, and the old decoders stay.
 
-**Âncoras de título:** como o `#` é usado pelo roteamento, os links do sumário **não** alteram o hash; a rolagem é feita por JavaScript (`scrollIntoView`). Links internos do próprio Markdown (`[x](#titulo)`) recebem o mesmo tratamento.
+**Heading anchors:** since `#` is used for routing, table of contents links do **not** change the hash; scrolling is done in JavaScript (`scrollIntoView`). In-document Markdown links (`[x](#heading)`) get the same treatment.
 
-### 4.2 Módulos
+### 4.2 Modules
 
-Cada módulo tem uma responsabilidade e uma interface pequena, testável isoladamente.
+Each module has one responsibility and a small interface, testable in isolation.
 
-- **`render`**: `renderMarkdown(texto) → HTML seguro` e `hydrate(container, tema)`, que encontra blocos Mermaid, KaTeX e código, carrega a biblioteca necessária só se houver bloco daquele tipo, e renderiza. Mermaid roda com `securityLevel: 'strict'`. A configuração do DOMPurify permite a marcação gerada pelo KaTeX e o SVG gerado pelo Mermaid, e nada além do necessário.
-- **`share`**: `createLink(texto) → url` e `openLink(hash) → texto`. Contém o codec (compressão + base64url), a criptografia (AES-GCM de 256 bits, IV aleatório por documento, via Web Crypto) e a regra de decisão.
-- **`storage`**: único módulo que conhece o Supabase. `save(cifrado) → id` e `load(id) → cifrado | null`. URL e chave pública do Supabase vêm de variáveis de build (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`); a chave pública não é segredo.
-- **`ui`**: telas de editor e leitura, alternador Código | Preview, tema, idioma, sumário, exportações e mensagens de erro.
+- **`render`**: `renderMarkdown(text) → safe HTML` and `hydrate(container, theme)`, which finds Mermaid, KaTeX and code blocks, loads each library only if a block of that kind exists, and renders. Mermaid runs with `securityLevel: 'strict'`. The DOMPurify config allows the markup KaTeX produces and the SVG Mermaid produces, and nothing beyond what is needed.
+- **`share`**: `createLink(text) → url` and `openLink(hash) → text`. Holds the codec (compression + base64url), the encryption (256-bit AES-GCM, random IV per document, via Web Crypto) and the decision rule.
+- **`storage`**: the only module that knows about Supabase. `save(ciphertext) → id` and `load(id) → ciphertext | null`. Supabase URL and public key come from build variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`); the public key is not a secret.
+- **`ui`**: editor and reader screens, Code | Preview toggle, theme, language, table of contents, exports and error messages.
 
-### 4.3 Banco (Supabase)
+### 4.3 Database (Supabase)
 
 ```sql
 create table docs (
-  id               text primary key,         -- 10 caracteres aleatórios base62
-  content          bytea not null,            -- IV + conteúdo comprimido e cifrado
+  id               text primary key,         -- 10 random base62 characters
+  content          bytea not null,            -- IV + compressed, encrypted content
   created_at       timestamptz not null default now(),
   last_accessed_at timestamptz not null default now(),
   constraint content_max_1mb check (octet_length(content) <= 1048576)
 );
 
-alter table docs enable row level security;  -- sem nenhuma policy: acesso direto bloqueado
+alter table docs enable row level security;  -- no policies: direct access blocked
 ```
 
-O acesso acontece **somente** por funções `security definer`, expostas como RPC:
+Access happens **only** through `security definer` functions, exposed as RPC:
 
-- `create_doc(content bytea) → text`: gera o id, insere e devolve o id.
-- `get_doc(id text) → bytea`: devolve o conteúdo e atualiza `last_accessed_at`; devolve nulo se não existir.
-- `ping() → int`: consulta trivial usada pelo keepalive.
+- `create_doc(content bytea) → text`: generates the id, inserts and returns the id.
+- `get_doc(id text) → bytea`: returns the content and updates `last_accessed_at`; returns null if it doesn't exist.
+- `ping() → int`: trivial query used by the keepalive.
 
-Ninguém lista, edita ou apaga pela API.
+Nobody can list, edit or delete through the API.
 
-**Limpeza:** `prune_docs()` roda de hora em hora via `pg_cron`. Ordena por `last_accessed_at` decrescente, soma o tamanho acumulado e apaga tudo que passar de **400 MB**. O teto fica abaixo dos ~500 MB do plano gratuito porque o espaço de um `DELETE` é reaproveitado pelo autovacuum, mas não devolvido ao disco na hora. (Limites do plano gratuito a confirmar na implementação.)
+**Cleanup:** `prune_docs()` runs hourly via `pg_cron`. It orders by `last_accessed_at` descending, sums the running size and deletes everything past **400 MB**. The cap sits below the free tier's ~500 MB because space freed by `DELETE` is reused by autovacuum but not returned to disk immediately. (Free-tier limits to be confirmed during implementation.)
 
-## 5. Fluxo de dados
+## 5. Data flow
 
-### 5.1 Criar e compartilhar
+### 5.1 Create and share
 
-1. O usuário cola ou digita no editor. O texto é salvo como rascunho no `localStorage` (com `try/catch`; a falha não bloqueia nada).
-2. A aba Preview renderiza localmente, sem rede.
-3. **Gerar link:** o texto é comprimido (deflate-raw, `CompressionStream`) e codificado em base64url.
-   - **Até 4 KB codificado:** link `#/v/<payload>`.
-   - **Acima:** gera chave AES-GCM aleatória, cifra o conteúdo comprimido, chama `create_doc` e monta `#/s/<id>.<chave>`.
-4. O link é copiado para a área de transferência, com confirmação visual.
+1. The user pastes or types in the editor. The text is saved as a draft in `localStorage` (wrapped in `try/catch`; failure blocks nothing).
+2. The Preview tab renders locally, with no network.
+3. **Generate link:** the text is compressed (deflate-raw, `CompressionStream`) and base64url-encoded.
+   - **Up to 4 KB encoded:** link `#/v/<payload>`.
+   - **Above:** generate a random AES-GCM key, encrypt the compressed content, call `create_doc` and build `#/s/<id>.<key>`.
+4. The link is copied to the clipboard, with visual confirmation.
 
-### 5.2 Abrir um link
+### 5.2 Open a link
 
-1. O roteador lê o hash.
-2. `v`: decodifica, descomprime e renderiza.
-3. `s`: chama `get_doc(id)`, decifra com a chave, descomprime e renderiza.
-4. A página de leitura mostra o documento, o sumário (quando há 3 ou mais títulos), tema, exportações e **Editar uma cópia**.
+1. The router reads the hash.
+2. `v`: decode, decompress and render.
+3. `s`: call `get_doc(id)`, decrypt with the key, decompress and render.
+4. The reader page shows the document, the table of contents (when there are 3 or more headings), theme, exports and **Edit a copy**.
 
-### 5.3 Editar uma cópia
+### 5.3 Edit a copy
 
-O conteúdo vai para o editor como rascunho novo. Gerar link cria um documento novo; o original nunca muda.
+The content goes into the editor as a new draft. Generating a link creates a new document; the original never changes.
 
-### 5.4 Versão do Mermaid
+### 5.4 Mermaid version
 
-O documento é sempre renderizado com o Mermaid da versão **atual** do site. Links antigos ganham suporte a diagramas novos e correções automaticamente.
+Documents are always rendered with the site's **current** Mermaid version. Old links pick up new diagram types and fixes automatically.
 
-## 6. Tratamento de erros
+## 6. Error handling
 
-Princípio: um problema localizado não derruba a página, e toda mensagem diz o que fazer.
+Principle: a local problem never takes down the page, and every message says what to do next.
 
-### Ao abrir um link
+### Opening a link
 
-| Situação | Comportamento |
+| Situation | Behavior |
 |---|---|
-| Falha ao decodificar, descomprimir ou decifrar | "Este link parece incompleto. Apps de mensagem às vezes cortam links longos; peça para quem enviou gerar de novo." |
-| `get_doc` devolve nulo | "Este documento expirou. Documentos grandes pouco acessados são removidos quando o espaço enche." |
-| Erro de rede ou Supabase fora do ar | "Não foi possível carregar o documento agora", com **Tentar de novo** |
-| Prefixo desconhecido | "Este link foi criado por uma versão mais nova do rendermd. Recarregue a página." |
+| Decode, decompress or decrypt fails | "This link looks incomplete. Messaging apps sometimes cut long links; ask the sender to generate it again." |
+| `get_doc` returns null | "This document has expired. Large, rarely accessed documents are removed when space runs out." |
+| Network error or Supabase down | "Couldn't load the document right now", with **Try again** |
+| Unknown prefix | "This link was created by a newer version of rendermd. Reload the page." |
 
-### Ao gerar o link
+### Generating a link
 
-| Situação | Comportamento |
+| Situation | Behavior |
 |---|---|
-| Supabase fora do ar | Aviso e oferta do link longo `#/v/` (com a ressalva de que alguns apps cortam links longos) |
-| Conteúdo cifrado acima de 1 MB | Aviso antes de enviar; sugere **Baixar .md** ou **Exportar PDF** |
-| Área de transferência bloqueada | Link exibido num campo selecionável |
+| Supabase down | Warning plus an offer of the long `#/v/` link (noting some apps cut long links) |
+| Encrypted content over 1 MB | Warning before sending; suggests **Download .md** or **Export PDF** |
+| Clipboard blocked | Link shown in a selectable field |
 
-### Dentro do documento
+### Inside the document
 
-- **Erro de sintaxe Mermaid:** caixa com a mensagem do Mermaid e o código do bloco; o resto renderiza.
-- **Fórmula KaTeX inválida:** fórmula exibida como texto em vermelho (`throwOnError: false`).
-- **Falha ao carregar Mermaid, KaTeX ou highlight.js:** o bloco mostra o código cru com **Tentar de novo**.
-- **HTML perigoso:** removido silenciosamente pelo DOMPurify.
+- **Mermaid syntax error:** a box with Mermaid's error message and the block's source; the rest renders.
+- **Invalid KaTeX formula:** formula shown as red text (`throwOnError: false`).
+- **Failure loading Mermaid, KaTeX or highlight.js:** the block shows raw source with **Try again**.
+- **Dangerous HTML:** silently removed by DOMPurify.
 
-Todos os textos de interface ficam nos arquivos de idioma (pt e en).
+All UI strings live in the locale files (pt and en).
 
-## 7. Testes
+## 7. Testing
 
-### 7.1 Unitários (Vitest)
+### 7.1 Unit (Vitest)
 
-- Codec: ida e volta preserva o texto exato (acentos, emoji, documentos grandes).
-- Criptografia: ida e volta funciona; conteúdo adulterado ou chave errada falha explicitamente.
-- Decisão: abaixo de 4 KB gera `v`, acima gera `s`.
-- Roteador: cada formato é interpretado corretamente; entradas malformadas caem no erro certo.
-- Sanitização: bateria de vetores XSS (`<script>`, `onerror`, `javascript:` em links, SVG malicioso, ataques via rótulos Mermaid) sai inofensiva.
+- Codec: round trip preserves the exact text (accents, emoji, large documents).
+- Crypto: round trip works; tampered content or wrong key fails explicitly.
+- Decision: under 4 KB produces `v`, above produces `s`.
+- Router: each format is parsed correctly; malformed input lands on the right error.
+- Sanitization: a battery of XSS vectors (`<script>`, `onerror`, `javascript:` links, malicious SVG, attacks via Mermaid labels) comes out harmless.
 
-### 7.2 Banco (Supabase CLI local)
+### 7.2 Database (local Supabase CLI)
 
-- Acesso direto à tabela negado; `create_doc` e `get_doc` funcionam.
-- Conteúdo acima de 1 MB rejeitado.
-- `get_doc` atualiza `last_accessed_at`.
-- `prune_docs` apaga primeiro os menos acessados e para abaixo do teto (teste com teto reduzido).
+- Direct table access denied; `create_doc` and `get_doc` work.
+- Content over 1 MB rejected.
+- `get_doc` updates `last_accessed_at`.
+- `prune_docs` deletes least recently accessed first and stops below the cap (tested with a reduced cap).
 
-### 7.3 Ponta a ponta (Playwright)
+### 7.3 End-to-end (Playwright)
 
-- Documento pequeno: colar, gerar link, abrir em nova aba, ver renderizado.
-- Documento grande: mesmo fluxo pelo Supabase local.
-- Editar uma cópia gera link novo e preserva o original.
-- Erros: link cortado, documento inexistente, Supabase fora do ar com fallback.
+- Small document: paste, generate link, open in a new tab, see it rendered.
+- Large document: same flow through local Supabase.
+- Edit a copy generates a new link and preserves the original.
+- Errors: truncated link, missing document, Supabase down with fallback.
 
-### 7.4 Visuais (Playwright)
+### 7.4 Visual (Playwright)
 
-- Documento de referência com **um exemplo de cada tipo de diagrama Mermaid**, KaTeX, blocos de código e tabelas.
-- Screenshot por bloco, em claro e escuro, comparado com a versão aprovada.
-- Ao surgir um tipo de diagrama novo, o exemplo é adicionado manualmente.
+- Reference document with **one example of each Mermaid diagram type**, plus KaTeX, code blocks and tables.
+- Screenshot per block, in light and dark, compared with the approved baseline.
+- When a new diagram type ships, its example is added by hand.
 
-## 8. CI/CD e operação
+## 8. CI/CD and operations
 
-| Workflow | Gatilho | O que faz |
+| Workflow | Trigger | What it does |
 |---|---|---|
-| `ci` | Toda PR e push | Lint, tipos, unitários, banco, ponta a ponta e visuais |
-| `deploy` | Push na `main` com CI verde | Build e publicação no GitHub Pages |
-| `keepalive` | Cron a cada 3 dias | Chama `ping()` no Supabase; reativa o próprio workflow agendado pela API do GitHub (`PUT /repos/{owner}/{repo}/actions/workflows/{id}/enable`) para não ser desativado após 60 dias sem atividade no repo. Plano B se a permissão falhar: commit vazio mensal num branch `keepalive`. Falha gera e-mail do GitHub. |
-| Renovate | Versões novas de dependências | Abre PR; a CI roda os testes visuais |
+| `ci` | Every PR and push | Lint, types, unit, database, end-to-end and visual |
+| `deploy` | Push to `main` with green CI | Build and publish to GitHub Pages |
+| `keepalive` | Cron every 3 days | Calls `ping()` on Supabase; re-enables its own scheduled workflow via the GitHub API (`PUT /repos/{owner}/{repo}/actions/workflows/{id}/enable`) so it isn't disabled after 60 days without repo activity. Fallback if the permission fails: monthly empty commit on a `keepalive` branch. Failure triggers a GitHub email. |
+| Renovate | New dependency versions | Opens a PR; CI runs the visual tests |
 
-## 9. Riscos e questões em aberto
+## 9. Risks and open questions
 
-- **Spam no banco:** sem backend não há rate limit. Mitigado pelo limite de 1 MB e pela limpeza automática; um Worker com rate limit entra se virar problema.
-- **Limites do plano gratuito do Supabase** (tamanho, regra de pausa e o que conta como atividade): confirmar no início da implementação.
-- **Peso do Mermaid:** carregado só quando o documento tem diagrama; a página de leitura sem diagramas fica leve.
+- **Database spam:** without a backend there is no rate limit. Mitigated by the 1 MB cap and automatic cleanup; a Worker with rate limiting comes in if it becomes a problem.
+- **Supabase free-tier limits** (size, pause rule and what counts as activity): confirm at the start of implementation.
+- **Mermaid weight:** loaded only when the document has diagrams; reader pages without diagrams stay light.
