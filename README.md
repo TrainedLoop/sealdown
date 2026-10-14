@@ -2,7 +2,18 @@
 
 Paste or type Markdown, preview it, and share a link to the rendered document. Mermaid diagrams
 (every type in the latest release), KaTeX math and highlighted code blocks are supported. No
-account, no server-side rendering.
+account, no server-side rendering. Live at https://trainedloop.github.io/rendermd/.
+
+## Features
+
+- Markdown editor (CodeMirror) with a Code | Preview toggle, Mermaid syntax errors underlined as
+  you type, an **Insert diagram** menu with an example of every diagram type, and **Open .md**
+  (or drop a file on the editor).
+- Optional **password protection**: the key is derived from the password and never travels in the
+  link.
+- Reader with table of contents, light/dark theme, English/Portuguese, **Edit a copy**, export to
+  PDF, `.md`, SVG and PNG, and a **Present** mode that turns `---`-separated sections into slides.
+- QR code for generated links, and a link preview image for chat apps.
 
 ## How links work
 
@@ -10,6 +21,12 @@ account, no server-side rendering.
 |---|---|
 | `#/v/<payload>` | Small documents: the whole document, deflate-compressed and base64url-encoded, in the URL. Nothing is stored anywhere. |
 | `#/s/<id>.<key>` | Larger documents (over 4 KB encoded): encrypted in the browser with AES-GCM and stored in Supabase. The key exists only in the link. |
+| `#/p/<payload>` | Password-protected, small: the ciphertext in the URL. |
+| `#/q/<id>` | Password-protected, large: stored in Supabase. |
+
+Protected documents use a key derived from the password with PBKDF2-SHA256 (600 000 iterations,
+random salt) and AES-GCM; neither the password nor the key is in the link. Stored protected
+documents are fetched once, and password attempts happen in the browser.
 
 Everything after `#` stays in the browser; it is never sent to a server. Supabase only ever sees
 ciphertext and cannot read stored documents. Stored documents never expire on a timer: when they
@@ -18,6 +35,29 @@ exceed rendermd's 100 MB budget, the least recently opened ones are removed firs
 The Supabase project is shared with other small projects, so everything rendermd owns lives in the
 `rendermd` schema. Add `rendermd` to the project's exposed schemas (Settings → API → Exposed
 schemas). Avoid `supabase config push`: it would overwrite settings other projects rely on.
+
+## Metrics and privacy
+
+Usage metrics go to PostHog (the same project as danielporto-site), loaded after the page is idle:
+no cookies or storage, no autocapture, no automatic pageviews and **no session recording**, since
+recordings would capture documents. The URL fragment holds documents and keys, so a `before_send`
+hook cuts every URL in an event to origin + path. Nothing is sent with Do Not Track or Global
+Privacy Control on, or when `VITE_POSTHOG_KEY` is missing. PostHog also drops events from
+automated browsers.
+
+Every event carries `app: rendermd` and `lang`:
+
+| Event | Properties |
+|---|---|
+| `app_opened` | `route`: editor, inline, stored, protected, error |
+| `link_created` | `result`, `storage`, `protected`, `size_kb`, `diagram_count`, `diagram_types` |
+| `link_opened` | `storage`, `protected`, `ok`, `error` |
+| `password_failed` | — |
+| `export` | `format`: pdf, md, svg, png |
+| `file_opened` | `via`: picker, drop |
+| `diagram_inserted` | `type` |
+| `present_started` | `slides` |
+| `qr_shown` | — |
 
 ## Development
 
