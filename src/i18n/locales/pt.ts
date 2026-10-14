@@ -12,6 +12,7 @@ const pt: typeof en = {
     copyManually: 'Copie o link abaixo.',
     shareUrl: 'Link de compartilhamento',
     empty: 'Nada para mostrar ainda.',
+    loading: 'Carregando editor…',
   },
   reader: {
     editCopy: 'Editar uma cópia',

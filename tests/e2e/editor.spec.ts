@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { editorValue } from './helpers.ts'
 
 // The e2e build has no Supabase configuration, so storage is always unavailable here.
 
@@ -22,7 +23,7 @@ test('code and preview tabs', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Title' })).toBeVisible()
   await expect(editor(page)).toBeHidden()
   await page.getByRole('tab', { name: 'Code' }).click()
-  await expect(editor(page)).toHaveValue('# Title\n\nBody')
+  await expect.poll(() => editorValue(page)).toBe('# Title\n\nBody')
 })
 
 test('draft survives a reload', async ({ page }) => {
@@ -30,7 +31,7 @@ test('draft survives a reload', async ({ page }) => {
   await editor(page).fill('draft text')
   await page.waitForTimeout(700)
   await page.reload()
-  await expect(editor(page)).toHaveValue('draft text')
+  await expect.poll(() => editorValue(page)).toBe('draft text')
 })
 
 test('short document produces an inline link that opens', async ({ page, context }) => {
@@ -94,5 +95,13 @@ test('edits made right before leaving the editor are kept', async ({ page }) => 
   await editor(page).fill('typed just before leaving')
   await page.evaluate(() => (location.hash = '#/x/elsewhere'))
   await page.evaluate(() => (location.hash = '#/'))
-  await expect(editor(page)).toHaveValue('typed just before leaving')
+  await expect.poll(() => editorValue(page)).toBe('typed just before leaving')
+})
+
+test('the editor highlights Markdown syntax', async ({ page }) => {
+  await page.goto('/')
+  await editor(page).fill('# Big title\n\nplain')
+  const heading = page.locator('.cm-line').first().locator('span', { hasText: 'Big title' }).first()
+  await expect(heading).toBeVisible()
+  expect(await heading.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
 })

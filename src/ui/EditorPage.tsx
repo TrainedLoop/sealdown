@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { diagramTypes, track } from '../analytics.ts'
 import { renderMarkdown } from '../render/markdown.ts'
@@ -18,6 +18,8 @@ type Shared =
   | { kind: 'failed' }
 
 const DRAFT_DELAY_MS = 500
+
+const CodeEditor = lazy(() => import('../editor/CodeEditor.tsx'))
 
 export function EditorPage({ theme }: { theme: Theme }) {
   const { t } = useTranslation()
@@ -122,14 +124,9 @@ export function EditorPage({ theme }: { theme: Theme }) {
       )}
 
       {tab === 'code' ? (
-        <textarea
-          className="editor-input"
-          aria-label={t('editor.placeholder')}
-          placeholder={t('editor.placeholder')}
-          spellCheck={false}
-          value={text}
-          onChange={(e) => edit(e.target.value)}
-        />
+        <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
+          <CodeEditor value={text} onChange={edit} label={t('editor.placeholder')} />
+        </Suspense>
       ) : text.trim() === '' ? (
         <p className="status">{t('editor.empty')}</p>
       ) : (

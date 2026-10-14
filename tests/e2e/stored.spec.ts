@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { editorValue } from './helpers.ts'
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
 
@@ -27,7 +28,8 @@ test('editing a copy creates a new document and keeps the original', async ({ pa
   const original = await share(page, largeDoc('First version'))
   await page.goto(original)
   await page.getByRole('button', { name: 'Edit a copy' }).click()
-  const text = await editor(page).inputValue()
+  await expect.poll(() => editorValue(page)).toContain('# First version')
+  const text = await editorValue(page)
   await editor(page).fill(text.replace('# First version', '# Second version'))
   await page.getByRole('button', { name: 'Generate link' }).click()
   const copy = await page.getByTestId('share-url').inputValue()

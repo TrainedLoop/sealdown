@@ -12,6 +12,8 @@
   --notice-bg: #fff4e5;
   --notice-border: #f0c58a;
   --error: #c92a2a;
+  --code-text: #8250df;
+  --selection: #d0dbff;
 }
 
 :root[data-theme='dark'] {
@@ -27,6 +29,8 @@
   --notice-bg: #2b2418;
   --notice-border: #6b5428;
   --error: #ff8787;
+  --code-text: #d2a8ff;
+  --selection: #33416b;
 }
 
 * {
@@ -290,16 +294,8 @@ button:disabled {
   font-weight: 600;
 }
 
-.editor-input {
-  width: 100%;
+.editor-loading {
   min-height: 60vh;
-  resize: vertical;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font: 0.95rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .share-result {

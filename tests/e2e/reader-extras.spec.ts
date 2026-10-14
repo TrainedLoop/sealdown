@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { inlineHash } from './helpers.ts'
+import { editorValue, inlineHash } from './helpers.ts'
 
 const filler = Array.from({ length: 60 }, (_, i) => `Paragraph ${i}.`).join('\n\n')
 const flowchart = '```mermaid\ngraph TD; A[Hello]-->B[World]\n```\n'
@@ -36,7 +36,7 @@ test('edit a copy opens the editor with the document', async ({ page }) => {
   await open(page, '# Original\n\nText')
   await page.getByRole('button', { name: 'Edit a copy' }).click()
   await expect(page).toHaveURL(/#\/$/)
-  await expect(page.getByRole('textbox', { name: /Paste or type Markdown/ })).toHaveValue('# Original\n\nText')
+  await expect.poll(() => editorValue(page)).toBe('# Original\n\nText')
 })
 
 test('download .md returns the original text', async ({ page }) => {
@@ -161,7 +161,7 @@ test('edit a copy asks before replacing an existing draft', async ({ page }) => 
     void dialog.accept()
   })
   await page.getByRole('button', { name: 'Edit a copy' }).click()
-  await expect(draft).toHaveValue('# Shared doc')
+  await expect.poll(() => editorValue(page)).toBe('# Shared doc')
 })
 
 test('edit a copy does not ask when there is no draft', async ({ page }) => {
@@ -172,6 +172,6 @@ test('edit a copy does not ask when there is no draft', async ({ page }) => {
   })
   await open(page, '# Shared doc')
   await page.getByRole('button', { name: 'Edit a copy' }).click()
-  await expect(page.getByRole('textbox', { name: /Paste or type Markdown/ })).toHaveValue('# Shared doc')
+  await expect.poll(() => editorValue(page)).toBe('# Shared doc')
   expect(asked).toBe(false)
 })

@@ -10,6 +10,7 @@ const en = {
     copyManually: 'Copy the link below.',
     shareUrl: 'Share link',
     empty: 'Nothing to preview yet.',
+    loading: 'Loading editor…',
   },
   reader: {
     editCopy: 'Edit a copy',
