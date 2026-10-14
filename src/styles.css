@@ -256,3 +256,68 @@ button:disabled {
 :root[data-theme='dark'] .hljs-function {
   color: #79c0ff;
 }
+
+/* Editor */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tab {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.tab.active {
+  background: var(--code-bg);
+  font-weight: 600;
+}
+
+.editor-input {
+  width: 100%;
+  min-height: 60vh;
+  resize: vertical;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: 0.95rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.share-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.share-result p {
+  margin: 0;
+}
+
+.share-result input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: 0.9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
