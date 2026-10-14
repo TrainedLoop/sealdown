@@ -8,10 +8,9 @@ export type Lang = 'pt' | 'en'
 
 const KEY = 'rendermd.lang'
 
+/** English unless the visitor picked Portuguese with the language toggle. */
 function initialLang(): Lang {
-  const saved = readPref(KEY)
-  if (saved === 'pt' || saved === 'en') return saved
-  return navigator.language.toLowerCase().startsWith('pt') ? 'pt' : 'en'
+  return readPref(KEY) === 'pt' ? 'pt' : 'en'
 }
 
 /** Messages ship in the bundle, so initialization is synchronous. */

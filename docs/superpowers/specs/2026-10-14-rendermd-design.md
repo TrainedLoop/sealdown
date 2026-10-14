@@ -32,7 +32,7 @@ rendermd is a **tool for real use** (the portfolio value comes as a consequence)
 - Automatic table of contents from headings.
 - Syntax highlighting in code blocks.
 - Math (KaTeX).
-- UI in Portuguese and English.
+- UI in English by default, with Portuguese available from the language toggle (the choice is remembered).
 - Automatic database cleanup (least recently accessed first) and a cron to keep Supabase from pausing.
 - Renovate + visual tests to keep Mermaid up to date.
 

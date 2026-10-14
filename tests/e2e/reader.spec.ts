@@ -22,11 +22,12 @@ test('unknown format asks to reload', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('newer version of rendermd')
 })
 
-test.describe('in Portuguese', () => {
+test.describe('with a Portuguese browser', () => {
   test.use({ locale: 'pt-BR' })
-  test('UI follows the browser language', async ({ page }) => {
+  test('UI is English by default', async ({ page }) => {
     await page.goto('/#/v/AAAA')
-    await expect(page.getByRole('alert')).toContainText('Este link parece incompleto')
+    await expect(page.getByRole('alert')).toContainText('This link looks incomplete')
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })
 })
 
