@@ -48,6 +48,7 @@ const pt: typeof en = {
     storageUnavailable:
       'Não foi possível salvar o documento, então o link leva o documento inteiro. Alguns apps cortam links longos.',
     generateFailed: 'Não foi possível gerar o link. Tente de novo.',
+    wrongPassword: 'Senha incorreta. Tente de novo.',
     tooLarge: 'Este documento é grande demais para compartilhar por link. Baixe o .md ou exporte um PDF.',
     diagram: 'Não foi possível renderizar este diagrama:',
     png: 'Este diagrama não pode ser exportado como PNG neste navegador. Baixe o SVG.',

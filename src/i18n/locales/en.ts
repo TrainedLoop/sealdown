@@ -45,6 +45,7 @@ const en = {
     storageUnavailable:
       "Couldn't save the document, so the link carries the whole document instead. Some apps cut long links.",
     generateFailed: "Couldn't generate the link. Try again.",
+    wrongPassword: 'Wrong password. Try again.',
     tooLarge: 'This document is too large to share by link. Download the .md or export a PDF instead.',
     diagram: "This diagram couldn't be rendered:",
     png: "This diagram can't be exported as PNG in this browser. Download the SVG instead.",

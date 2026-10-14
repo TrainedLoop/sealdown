@@ -1,4 +1,4 @@
-export type LinkErrorKind = 'corrupt' | 'expired' | 'network' | 'unknown-format'
+export type LinkErrorKind = 'corrupt' | 'expired' | 'network' | 'unknown-format' | 'wrong-password'
 
 /** Why a shared link could not be opened; the UI maps each kind to a message. */
 export class LinkError extends Error {

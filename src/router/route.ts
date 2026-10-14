@@ -2,10 +2,12 @@ export type Route =
   | { kind: 'editor' }
   | { kind: 'inline'; payload: string }
   | { kind: 'stored'; id: string; key: string }
+  | { kind: 'inline-protected'; payload: string }
+  | { kind: 'stored-protected'; id: string }
   | { kind: 'unknown-format' }
   | { kind: 'malformed' }
 
-export type ShareableRoute = Extract<Route, { kind: 'editor' | 'inline' | 'stored' }>
+export type ShareableRoute = Exclude<Route, { kind: 'unknown-format' | 'malformed' }>
 
 const TOKEN = /^[A-Za-z0-9_-]+$/
 const ID = /^[A-Za-z0-9]{10}$/
@@ -37,6 +39,12 @@ export function parseRoute(hash: string): Route {
     const key = rest.slice(dot + 1)
     return ID.test(id) && TOKEN.test(key) ? { kind: 'stored', id, key } : { kind: 'malformed' }
   }
+  if (prefix === 'p') {
+    return TOKEN.test(rest) ? { kind: 'inline-protected', payload: rest } : { kind: 'malformed' }
+  }
+  if (prefix === 'q') {
+    return ID.test(rest) ? { kind: 'stored-protected', id: rest } : { kind: 'malformed' }
+  }
   return { kind: 'unknown-format' }
 }
 
@@ -48,5 +56,9 @@ export function buildHash(route: ShareableRoute): string {
       return `#/v/${route.payload}`
     case 'stored':
       return `#/s/${route.id}.${route.key}`
+    case 'inline-protected':
+      return `#/p/${route.payload}`
+    case 'stored-protected':
+      return `#/q/${route.id}`
   }
 }

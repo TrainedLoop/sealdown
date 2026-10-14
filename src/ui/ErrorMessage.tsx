@@ -8,6 +8,7 @@ const MESSAGE_KEYS = {
   expired: 'errors.expired',
   network: 'errors.network',
   'unknown-format': 'errors.unknownFormat',
+  'wrong-password': 'errors.wrongPassword',
   'storage-unavailable': 'errors.storageUnavailable',
   'too-large': 'errors.tooLarge',
   'generate-failed': 'errors.generateFailed',

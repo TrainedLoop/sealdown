@@ -43,3 +43,16 @@ test('strips angle brackets, ellipses and invisible characters glued to links', 
   expect(parseRoute('#/v/abc​')).toEqual({ kind: 'inline', payload: 'abc' })
   expect(parseRoute('#/v/abc﻿')).toEqual({ kind: 'inline', payload: 'abc' })
 })
+
+test('password-protected routes', () => {
+  expect(parseRoute('#/p/abc-_09')).toEqual({ kind: 'inline-protected', payload: 'abc-_09' })
+  expect(parseRoute('#/q/Ab3dE5gH9k')).toEqual({ kind: 'stored-protected', id: 'Ab3dE5gH9k' })
+  expect(parseRoute('#/q/Ab3dE5gH9k.')).toEqual({ kind: 'stored-protected', id: 'Ab3dE5gH9k' })
+  for (const h of ['#/p/', '#/q/short', '#/q/Ab3dE5gH9k.key']) expect(parseRoute(h)).toEqual({ kind: 'malformed' })
+  for (const r of [
+    { kind: 'inline-protected', payload: 'abc' },
+    { kind: 'stored-protected', id: 'Ab3dE5gH9k' },
+  ] as const) {
+    expect(parseRoute(buildHash(r))).toEqual(r)
+  }
+})

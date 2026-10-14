@@ -1,5 +1,5 @@
 import { parseRoute } from '../../../src/router/route.ts'
-import { createLink, openRoute } from '../../../src/share/link.ts'
+import { createLink, fetchProtected, openProtected, openRoute } from '../../../src/share/link.ts'
 import { StorageUnavailableError, type DocStorage } from '../../../src/storage/storage.ts'
 
 const baseUrl = 'https://trainedloop.github.io/rendermd/'
@@ -104,4 +104,45 @@ test('wrong key is corrupt', async () => {
   if (route.kind !== 'stored') throw new Error('expected stored')
   const wrongKey = (route.key[0] === 'A' ? 'B' : 'A') + route.key.slice(1)
   await expect(openRoute({ ...route, key: wrongKey }, storage)).rejects.toMatchObject({ kind: 'corrupt' })
+})
+
+async function openWithPassword(url: string, storage: DocStorage, password: string) {
+  const route = parseRoute(url.slice(url.indexOf('#')))
+  if (route.kind !== 'inline-protected' && route.kind !== 'stored-protected') throw new Error(`unexpected route ${route.kind}`)
+  return openProtected(await fetchProtected(route, storage), password)
+}
+
+test('short protected text stays in the URL and needs the password', async () => {
+  const { storage, saves } = memoryStorage()
+  const result = await createLink('# Secret ✓', { storage, baseUrl, password: 'pw' })
+  if (result.kind !== 'ok') throw new Error('expected ok')
+  expect(result.url).toMatch(/#\/p\/[A-Za-z0-9_-]+$/)
+  expect(saves()).toBe(0)
+  expect(await openWithPassword(result.url, storage, 'pw')).toBe('# Secret ✓')
+  await expect(openWithPassword(result.url, storage, 'nope')).rejects.toMatchObject({ kind: 'wrong-password' })
+})
+
+test('large protected text is stored without a key in the link', async () => {
+  const { storage, saves } = memoryStorage()
+  const text = randomWords(20_000)
+  const result = await createLink(text, { storage, baseUrl, password: 'pw' })
+  if (result.kind !== 'ok') throw new Error('expected ok')
+  expect(result.url).toMatch(/#\/q\/[A-Za-z0-9]{10}$/)
+  expect(saves()).toBe(1)
+  expect(await openWithPassword(result.url, storage, 'pw')).toBe(text)
+})
+
+test('large protected text falls back to a long protected link', async () => {
+  const text = randomWords(20_000)
+  const result = await createLink(text, { storage: unavailable, baseUrl, password: 'pw' })
+  expect(result.kind).toBe('fallback')
+  if (result.kind !== 'fallback') return
+  expect(result.url).toContain('#/p/')
+  expect(await openWithPassword(result.url, unavailable, 'pw')).toBe(text)
+})
+
+test('fetching a missing protected doc is expired', async () => {
+  const { storage } = memoryStorage()
+  await expect(fetchProtected({ kind: 'stored-protected', id: 'Missing000' }, storage)).rejects.toMatchObject({ kind: 'expired' })
+  await expect(fetchProtected({ kind: 'stored-protected', id: 'Missing000' }, unavailable)).rejects.toMatchObject({ kind: 'network' })
 })
