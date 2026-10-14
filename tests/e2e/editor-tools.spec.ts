@@ -17,12 +17,55 @@ async function drop(page: Page, name: string, type: string, content: string) {
   )
 }
 
-test('insert diagram adds the example at the cursor', async ({ page }) => {
+test('the diagram picker lists every example with a thumbnail', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/')
   await editor(page).fill('# Notes\n')
-  await page.getByRole('combobox', { name: 'Insert diagram' }).selectOption({ label: 'flowchart' })
-  await expect.poll(() => editorValue(page)).toContain('```mermaid\nflowchart LR')
-  await expect(page.getByRole('combobox', { name: 'Insert diagram' })).toHaveValue('')
+  await page.getByRole('button', { name: 'Insert diagram' }).click()
+  const search = page.getByRole('combobox', { name: 'Search diagrams' })
+  await expect(search).toBeFocused()
+  const options = page.getByRole('option')
+  await expect(options).toHaveCount(33)
+  await expect(options.first().locator('img')).toHaveAttribute('src', /diagram-thumbs\/flowchart-light\.png$/)
+  expect(await options.first().locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
+})
+
+test('typing filters the picker and Enter inserts the example', async ({ page }) => {
+  await page.goto('/')
+  await editor(page).fill('# Notes\n')
+  await page.getByRole('button', { name: 'Insert diagram' }).click()
+  await page.getByRole('combobox', { name: 'Search diagrams' }).fill('seq')
+  await expect(page.getByRole('option')).toHaveCount(1)
+  await expect(page.getByRole('option')).toContainText('sequence')
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  await expect.poll(() => editorValue(page)).toContain('```mermaid\nsequenceDiagram')
+  await expect(page.getByRole('listbox')).toHaveCount(0)
+})
+
+test('clicking an example inserts it; Escape closes the picker', async ({ page }) => {
+  await page.goto('/')
+  await editor(page).fill('# Notes\n')
+  await page.getByRole('button', { name: 'Insert diagram' }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('listbox')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Insert diagram' }).click()
+  await page.getByRole('option', { name: 'pie' }).click()
+  await expect.poll(() => editorValue(page)).toContain('```mermaid\npie')
+})
+
+test('the picker uses dark thumbnails in the dark theme', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Insert diagram' }).click()
+  await expect(page.getByRole('option').first().locator('img')).toHaveAttribute('src', /-dark\.png$/)
+})
+
+test('the insert button stays visible while scrolling a long document', async ({ page }) => {
+  await page.goto('/')
+  await editor(page).fill(Array.from({ length: 300 }, (_, i) => `Line ${i}`).join('\n'))
+  await page.locator('.cm-scroller').evaluate((el) => el.scrollTo(0, el.scrollHeight))
+  await expect(page.getByRole('button', { name: 'Insert diagram' })).toBeInViewport()
 })
 
 test('open .md loads the file', async ({ page }) => {

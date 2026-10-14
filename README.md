@@ -7,7 +7,7 @@ account, no server-side rendering. Live at https://trainedloop.github.io/renderm
 ## Features
 
 - Markdown editor (CodeMirror) with a Code | Preview toggle, Mermaid syntax errors underlined as
-  you type, an **Insert diagram** menu with an example of every diagram type, and **Open .md**
+  you type, a floating **Insert diagram** picker (searchable, with a thumbnail of every diagram type), and **Open .md**
   (or drop a file on the editor).
 - Optional **password protection**: the key is derived from the password and never travels in the
   link.
@@ -109,6 +109,7 @@ Mermaid:
 ```sh
 pnpm up mermaid @mermaid-js/mermaid-zenuml --latest
 pnpm test:visual
+pnpm thumbs
 ```
 
 `src/templates/diagrams.md` holds one example of every diagram type; the visual tests compare
@@ -120,7 +121,9 @@ pnpm test:visual --update-snapshots
 ```
 
 When Mermaid adds a diagram type, add an example under its own `##` heading in
-`src/templates/diagrams.md` and refresh the baselines. Keep examples deterministic (for instance,
+`src/templates/diagrams.md` and refresh the baselines. The editor's picker uses the same examples;
+regenerate its thumbnails (`public/diagram-thumbs`) with `pnpm thumbs` whenever the examples or
+Mermaid change. Keep examples deterministic (for instance,
 give `gitGraph` commits explicit ids). The Playwright Docker image tag follows `@playwright/test`,
 so updating Playwright also changes screenshots.
 

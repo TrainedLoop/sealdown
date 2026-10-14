@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { diagramTypes, track } from '../analytics.ts'
 import type { EditorApi } from '../editor/CodeEditor.tsx'
-import { diagramTemplates } from '../editor/templates.ts'
+import { DiagramPicker } from '../editor/DiagramPicker.tsx'
+import type { DiagramTemplate } from '../editor/templates.ts'
 import { renderMarkdown } from '../render/markdown.ts'
 import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
@@ -25,7 +26,6 @@ const CodeEditor = lazy(() => import('../editor/CodeEditor.tsx'))
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 const TEXT_FILE = /\.(md|markdown|mdown|txt)$/i
-const templates = diagramTemplates()
 
 type FileProblem = 'not-text' | 'too-large'
 
@@ -80,10 +80,9 @@ export function EditorPage({ theme }: { theme: Theme }) {
     edit(content)
   }
 
-  function insertDiagram(name: string) {
-    const template = templates.find((item) => item.name === name)
-    if (!template || !editorApi.current) return
-    track('diagram_inserted', { type: name })
+  function insertDiagram(template: DiagramTemplate) {
+    if (!editorApi.current) return
+    track('diagram_inserted', { type: template.name })
     editorApi.current.insert(`\n\`\`\`mermaid\n${template.source}\n\`\`\`\n`)
   }
 
@@ -147,20 +146,6 @@ export function EditorPage({ theme }: { theme: Theme }) {
           ))}
         </div>
         <div className="editor-tools">
-          {tab === 'code' && (
-            <select
-              aria-label={t('editor.insertDiagram')}
-              value=""
-              onChange={(e) => insertDiagram(e.target.value)}
-            >
-              <option value="">{t('editor.insertDiagram')}</option>
-              {templates.map((template) => (
-                <option key={template.name} value={template.name}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
-          )}
           <label className="file-button">
             {t('editor.openFile')}
             <input
@@ -251,6 +236,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
             void openFile(file, 'drop')
           }}
         >
+          <DiagramPicker theme={theme} onPick={insertDiagram} />
           <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
             <CodeEditor
               value={text}

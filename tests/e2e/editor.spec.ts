@@ -105,3 +105,14 @@ test('the editor highlights Markdown syntax', async ({ page }) => {
   await expect(heading).toBeVisible()
   expect(await heading.evaluate((el) => getComputedStyle(el).fontWeight)).toBe('700')
 })
+
+test('the editor keeps a fixed height and scrolls its content', async ({ page }) => {
+  await page.goto('/')
+  const lines = Array.from({ length: 200 }, (_, i) => `Line ${i}`).join('\n')
+  await editor(page).fill(lines)
+  const box = (await page.locator('.cm-editor').boundingBox())!
+  const viewport = page.viewportSize()!
+  expect(box.height).toBeLessThanOrEqual(viewport.height * 0.75)
+  const scroller = page.locator('.cm-scroller')
+  expect(await scroller.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
+})

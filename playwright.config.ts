@@ -8,6 +8,8 @@ export default defineConfig({
   projects: [
     { name: 'chromium', testDir: 'tests/e2e', testIgnore: 'stored.spec.ts', use: { ...devices['Desktop Chrome'] } },
     { name: 'visual', testDir: 'tests/visual', use: { ...devices['Desktop Chrome'] } },
+    // Generates the diagram-menu thumbnails (pnpm thumbs); not part of the test suites.
+    { name: 'thumbs', testDir: 'tests/thumbs', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
     // Built without Supabase variables, so storage is unavailable unless a test routes it.

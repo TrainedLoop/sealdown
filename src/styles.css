@@ -295,7 +295,7 @@ button:disabled {
 }
 
 .editor-loading {
-  min-height: 60vh;
+  height: 70vh;
 }
 
 .share-result {
@@ -421,7 +421,6 @@ button:disabled {
   margin-left: auto;
 }
 
-.editor-tools select,
 .file-button {
   font: inherit;
   font-size: 0.9rem;
@@ -456,10 +455,6 @@ button:disabled {
     margin-left: 0;
   }
 
-  .editor-tools select {
-    flex: 1;
-    min-width: 0;
-  }
 }
 
 .protect {
@@ -562,4 +557,87 @@ button:disabled {
   width: 100%;
   max-width: min(100%, 1000px) !important;
   max-height: 60vh;
+}
+
+/* Diagram picker: floats over the editor's top-right corner, which stays put while it scrolls. */
+.editor-drop {
+  position: relative;
+}
+
+.diagram-picker {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.diagram-picker-button {
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.diagram-picker-panel {
+  margin-top: 6px;
+  width: min(340px, calc(100vw - 48px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.diagram-picker-search {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  outline: none;
+}
+
+.diagram-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+}
+
+.diagram-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.diagram-option.highlighted {
+  background: var(--code-bg);
+}
+
+.diagram-option img {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.diagram-option-empty {
+  padding: 0.75rem;
+  color: var(--muted);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

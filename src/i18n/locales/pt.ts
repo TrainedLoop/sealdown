@@ -15,6 +15,8 @@ const pt: typeof en = {
     loading: 'Carregando editor…',
     openFile: 'Abrir .md',
     insertDiagram: 'Inserir diagrama',
+    searchDiagrams: 'Buscar diagramas',
+    noDiagrams: 'Nenhum tipo de diagrama encontrado.',
     replaceText: 'Substituir o texto do editor por este arquivo?',
     fileNotText: 'Este arquivo não é Markdown nem texto.',
     fileTooLarge: 'Este arquivo tem mais de 5 MB.',

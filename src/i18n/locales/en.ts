@@ -13,6 +13,8 @@ const en = {
     loading: 'Loading editor…',
     openFile: 'Open .md',
     insertDiagram: 'Insert diagram',
+    searchDiagrams: 'Search diagrams',
+    noDiagrams: 'No diagram type matches.',
     replaceText: 'Replace the text in the editor with this file?',
     fileNotText: "This file isn't a Markdown or text file.",
     fileTooLarge: 'This file is larger than 5 MB.',
