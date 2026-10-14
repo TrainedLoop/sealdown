@@ -4,6 +4,8 @@ import { LinkError } from './errors.ts'
 export const PBKDF2_ITERATIONS = 600_000
 const SALT_BYTES = 16
 const IV_BYTES = 12
+/** Salt and IV in front of every protected document's ciphertext. */
+export const PROTECTED_HEADER_BYTES = SALT_BYTES + IV_BYTES
 
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey'])

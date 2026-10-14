@@ -36,6 +36,8 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const [shared, setShared] = useState<Shared | null>(null)
   const [busy, setBusy] = useState(false)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
+  const [protect, setProtect] = useState(false)
+  const [password, setPassword] = useState('')
   const editorApi = useRef<EditorApi | null>(null)
 
   // The latest text, for work that outlives a render: the unmount flush and in-flight generation.
@@ -84,14 +86,15 @@ export function EditorPage({ theme }: { theme: Theme }) {
       const result = await createLink(source, {
         storage: defaultStorage,
         baseUrl: window.location.origin + import.meta.env.BASE_URL,
+        password: protect ? password : undefined,
       })
       // Edited while the link was being made: that link is for a version that no longer exists.
       if (latest.current !== source) return
       const types = diagramTypes(source)
       track('link_created', {
         result: result.kind === 'too-large' ? 'too_large' : result.kind,
-        storage: result.kind !== 'too-large' && result.url.includes('#/s/') ? 'stored' : 'inline',
-        protected: false,
+        storage: result.kind !== 'too-large' && /#\/[sq]\//.test(result.url) ? 'stored' : 'inline',
+        protected: protect,
         size_kb: Math.round(new Blob([source]).size / 1024),
         diagram_count: types.length,
         diagram_types: types,
@@ -110,7 +113,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
       setShared({ kind: 'link', url: result.url, fallback: result.kind === 'fallback', copied })
     } catch {
       if (latest.current === source) {
-        track('link_created', { result: 'failed', protected: false })
+        track('link_created', { result: 'failed', protected: protect })
         setShared({ kind: 'failed' })
       }
     } finally {
@@ -163,9 +166,42 @@ export function EditorPage({ theme }: { theme: Theme }) {
             />
           </label>
         </div>
-        <button type="button" className="primary" disabled={busy || text.trim() === ''} onClick={generate}>
+        <button
+          type="button"
+          className="primary"
+          disabled={busy || text.trim() === '' || (protect && password === '')}
+          onClick={generate}
+        >
           {t(busy ? 'editor.generating' : 'editor.generate')}
         </button>
+      </div>
+
+      <div className="protect">
+        <label>
+          <input
+            type="checkbox"
+            checked={protect}
+            onChange={(e) => {
+              setProtect(e.target.checked)
+              setShared(null)
+            }}
+          />
+          {t('password.protect')}
+        </label>
+        {protect && (
+          <label>
+            {t('password.label')}
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setShared(null)
+              }}
+            />
+          </label>
+        )}
       </div>
 
       {fileProblem && (

@@ -30,6 +30,13 @@ const en = {
     png: 'PNG',
     diagramActions: 'Download diagram',
   },
+  password: {
+    protect: 'Protect with password',
+    label: 'Password',
+    locked: 'This document is protected. Enter the password to open it.',
+    open: 'Open',
+    opening: 'Opening…',
+  },
   qr: {
     button: 'QR code',
     alt: 'QR code for the link',

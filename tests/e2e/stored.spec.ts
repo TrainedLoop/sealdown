@@ -91,3 +91,27 @@ test('an unexpected failure while generating shows a message', async ({ page }) 
   await expect(page.getByRole('alert')).toContainText("Couldn't generate the link")
   await expect(page.getByRole('button', { name: 'Generate link' })).toBeEnabled()
 })
+
+test('a large protected document is stored and fetched once across password attempts', async ({ page, context }) => {
+  await page.goto('/')
+  await editor(page).fill(largeDoc('Locked'))
+  await page.getByRole('checkbox', { name: 'Protect with password' }).check()
+  await page.getByLabel('Password', { exact: true }).fill('s3cret')
+  await page.getByRole('button', { name: 'Generate link' }).click()
+  const url = await page.getByTestId('share-url').inputValue()
+  expect(url).toMatch(/#\/q\/[A-Za-z0-9]{10}$/)
+
+  const reader = await context.newPage()
+  let fetches = 0
+  reader.on('request', (r) => {
+    if (r.url().includes('/rpc/get_doc')) fetches++
+  })
+  await reader.goto(url)
+  await reader.getByLabel('Password', { exact: true }).fill('nope')
+  await reader.getByRole('button', { name: 'Open' }).click()
+  await expect(reader.getByRole('alert')).toContainText('Wrong password')
+  await reader.getByLabel('Password', { exact: true }).fill('s3cret')
+  await reader.getByRole('button', { name: 'Open' }).click()
+  await expect(reader.getByRole('heading', { name: 'Locked' })).toBeVisible()
+  expect(fetches).toBe(1)
+})

@@ -4,7 +4,7 @@ import { base64urlDecode, base64urlEncode } from './base64url.ts'
 import { compress, decompress } from './codec.ts'
 import { decrypt, encrypt } from './crypto.ts'
 import { LinkError } from './errors.ts'
-import { decryptWithPassword, encryptWithPassword } from './password.ts'
+import { decryptWithPassword, encryptWithPassword, PROTECTED_HEADER_BYTES } from './password.ts'
 
 /** Largest encoded payload kept in the URL; anything bigger is encrypted and stored. */
 export const INLINE_LIMIT = 4096
@@ -66,7 +66,9 @@ export async function fetchProtected(
   route: Extract<Route, { kind: 'inline-protected' | 'stored-protected' }>,
   storage: DocStorage,
 ): Promise<Uint8Array> {
-  return route.kind === 'inline-protected' ? base64urlDecode(route.payload) : load(storage, route.id)
+  const bytes = route.kind === 'inline-protected' ? base64urlDecode(route.payload) : await load(storage, route.id)
+  if (bytes.length <= PROTECTED_HEADER_BYTES) throw new LinkError('corrupt')
+  return bytes
 }
 
 /** Throws LinkError('wrong-password') for a wrong password. */

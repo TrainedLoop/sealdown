@@ -6,46 +6,74 @@ import { renderMarkdown } from '../render/markdown.ts'
 import { extractToc } from '../render/toc.ts'
 import type { Route } from '../router/route.ts'
 import { LinkError, type LinkErrorKind } from '../share/errors.ts'
-import { openRoute } from '../share/link.ts'
+import { fetchProtected, openProtected, openRoute } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { downloadBlob } from './download.ts'
 import { loadDraft, saveDraft } from './draft.ts'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
+import { PasswordPrompt } from './PasswordPrompt.tsx'
 import type { Theme } from './theme.ts'
 import { Toc } from './Toc.tsx'
 
-type State = { kind: 'loading' } | { kind: 'ready'; text: string } | { kind: 'error'; error: LinkErrorKind }
+type ReadableRoute = Extract<Route, { kind: 'inline' | 'stored' | 'inline-protected' | 'stored-protected' }>
 
-export function ReaderPage({ route, theme }: { route: Extract<Route, { kind: 'inline' | 'stored' }>; theme: Theme }) {
+type State =
+  | { kind: 'loading' }
+  | { kind: 'locked'; bytes: Uint8Array }
+  | { kind: 'ready'; text: string }
+  | { kind: 'error'; error: LinkErrorKind }
+
+export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Theme }) {
   const { t } = useTranslation()
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const routeKey = JSON.stringify(route)
+  const isProtected = route.kind === 'inline-protected' || route.kind === 'stored-protected'
+  const storage = route.kind === 'stored' || route.kind === 'stored-protected' ? 'stored' : 'inline'
 
   useEffect(() => {
     let cancelled = false
-    const opened = JSON.parse(routeKey) as typeof route
-    const storage = opened.kind === 'stored' ? 'stored' : 'inline'
-    openRoute(opened, defaultStorage).then(
-      (text) => {
+    const opened = JSON.parse(routeKey) as ReadableRoute
+    const fail = (error: unknown) => {
+      if (cancelled) return
+      const kind = error instanceof LinkError ? error.kind : 'corrupt'
+      track('link_opened', { storage, protected: isProtected, ok: false, error: kind })
+      setState({ kind: 'error', error: kind })
+    }
+    if (opened.kind === 'inline-protected' || opened.kind === 'stored-protected') {
+      // Fetched once; every password attempt reuses these bytes.
+      fetchProtected(opened, defaultStorage).then((bytes) => !cancelled && setState({ kind: 'locked', bytes }), fail)
+    } else {
+      openRoute(opened, defaultStorage).then((text) => {
         if (cancelled) return
         track('link_opened', { storage, protected: false, ok: true })
         setState({ kind: 'ready', text })
-      },
-      (error: unknown) => {
-        if (cancelled) return
-        const kind = error instanceof LinkError ? error.kind : 'corrupt'
-        track('link_opened', { storage, protected: false, ok: false, error: kind })
-        setState({ kind: 'error', error: kind })
-      },
-    )
+      }, fail)
+    }
     return () => {
       cancelled = true
     }
-  }, [routeKey, attempt])
+  }, [routeKey, attempt, storage, isProtected])
+
+  async function unlock(bytes: Uint8Array, password: string): Promise<boolean> {
+    try {
+      const text = await openProtected(bytes, password)
+      track('link_opened', { storage, protected: true, ok: true })
+      setState({ kind: 'ready', text })
+      return true
+    } catch (error) {
+      if (error instanceof LinkError && error.kind === 'wrong-password') {
+        track('password_failed')
+        return false
+      }
+      setState({ kind: 'error', error: error instanceof LinkError ? error.kind : 'corrupt' })
+      return true
+    }
+  }
 
   if (state.kind === 'loading') return <p className="status">{t('reader.loading')}</p>
+  if (state.kind === 'locked') return <PasswordPrompt onSubmit={(password) => unlock(state.bytes, password)} />
   if (state.kind === 'error') {
     const retry =
       state.error === 'network'

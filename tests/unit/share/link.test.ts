@@ -146,3 +146,8 @@ test('fetching a missing protected doc is expired', async () => {
   await expect(fetchProtected({ kind: 'stored-protected', id: 'Missing000' }, storage)).rejects.toMatchObject({ kind: 'expired' })
   await expect(fetchProtected({ kind: 'stored-protected', id: 'Missing000' }, unavailable)).rejects.toMatchObject({ kind: 'network' })
 })
+
+test('a protected payload too short to hold salt and IV is corrupt', async () => {
+  const { storage } = memoryStorage()
+  await expect(fetchProtected({ kind: 'inline-protected', payload: 'AAAA' }, storage)).rejects.toMatchObject({ kind: 'corrupt' })
+})

@@ -32,6 +32,13 @@ const pt: typeof en = {
     png: 'PNG',
     diagramActions: 'Baixar diagrama',
   },
+  password: {
+    protect: 'Proteger com senha',
+    label: 'Senha',
+    locked: 'Este documento é protegido. Digite a senha para abrir.',
+    open: 'Abrir',
+    opening: 'Abrindo…',
+  },
   qr: {
     button: 'QR code',
     alt: 'QR code do link',

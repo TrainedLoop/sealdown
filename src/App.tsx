@@ -10,6 +10,7 @@ import { useTheme } from './ui/theme.ts'
 
 function routeName(route: Route): string {
   if (route.kind === 'unknown-format' || route.kind === 'malformed') return 'error'
+  if (route.kind === 'inline-protected' || route.kind === 'stored-protected') return 'protected'
   return route.kind
 }
 
@@ -23,7 +24,10 @@ export default function App() {
       <Header theme={theme} onThemeChange={setTheme} />
       <main className="page">
         {route.kind === 'editor' && <EditorPage theme={theme} />}
-        {(route.kind === 'inline' || route.kind === 'stored') && <ReaderPage key={JSON.stringify(route)} route={route} theme={theme} />}
+        {(route.kind === 'inline' ||
+          route.kind === 'stored' ||
+          route.kind === 'inline-protected' ||
+          route.kind === 'stored-protected') && <ReaderPage key={JSON.stringify(route)} route={route} theme={theme} />}
         {route.kind === 'unknown-format' && <ErrorMessage kind="unknown-format" />}
         {route.kind === 'malformed' && <ErrorMessage kind="corrupt" />}
       </main>
