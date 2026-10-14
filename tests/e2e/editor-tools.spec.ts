@@ -60,3 +60,11 @@ test('files over 5 MB are refused', async ({ page }) => {
   await page.getByLabel('Open .md').setInputFiles({ name: 'huge.md', mimeType: 'text/markdown', buffer: Buffer.alloc(5 * 1024 * 1024 + 1, 'a') })
   await expect(page.getByRole('alert')).toContainText('larger than 5 MB')
 })
+
+test('binary files without a type are refused', async ({ page }) => {
+  await page.goto('/')
+  await editor(page).fill('keep me')
+  await drop(page, 'data.bin', '', 'PK\u0003\u0004\u0000\u0001binary')
+  await expect(page.getByRole('alert')).toContainText("isn't a Markdown or text file")
+  expect(await editorValue(page)).toBe('keep me')
+})

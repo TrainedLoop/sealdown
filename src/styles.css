@@ -520,7 +520,8 @@ button:disabled {
   flex: 1;
   overflow: auto;
   display: flex;
-  align-items: center;
+  /* "safe": a slide taller than the screen starts at the top instead of overflowing upwards. */
+  align-items: safe center;
   justify-content: center;
   padding: 4vh 6vw;
 }

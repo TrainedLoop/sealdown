@@ -115,3 +115,16 @@ test('a large protected document is stored and fetched once across password atte
   await expect(reader.getByRole('heading', { name: 'Locked' })).toBeVisible()
   expect(fetches).toBe(1)
 })
+
+test('protection settings are locked while a link is being generated', async ({ page }) => {
+  await page.route('**/rest/v1/rpc/create_doc', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await route.continue()
+  })
+  await page.goto('/')
+  await editor(page).fill(largeDoc('Racing'))
+  await page.getByRole('button', { name: 'Generate link' }).click()
+  await expect(page.getByRole('checkbox', { name: 'Protect with password' })).toBeDisabled()
+  await expect(page.getByTestId('share-url')).toHaveValue(/#\/s\//)
+  await expect(page.getByRole('checkbox', { name: 'Protect with password' })).toBeEnabled()
+})

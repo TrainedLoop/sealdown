@@ -35,3 +35,8 @@ test('lists the first keyword of each mermaid block', () => {
   const text = '```mermaid\ngraph TD; A-->B\n```\n\ntext\n\n```mermaid\n  sequenceDiagram\n  A->>B: hi\n```\n```ts\nx\n```'
   expect(diagramTypes(text)).toEqual(['graph', 'sequenceDiagram'])
 })
+
+test('only known diagram keywords are reported; anything else is "other"', () => {
+  const text = '```mermaid\nProjectFalcon --> Legal\n```\n```mermaid\nflowchart LR\n```\n```mermaid\nzenuml\n```\n```mermaid\nstateDiagram-v2\n```'
+  expect(diagramTypes(text)).toEqual(['other', 'flowchart', 'zenuml', 'stateDiagram-v2'])
+})

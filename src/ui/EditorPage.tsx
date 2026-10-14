@@ -57,7 +57,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
 
   async function openFile(file: File, via: 'picker' | 'drop') {
     setFileProblem(null)
-    if (!TEXT_FILE.test(file.name) && !(file.type.startsWith('text/') || file.type === '')) {
+    if (!TEXT_FILE.test(file.name) && !file.type.startsWith('text/') && file.type !== '') {
       setFileProblem('not-text')
       return
     }
@@ -65,7 +65,15 @@ export function EditorPage({ theme }: { theme: Theme }) {
       setFileProblem('too-large')
       return
     }
-    const content = await file.text()
+    let content: string
+    try {
+      // Strict UTF-8 plus a NUL check: an unknown extension with no type may well be binary.
+      content = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())
+      if (content.includes('\0')) throw new Error('binary')
+    } catch {
+      setFileProblem('not-text')
+      return
+    }
     if (text.trim() !== '' && text !== content && !window.confirm(t('editor.replaceText'))) return
     track('file_opened', { via })
     setTab('code')
@@ -180,6 +188,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
         <label>
           <input
             type="checkbox"
+            disabled={busy}
             checked={protect}
             onChange={(e) => {
               setProtect(e.target.checked)
@@ -194,6 +203,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
             <input
               type="password"
               autoComplete="new-password"
+              disabled={busy}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value)

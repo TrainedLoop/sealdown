@@ -57,9 +57,23 @@ export function sanitizeEvent<
   }
 }
 
-/** First keyword of each ```mermaid block: diagram types without their content. */
+// Mermaid's diagram keywords (12.x). Anything else in a block is document text and is never sent.
+const DIAGRAM_KEYWORDS = new Set([
+  'graph', 'flowchart', 'flowchart-elk', 'sequenceDiagram', 'classDiagram', 'classDiagram-v2', 'stateDiagram',
+  'stateDiagram-v2', 'erDiagram', 'journey', 'gantt', 'pie', 'quadrantChart', 'requirementDiagram', 'requirement',
+  'gitGraph', 'C4Context', 'C4Container', 'C4Component', 'C4Dynamic', 'C4Deployment', 'mindmap', 'timeline',
+  'zenuml', 'sankey', 'sankey-beta', 'xychart', 'xychart-beta', 'block', 'block-beta', 'packet', 'packet-beta',
+  'kanban', 'architecture', 'architecture-beta', 'radar-beta', 'treemap', 'treemap-beta', 'swimlane-beta',
+  'usecase-beta', 'agentflow-beta', 'eventmodeling', 'venn-beta', 'ishikawa', 'ishikawa-beta', 'wardley-beta',
+  'cynefin-beta', 'treeView-beta', 'railroad-beta', 'railroad-ebnf-beta', 'railroad-abnf-beta', 'railroad-peg-beta',
+  'info',
+])
+
+/** Diagram type of each ```mermaid block; unknown first words become "other" so no document text leaks. */
 export function diagramTypes(text: string): string[] {
-  return Array.from(text.matchAll(/^```mermaid[^\S\n]*\n\s*([A-Za-z][\w-]*)/gm), (m) => m[1])
+  return Array.from(text.matchAll(/^```mermaid[^\S\n]*\n\s*([A-Za-z][\w-]*)/gm), (m) =>
+    DIAGRAM_KEYWORDS.has(m[1]) ? m[1] : 'other',
+  )
 }
 
 function optedOut(): boolean {

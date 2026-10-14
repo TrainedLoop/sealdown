@@ -44,3 +44,12 @@ test('swiping changes slides', async ({ page }) => {
   await page.mouse.up()
   await expect(dialog.getByText('2 / 3')).toBeVisible()
 })
+
+test('the start of a slide taller than the screen can be reached', async ({ page }) => {
+  const long = '# Very top\n\n' + Array.from({ length: 80 }, (_, i) => `Paragraph ${i}.`).join('\n\n')
+  await page.goto('/' + inlineHash(long))
+  await page.getByRole('button', { name: 'Present' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Presentation' })
+  await dialog.locator('.slide').evaluate((el) => el.scrollTo(0, 0))
+  await expect(dialog.getByRole('heading', { name: 'Very top' })).toBeInViewport()
+})

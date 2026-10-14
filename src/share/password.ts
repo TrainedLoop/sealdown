@@ -22,7 +22,8 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
 export async function encryptWithPassword(data: Uint8Array, password: string): Promise<Uint8Array> {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
-  const key = await deriveKey(password, salt)
+  // NFC: macOS and Windows/Linux compose accented letters differently.
+  const key = await deriveKey(password.normalize('NFC'), salt)
   const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data as BufferSource))
   const bytes = new Uint8Array(SALT_BYTES + IV_BYTES + ciphertext.length)
   bytes.set(salt)
@@ -37,15 +38,21 @@ export async function encryptWithPassword(data: Uint8Array, password: string): P
  */
 export async function decryptWithPassword(bytes: Uint8Array, password: string): Promise<Uint8Array> {
   if (bytes.length <= SALT_BYTES + IV_BYTES) throw new LinkError('corrupt')
-  const key = await deriveKey(password, bytes.subarray(0, SALT_BYTES))
-  try {
-    const plain = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: bytes.subarray(SALT_BYTES, SALT_BYTES + IV_BYTES) as BufferSource },
-      key,
-      bytes.subarray(SALT_BYTES + IV_BYTES) as BufferSource,
-    )
-    return new Uint8Array(plain)
-  } catch (cause) {
-    throw new LinkError('wrong-password', { cause })
+  // Links made before NFC normalization used the password as typed; try both.
+  const candidates = [...new Set([password.normalize('NFC'), password])]
+  let lastError: unknown
+  for (const candidate of candidates) {
+    const key = await deriveKey(candidate, bytes.subarray(0, SALT_BYTES))
+    try {
+      const plain = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: bytes.subarray(SALT_BYTES, SALT_BYTES + IV_BYTES) as BufferSource },
+        key,
+        bytes.subarray(SALT_BYTES + IV_BYTES) as BufferSource,
+      )
+      return new Uint8Array(plain)
+    } catch (cause) {
+      lastError = cause
+    }
   }
+  throw new LinkError('wrong-password', { cause: lastError })
 }

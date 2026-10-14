@@ -26,3 +26,28 @@ test('wrong password is reported as such', async () => {
 test('truncated bytes are corrupt', async () => {
   await expect(decryptWithPassword(new Uint8Array(20), 'pw')).rejects.toMatchObject({ kind: 'corrupt' })
 })
+
+test('accented passwords open regardless of how the OS composes them', async () => {
+  const composed = 'café' // é as one code point (Windows, Linux)
+  const decomposed = 'café' // e + combining accent (macOS)
+  const bytes = await encryptWithPassword(data, decomposed)
+  expect(Array.from(await decryptWithPassword(bytes, composed))).toEqual(Array.from(data))
+})
+
+test('links protected before normalization still open', async () => {
+  // Before NFC normalization, the raw string derived the key; emulate such a link.
+  const decomposed = 'café'
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(decomposed), 'PBKDF2', false, ['deriveKey'])
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 600_000 },
+    material,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt'],
+  )
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data))
+  const legacy = new Uint8Array([...salt, ...iv, ...ct])
+  expect(Array.from(await decryptWithPassword(legacy, decomposed))).toEqual(Array.from(data))
+})
