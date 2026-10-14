@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { renderMarkdown } from '../render/markdown.ts'
 import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { loadDraft, saveDraft } from './draft.ts'
@@ -12,6 +13,7 @@ type Tab = 'code' | 'preview'
 type Shared =
   | { kind: 'link'; url: string; fallback: boolean; copied: boolean }
   | { kind: 'too-large' }
+  | { kind: 'failed' }
 
 const DRAFT_DELAY_MS = 500
 
@@ -22,10 +24,15 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const [shared, setShared] = useState<Shared | null>(null)
   const [busy, setBusy] = useState(false)
 
+  // The latest text, for work that outlives a render: the unmount flush and in-flight generation.
+  const latest = useRef(text)
   useEffect(() => {
+    latest.current = text
     const timer = setTimeout(() => saveDraft(text), DRAFT_DELAY_MS)
     return () => clearTimeout(timer)
   }, [text])
+  // Leaving the editor (e.g. opening a link) cancels the pending debounce, so save right away.
+  useEffect(() => () => saveDraft(latest.current), [])
 
   function edit(next: string) {
     setText(next)
@@ -34,11 +41,14 @@ export function EditorPage({ theme }: { theme: Theme }) {
 
   async function generate() {
     setBusy(true)
+    const source = text
     try {
-      const result = await createLink(text, {
+      const result = await createLink(source, {
         storage: defaultStorage,
         baseUrl: window.location.origin + import.meta.env.BASE_URL,
       })
+      // Edited while the link was being made: that link is for a version that no longer exists.
+      if (latest.current !== source) return
       if (result.kind === 'too-large') {
         setShared({ kind: 'too-large' })
         return
@@ -51,6 +61,8 @@ export function EditorPage({ theme }: { theme: Theme }) {
         // Clipboard blocked or unavailable: the link is still shown for manual copying.
       }
       setShared({ kind: 'link', url: result.url, fallback: result.kind === 'fallback', copied })
+    } catch {
+      if (latest.current === source) setShared({ kind: 'failed' })
     } finally {
       setBusy(false)
     }
@@ -79,6 +91,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
       </div>
 
       {shared?.kind === 'too-large' && <ErrorMessage kind="too-large" />}
+      {shared?.kind === 'failed' && <ErrorMessage kind="generate-failed" />}
       {shared?.kind === 'link' && (
         <div className="share-result">
           {shared.fallback && <ErrorMessage kind="storage-unavailable" />}
@@ -105,8 +118,13 @@ export function EditorPage({ theme }: { theme: Theme }) {
       ) : text.trim() === '' ? (
         <p className="status">{t('editor.empty')}</p>
       ) : (
-        <MarkdownView text={text} theme={theme} />
+        <Preview text={text} theme={theme} />
       )}
     </section>
   )
+}
+
+function Preview({ text, theme }: { text: string; theme: Theme }) {
+  const html = useMemo(() => renderMarkdown(text), [text])
+  return <MarkdownView html={html} theme={theme} />
 }

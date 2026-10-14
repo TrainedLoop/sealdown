@@ -67,3 +67,18 @@ test('headings named after document properties keep an id', () => {
   const root = renderToDom('## Implementation\n\n## Images\n\n## Title')
   for (const h of root.querySelectorAll('h2')) expect(h.id).toMatch(/\S/)
 })
+
+test('links leaving the document open in a new tab, whatever their form', () => {
+  const root = renderToDom('[a](//evil.example/x) [b](other.html) [c](/rendermd/)')
+  for (const a of root.querySelectorAll('a')) {
+    expect(a.getAttribute('target')).toBe('_blank')
+    expect(a.getAttribute('rel')).toBe('noopener noreferrer')
+  }
+})
+
+test('emoji-only headings still get a usable, unique id', () => {
+  const root = renderToDom('# 🎉\n\n# 🚀')
+  const ids = Array.from(root.querySelectorAll('h1')).map((h) => h.id)
+  for (const id of ids) expect(id).toMatch(/section/)
+  expect(new Set(ids).size).toBe(2)
+})

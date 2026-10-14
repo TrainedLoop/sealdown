@@ -144,3 +144,34 @@ test('browser print in dark theme uses dark text on the white page', async ({ pa
   const [r, g, b] = color.match(/\d+/g)!.map(Number)
   expect((r + g + b) / 3).toBeLessThan(100)
 })
+
+test('edit a copy asks before replacing an existing draft', async ({ page }) => {
+  await page.goto('/')
+  const draft = page.getByRole('textbox', { name: /Paste or type Markdown/ })
+  await draft.fill('my unsaved work')
+  await page.waitForTimeout(700)
+  await open(page, '# Shared doc')
+
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await page.getByRole('button', { name: 'Edit a copy' }).click()
+  await expect(page.getByRole('heading', { name: 'Shared doc' })).toBeVisible()
+
+  page.once('dialog', (dialog) => {
+    expect(dialog.message()).toContain('Replace')
+    void dialog.accept()
+  })
+  await page.getByRole('button', { name: 'Edit a copy' }).click()
+  await expect(draft).toHaveValue('# Shared doc')
+})
+
+test('edit a copy does not ask when there is no draft', async ({ page }) => {
+  let asked = false
+  page.on('dialog', (dialog) => {
+    asked = true
+    void dialog.dismiss()
+  })
+  await open(page, '# Shared doc')
+  await page.getByRole('button', { name: 'Edit a copy' }).click()
+  await expect(page.getByRole('textbox', { name: /Paste or type Markdown/ })).toHaveValue('# Shared doc')
+  expect(asked).toBe(false)
+})

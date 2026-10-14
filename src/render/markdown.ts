@@ -5,11 +5,13 @@ import taskLists from 'markdown-it-task-lists'
 import { sanitize } from './sanitize.ts'
 
 function slugify(text: string): string {
-  return text
+  const slug = text
     .trim()
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu, '')
     .replace(/\s+/g, '-')
+  // Headings made only of emoji or symbols would otherwise get an empty id.
+  return slug || 'section'
 }
 
 function createMarkdown(): MarkdownIt {

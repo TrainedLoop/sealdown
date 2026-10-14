@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, type MouseEvent } from 'react'
+import { useEffect, useRef, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { hydrate } from '../render/hydrate.ts'
-import { renderMarkdown } from '../render/markdown.ts'
 import { scrollToId } from './scroll.ts'
 import type { Theme } from './theme.ts'
 
@@ -20,8 +19,8 @@ function onAnchorClick(event: MouseEvent<HTMLElement>) {
   scrollToId(event.currentTarget, id)
 }
 
-export function MarkdownView({ text, theme }: { text: string; theme: Theme }) {
-  const html = useMemo(() => renderMarkdown(text), [text])
+/** Shows sanitized HTML from renderMarkdown() and hydrates its diagrams, math and code. */
+export function MarkdownView({ html, theme }: { html: string; theme: Theme }) {
   const ref = useRef<HTMLElement>(null)
   const { i18n } = useTranslation()
 

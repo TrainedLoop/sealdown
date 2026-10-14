@@ -88,3 +88,11 @@ test('editing after generating clears the stale link', async ({ page }) => {
   await editor(page).fill('# Two')
   await expect(page.getByTestId('share-url')).toHaveCount(0)
 })
+
+test('edits made right before leaving the editor are kept', async ({ page }) => {
+  await page.goto('/')
+  await editor(page).fill('typed just before leaving')
+  await page.evaluate(() => (location.hash = '#/x/elsewhere'))
+  await page.evaluate(() => (location.hash = '#/'))
+  await expect(editor(page)).toHaveValue('typed just before leaving')
+})

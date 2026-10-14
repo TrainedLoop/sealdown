@@ -9,8 +9,9 @@ export type ShareableRoute = Extract<Route, { kind: 'editor' | 'inline' | 'store
 
 const TOKEN = /^[A-Za-z0-9_-]+$/
 const ID = /^[A-Za-z0-9]{10}$/
-// Characters chat apps glue to the end of a link. None of them occur in base64url or base62.
-const TRAILING_JUNK = /[\s.,;:!?)\]}'"]+$/
+// Characters chat apps glue to the end of a link (punctuation, the > of <url>, an ellipsis,
+// invisible zero-width marks). None of them occur in base64url or base62.
+const TRAILING_JUNK = /[\s.,;:!?)\]}'">…\u200B-\u200D\uFEFF]+$/
 
 export function parseRoute(hash: string): Route {
   let path: string

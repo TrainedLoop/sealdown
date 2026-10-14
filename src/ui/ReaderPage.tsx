@@ -8,7 +8,7 @@ import { LinkError, type LinkErrorKind } from '../share/errors.ts'
 import { openRoute } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { downloadBlob } from './download.ts'
-import { saveDraft } from './draft.ts'
+import { loadDraft, saveDraft } from './draft.ts'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
 import type { Theme } from './theme.ts'
@@ -53,13 +53,13 @@ export function ReaderPage({ route, theme }: { route: Extract<Route, { kind: 'in
 function Document({ text, theme }: { text: string; theme: Theme }) {
   const { t } = useTranslation()
   const wrapper = useRef<HTMLDivElement>(null)
+  const html = useMemo(() => renderMarkdown(text), [text])
   // DOMParser documents don't fetch images, unlike a detached element.
-  const toc = useMemo(
-    () => extractToc(new DOMParser().parseFromString(renderMarkdown(text), 'text/html').body),
-    [text],
-  )
+  const toc = useMemo(() => extractToc(new DOMParser().parseFromString(html, 'text/html').body), [html])
 
   function editCopy() {
+    const draft = loadDraft()
+    if (draft.trim() !== '' && draft !== text && !window.confirm(t('reader.replaceDraft'))) return
     saveDraft(text)
     window.location.hash = '#/'
   }
@@ -95,7 +95,7 @@ function Document({ text, theme }: { text: string; theme: Theme }) {
       </div>
       <div className={toc.length >= 3 ? 'reader-body with-toc' : 'reader-body'}>
         <Toc entries={toc} />
-        <MarkdownView text={text} theme={theme} />
+        <MarkdownView html={html} theme={theme} />
       </div>
     </div>
   )

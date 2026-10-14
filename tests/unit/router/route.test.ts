@@ -36,3 +36,10 @@ test('buildHash round-trips', () => {
   expect(parseRoute(buildHash(inline))).toEqual(inline)
   expect(buildHash({ kind: 'editor' })).toBe('#/')
 })
+
+test('strips angle brackets, ellipses and invisible characters glued to links', () => {
+  expect(parseRoute('#/v/abc>')).toEqual({ kind: 'inline', payload: 'abc' })
+  expect(parseRoute('#/v/abc…')).toEqual({ kind: 'inline', payload: 'abc' })
+  expect(parseRoute('#/v/abc​')).toEqual({ kind: 'inline', payload: 'abc' })
+  expect(parseRoute('#/v/abc﻿')).toEqual({ kind: 'inline', payload: 'abc' })
+})

@@ -4,7 +4,9 @@ let configured = false
 
 function configure() {
   DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    if (node.tagName === 'A' && /^https?:\/\//i.test(node.getAttribute('href') ?? '')) {
+    // Any link that isn't an in-document anchor would replace the shared document; open it apart.
+    const href = node.getAttribute('href')
+    if (node.tagName === 'A' && href && !href.startsWith('#')) {
       node.setAttribute('target', '_blank')
       node.setAttribute('rel', 'noopener noreferrer')
     }

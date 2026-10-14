@@ -65,3 +65,27 @@ test('network failure offers a retry that recovers', async ({ page }) => {
   await alert.getByRole('button', { name: 'Try again' }).click()
   await expect(page.getByRole('heading', { name: 'Retry me' })).toBeVisible()
 })
+
+test('editing while a link is being generated discards the stale link', async ({ page }) => {
+  await page.route('**/rest/v1/rpc/create_doc', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await route.continue()
+  })
+  await page.goto('/')
+  await editor(page).fill(largeDoc('Old version'))
+  await page.getByRole('button', { name: 'Generate link' }).click()
+  await editor(page).fill(largeDoc('New version'))
+  await page.waitForTimeout(2500)
+  await expect(page.getByTestId('share-url')).toHaveCount(0)
+})
+
+test('an unexpected failure while generating shows a message', async ({ page }) => {
+  await page.route('**/rest/v1/rpc/create_doc', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: 'not json' }),
+  )
+  await page.goto('/')
+  await editor(page).fill(largeDoc('Broken'))
+  await page.getByRole('button', { name: 'Generate link' }).click()
+  await expect(page.getByRole('alert')).toContainText("Couldn't generate the link")
+  await expect(page.getByRole('button', { name: 'Generate link' })).toBeEnabled()
+})
