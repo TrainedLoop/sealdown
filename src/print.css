@@ -1,4 +1,19 @@
 @media print {
+  /* Paper is white whatever the screen theme; Export PDF also re-renders diagrams light. */
+  :root[data-theme='dark'] {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --text: #1d1d1f;
+    --muted: #6b6b70;
+    --border: #e4e2dd;
+    --accent: #3b5bdb;
+    --code-bg: #f3f1ed;
+    --notice-bg: #fff4e5;
+    --notice-border: #f0c58a;
+    --error: #c92a2a;
+  }
+
   .app-header,
   .reader-toolbar,
   .toc,

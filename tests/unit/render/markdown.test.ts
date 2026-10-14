@@ -62,3 +62,8 @@ test('in-document anchor links are left alone', () => {
   expect(a.getAttribute('href')).toBe('#intro')
   expect(a.hasAttribute('target')).toBe(false)
 })
+
+test('headings named after document properties keep an id', () => {
+  const root = renderToDom('## Implementation\n\n## Images\n\n## Title')
+  for (const h of root.querySelectorAll('h2')) expect(h.id).toMatch(/\S/)
+})

@@ -34,6 +34,7 @@ const en = {
       "Couldn't save the document, so the link carries the whole document instead. Some apps cut long links.",
     tooLarge: 'This document is too large to share by link. Download the .md or export a PDF instead.',
     diagram: "This diagram couldn't be rendered:",
+    png: "This diagram can't be exported as PNG in this browser. Download the SVG instead.",
     loadFailed: "Couldn't load what this block needs.",
   },
   common: { retry: 'Try again' },

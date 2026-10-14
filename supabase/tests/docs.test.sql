@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(17);
 
 -- Permissions: anon can call the three public RPCs and nothing else.
 set local role anon;
@@ -46,6 +46,12 @@ insert into public.docs (id, content, last_accessed_at) values
 select is(public.prune_docs(cap_bytes => 25), 1, 'prune deletes one doc');
 select results_eq('select id from public.docs order by id', $$values ('mid0000000'), ('new0000000')$$, 'prune keeps the most recently accessed');
 select is(public.prune_docs(), 0, 'default cap deletes nothing when small');
+
+-- Size guard: refuse inserts once the table is near the free-tier limit (prune runs only hourly).
+set local rendermd.max_table_bytes = '1';
+select throws_ok($$select public.create_doc(encode('x', 'base64'))$$, '53100', null, 'create_doc refuses when the table is over the guard');
+reset rendermd.max_table_bytes;
+select matches(public.create_doc(encode('x', 'base64')), '^[A-Za-z0-9]{10}$', 'create_doc works under the default guard');
 
 -- Hourly schedule.
 select is((select schedule from cron.job where jobname = 'prune-docs'), '0 * * * *', 'prune-docs runs hourly');

@@ -37,6 +37,7 @@ const pt: typeof en = {
       'Não foi possível salvar o documento, então o link leva o documento inteiro. Alguns apps cortam links longos.',
     tooLarge: 'Este documento é grande demais para compartilhar por link. Baixe o .md ou exporte um PDF.',
     diagram: 'Não foi possível renderizar este diagrama:',
+    png: 'Este diagrama não pode ser exportado como PNG neste navegador. Baixe o SVG.',
     loadFailed: 'Não foi possível carregar o que este bloco precisa.',
   },
   common: { retry: 'Tentar de novo' },

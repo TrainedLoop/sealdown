@@ -27,5 +27,8 @@ export function sanitize(html: string): string {
   return DOMPurify.sanitize(html, {
     FORBID_TAGS: ['style', 'form', 'button', 'textarea', 'select'],
     FORBID_ATTR: ['style'],
+    // Instead of dropping ids that clash with document properties ("images", "title"…), prefix
+    // every id with "user-content-", as GitHub does.
+    SANITIZE_NAMED_PROPS: true,
   })
 }

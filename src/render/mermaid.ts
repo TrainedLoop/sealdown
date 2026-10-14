@@ -24,13 +24,30 @@ function loadMermaid(): Promise<Mermaid> {
   return loading
 }
 
-function configure(mermaid: Mermaid, theme: Theme, htmlLabels = true) {
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: 'strict',
-    theme: theme === 'dark' ? 'dark' : 'default',
-    htmlLabels,
+// mermaid.initialize() is global and not queued with renders, so every initialize + render pair
+// runs on this chain; otherwise an export render could pick up a hydrate pass's config or vice versa.
+let queue: Promise<unknown> = Promise.resolve()
+
+function renderSvg(source: string, theme: Theme, htmlLabels: boolean): Promise<string> {
+  const run = queue.then(async () => {
+    const mermaid = await loadMermaid()
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: theme === 'dark' ? 'dark' : 'default',
+      htmlLabels,
+    })
+    const id = `rmd-${++counter}`
+    try {
+      return (await mermaid.render(id, source)).svg
+    } finally {
+      // On a syntax error Mermaid leaves its scratch elements in <body>.
+      document.getElementById(id)?.remove()
+      document.getElementById(`d${id}`)?.remove()
+    }
   })
+  queue = run.catch(() => undefined)
+  return run
 }
 
 // Matches --surface in styles.css, so PNGs look like the page they came from.
@@ -52,27 +69,26 @@ function diagramActions(figure: HTMLElement, index: number, theme: Theme): HTMLE
   const name = `diagram-${index + 1}`
   actions.append(
     actionButton(i18n.t('export.svg'), () => {
-      const svg = figure.querySelector('.diagram-svg svg')
-      if (svg) downloadBlob(new Blob([svg.outerHTML], { type: 'image/svg+xml' }), `${name}.svg`)
+      const svg = figure.querySelector('.diagram-svg > svg')
+      // XML serialization: outerHTML would write <br> inside labels as unclosed HTML.
+      if (svg) downloadBlob(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }), `${name}.svg`)
     }),
     actionButton(i18n.t('export.png'), async () => {
-      const svg = await renderDiagramForExport(figure.dataset.source ?? '', theme)
-      downloadBlob(await svgToPngBlob(svg, PNG_BACKGROUND[theme]), `${name}.png`)
+      figure.querySelector('.png-failed')?.remove()
+      try {
+        const svg = await renderDiagramForExport(figure.dataset.source ?? '', theme)
+        downloadBlob(await svgToPngBlob(svg, PNG_BACKGROUND[theme]), `${name}.png`)
+      } catch {
+        // Some diagram types still produce markup the browser refuses to rasterize.
+        const notice = createNotice(i18n.t('errors.png'))
+        notice.classList.add('png-failed')
+        actions.after(notice)
+      }
     }),
   )
   return actions
 }
 
-async function renderSvg(mermaid: Mermaid, source: string): Promise<string> {
-  const id = `rmd-${++counter}`
-  try {
-    return (await mermaid.render(id, source)).svg
-  } finally {
-    // On a syntax error Mermaid leaves its scratch elements in <body>.
-    document.getElementById(id)?.remove()
-    document.getElementById(`d${id}`)?.remove()
-  }
-}
 
 /** Turns `pre.mermaid-src` placeholders into `figure.diagram` elements; later passes re-render them. */
 export function collectDiagrams(container: HTMLElement): HTMLElement[] {
@@ -95,14 +111,13 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
   passes.set(container, pass)
 
   // Mermaid sizes boxes by measuring label text, so fonts must be loaded first.
-  const [mermaid] = await Promise.all([loadMermaid(), document.fonts.ready])
+  await Promise.all([loadMermaid(), document.fonts.ready])
   for (const [index, figure] of figures.entries()) {
     if (passes.get(container) !== pass) return
     const source = figure.dataset.source ?? ''
-    configure(mermaid, theme)
     let content: HTMLElement
     try {
-      const svg = await renderSvg(mermaid, source)
+      const svg = await renderSvg(source, theme, true)
       content = document.createElement('div')
       content.className = 'diagram-svg'
       content.innerHTML = svg
@@ -119,12 +134,6 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
 }
 
 /** SVG for downloads: plain-text labels, because HTML labels (foreignObject) taint a canvas. */
-export async function renderDiagramForExport(source: string, theme: Theme): Promise<string> {
-  const mermaid = await loadMermaid()
-  configure(mermaid, theme, false)
-  try {
-    return await renderSvg(mermaid, source)
-  } finally {
-    configure(mermaid, theme)
-  }
+export function renderDiagramForExport(source: string, theme: Theme): Promise<string> {
+  return renderSvg(source, theme, false)
 }

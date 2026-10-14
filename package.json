@@ -13,9 +13,9 @@
     "test": "vitest run",
     "db:start": "supabase start",
     "db:test": "supabase test db",
-    "test:e2e": "scripts/playwright-docker.sh --project chromium",
+    "test:e2e": "scripts/playwright-docker.sh --project=chromium",
     "test:e2e:stored": "scripts/e2e-stored.sh",
-    "test:visual": "scripts/playwright-docker.sh --project visual"
+    "test:visual": "scripts/playwright-docker.sh --project=visual"
   },
   "dependencies": {
     "@mdit/plugin-tex": "^1.1.2",

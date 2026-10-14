@@ -99,3 +99,48 @@ test('export PDF prints in light theme and restores dark', async ({ page }) => {
     .poll(() => page.locator('figure.diagram svg .node rect').first().evaluate((el) => getComputedStyle(el).fill))
     .not.toBe(lightFill)
 })
+
+test('anchor links and the TOC reach headings named after document properties', async ({ page }) => {
+  await open(page, `[see](#implementation)\n\n# Intro\n\n${filler}\n\n## Images\n\n${filler}\n\n## Implementation\n\nDone.`)
+  await expect(page.getByRole('navigation', { name: 'Contents' }).getByRole('link')).toHaveCount(3)
+  await page.getByRole('link', { name: 'see' }).click()
+  await expect(page.getByRole('heading', { name: 'Implementation' })).toBeInViewport()
+})
+
+test('SVG download is well-formed XML with multi-line labels', async ({ page }) => {
+  await open(page, '```mermaid\ngraph TD; A[Hello<br>World]-->B\n```\n')
+  const download = page.waitForEvent('download')
+  await page.locator('figure.diagram').getByRole('button', { name: 'SVG' }).click()
+  const svg = await readFile(await (await download).path(), 'utf8')
+  const error = await page.evaluate(
+    (text) => new DOMParser().parseFromString(text, 'image/svg+xml').querySelector('parsererror')?.textContent ?? null,
+    svg,
+  )
+  expect(error).toBeNull()
+})
+
+test('PNG export that the browser refuses tells the user instead of failing silently', async ({ page }) => {
+  await open(page, '```mermaid\njourney\n  title Trip\n  section Go\n    Walk: 5: Me\n```\n')
+  await page.locator('figure.diagram').getByRole('button', { name: 'PNG' }).click()
+  await expect(page.locator('figure.diagram').getByRole('alert')).toContainText('PNG')
+})
+
+test('PNG export while other diagrams are still rendering succeeds', async ({ page }) => {
+  const many = Array.from({ length: 12 }, (_, i) => `\`\`\`mermaid\ngraph TD; A${i}[Node ${i}]-->B${i}[Next]\n\`\`\`\n`).join('\n')
+  await open(page, many)
+  const first = page.locator('figure.diagram').first()
+  await first.getByRole('button', { name: 'PNG' }).click()
+  const file = await page.waitForEvent('download')
+  const bytes = await readFile(await file.path())
+  expect([...bytes.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47])
+})
+
+test('browser print in dark theme uses dark text on the white page', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await open(page, '# Printable\n\nBody text.')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.emulateMedia({ media: 'print', colorScheme: 'dark' })
+  const color = await page.locator('.markdown-body p').evaluate((el) => getComputedStyle(el).color)
+  const [r, g, b] = color.match(/\d+/g)!.map(Number)
+  expect((r + g + b) / 3).toBeLessThan(100)
+})
