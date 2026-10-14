@@ -19,6 +19,7 @@
   .toc,
   .presentation,
   .diagram-actions,
+  .copy-code,
   .load-failed {
     display: none !important;
   }

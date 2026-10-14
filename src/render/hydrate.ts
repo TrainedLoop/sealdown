@@ -1,4 +1,5 @@
 import type { Theme } from '../ui/theme.ts'
+import { addCopyButtons } from './copyCode.ts'
 import { renderCode } from './highlight.ts'
 import { renderMath } from './math.ts'
 import { renderDiagrams } from './mermaid.ts'
@@ -10,6 +11,7 @@ import { clearLoadFailed, showLoadFailed } from './notice.ts'
  */
 export async function hydrate(container: HTMLElement, theme: Theme): Promise<void> {
   clearLoadFailed(container)
+  addCopyButtons(container)
   const retry = () => void hydrate(container, theme)
   const steps: [selector: string, run: () => Promise<void>][] = [
     ['figure.diagram, pre.mermaid-src', () => renderDiagrams(container, theme)],

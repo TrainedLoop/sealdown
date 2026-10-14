@@ -67,6 +67,12 @@ const en = {
     next: 'Next slide',
     close: 'Exit',
   },
+  code: {
+    copy: 'Copy code',
+    copyShort: 'Copy',
+    copied: 'Copied',
+    copyFailed: "Couldn't copy",
+  },
   qr: {
     button: 'QR code',
     alt: 'QR code for the link',

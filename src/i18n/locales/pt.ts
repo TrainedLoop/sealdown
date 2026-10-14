@@ -69,6 +69,12 @@ const pt: typeof en = {
     next: 'Próximo slide',
     close: 'Sair',
   },
+  code: {
+    copy: 'Copiar código',
+    copyShort: 'Copiar',
+    copied: 'Copiado',
+    copyFailed: 'Não foi possível copiar',
+  },
   qr: {
     button: 'QR code',
     alt: 'QR code do link',

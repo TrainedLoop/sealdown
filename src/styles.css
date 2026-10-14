@@ -760,3 +760,30 @@ button:disabled {
 :root[data-theme='dark'] .markdown-body .markdown-alert-important { --alert: #a78bfa; }
 :root[data-theme='dark'] .markdown-body .markdown-alert-warning { --alert: #fbbf24; }
 :root[data-theme='dark'] .markdown-body .markdown-alert-caution { --alert: #f87171; }
+
+/* Copy code */
+.markdown-body pre.has-copy {
+  position: relative;
+}
+
+.markdown-body .copy-code {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.markdown-body pre:hover .copy-code,
+.markdown-body .copy-code:focus-visible,
+.markdown-body .copy-code[data-touch] {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .markdown-body .copy-code {
+    opacity: 1;
+  }
+}
