@@ -61,18 +61,26 @@ blocks another.
 
 ## Keeping Mermaid current
 
-Renovate opens a PR when Mermaid releases. CI renders `tests/visual/reference.md`, which holds one
-example of every diagram type, and compares screenshots with the approved baselines. Review the
-image diffs in the Playwright report.
+Dependency updates are manual for now (an automated agent may take this over later). To update
+Mermaid:
 
-When Mermaid adds a diagram type, add an example under its own `##` heading in
-`tests/visual/reference.md`, then refresh and review the baselines:
+```sh
+pnpm up mermaid @mermaid-js/mermaid-zenuml --latest
+pnpm test:visual
+```
+
+`tests/visual/reference.md` holds one example of every diagram type; the visual tests compare
+their screenshots with the approved baselines. Review any image diffs in the Playwright report,
+then refresh the baselines:
 
 ```sh
 pnpm test:visual --update-snapshots
 ```
 
-Keep examples deterministic (for instance, give `gitGraph` commits explicit ids).
+When Mermaid adds a diagram type, add an example under its own `##` heading in
+`tests/visual/reference.md` and refresh the baselines. Keep examples deterministic (for instance,
+give `gitGraph` commits explicit ids). The Playwright Docker image tag follows `@playwright/test`,
+so updating Playwright also changes screenshots.
 
 ## Deployment
 

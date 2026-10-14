@@ -34,7 +34,7 @@ rendermd is a **tool for real use** (the portfolio value comes as a consequence)
 - Math (KaTeX).
 - UI in English by default, with Portuguese available from the language toggle (the choice is remembered).
 - Automatic database cleanup (least recently accessed first) and a cron to keep Supabase from pausing.
-- Renovate + visual tests to keep Mermaid up to date.
+- Visual tests to keep Mermaid updates safe (updates are manual for now; an automated agent may handle them later).
 
 ### Out of v1
 
@@ -222,7 +222,6 @@ All UI strings live in the locale files (pt and en).
 | `ci` | Every PR and push | Lint, types, unit, database, end-to-end and visual |
 | `deploy` | Push to `main` with green CI | Build and publish to GitHub Pages |
 | `keepalive` | Cron every 3 days | Calls `ping()` on Supabase; re-enables its own scheduled workflow via the GitHub API (`PUT /repos/{owner}/{repo}/actions/workflows/{id}/enable`) so it isn't disabled after 60 days without repo activity. Fallback if the permission fails: monthly empty commit on a `keepalive` branch. Failure triggers a GitHub email. |
-| Renovate | New dependency versions | Opens a PR; CI runs the visual tests |
 
 ## 9. Risks and open questions
 
