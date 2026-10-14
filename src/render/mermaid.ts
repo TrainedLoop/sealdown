@@ -94,7 +94,8 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
   const pass = (passes.get(container) ?? 0) + 1
   passes.set(container, pass)
 
-  const mermaid = await loadMermaid()
+  // Mermaid sizes boxes by measuring label text, so fonts must be loaded first.
+  const [mermaid] = await Promise.all([loadMermaid(), document.fonts.ready])
   for (const [index, figure] of figures.entries()) {
     if (passes.get(container) !== pass) return
     const source = figure.dataset.source ?? ''
