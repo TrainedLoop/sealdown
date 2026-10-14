@@ -8,7 +8,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     // Built without Supabase variables, so storage is unavailable unless a test routes it.
-    command: 'pnpm build && pnpm preview --port 4173 --strictPort',
+    command: 'node_modules/.bin/vite build && node_modules/.bin/vite preview --port 4173 --strictPort',
     url: 'http://localhost:4173/',
     reuseExistingServer: !process.env.CI,
     env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },

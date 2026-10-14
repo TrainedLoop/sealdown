@@ -4,7 +4,7 @@
 set -euo pipefail
 version=$(node -p "require('@playwright/test/package.json').version")
 exec docker run --rm --network host --ipc host \
-  -u "$(id -u):$(id -g)" -e HOME=/tmp -e CI -e npm_config_cache=/work/node_modules/.cache/npm \
+  -u "$(id -u):$(id -g)" -e HOME=/tmp -e CI \
   -v "$PWD":/work -w /work \
   "mcr.microsoft.com/playwright:v${version}-noble" \
-  bash -c 'npx --yes pnpm@12.3.4 exec playwright test "$@"' -- "$@"
+  node_modules/.bin/playwright test "$@"

@@ -188,3 +188,71 @@ button:disabled {
 .markdown-body .task-list-item input {
   margin: 0 0.4em 0 -1.4em;
 }
+
+.markdown-body figure.diagram {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  text-align: center;
+}
+
+.markdown-body figure.diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-body figure.diagram .notice {
+  text-align: left;
+}
+
+.markdown-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* highlight.js tokens, tuned for both themes */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-type {
+  color: #8250df;
+}
+.hljs-string,
+.hljs-attr,
+.hljs-regexp {
+  color: #0a7d4a;
+}
+.hljs-number,
+.hljs-literal {
+  color: #b35900;
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--muted);
+  font-style: italic;
+}
+.hljs-title,
+.hljs-section,
+.hljs-function {
+  color: #0550ae;
+}
+
+:root[data-theme='dark'] .hljs-keyword,
+:root[data-theme='dark'] .hljs-selector-tag,
+:root[data-theme='dark'] .hljs-built_in,
+:root[data-theme='dark'] .hljs-type {
+  color: #d2a8ff;
+}
+:root[data-theme='dark'] .hljs-string,
+:root[data-theme='dark'] .hljs-attr,
+:root[data-theme='dark'] .hljs-regexp {
+  color: #7ee2a8;
+}
+:root[data-theme='dark'] .hljs-number,
+:root[data-theme='dark'] .hljs-literal {
+  color: #ffb26b;
+}
+:root[data-theme='dark'] .hljs-title,
+:root[data-theme='dark'] .hljs-section,
+:root[data-theme='dark'] .hljs-function {
+  color: #79c0ff;
+}
