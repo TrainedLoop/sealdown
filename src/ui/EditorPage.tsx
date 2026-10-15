@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { diagramTypes, track } from '../analytics.ts'
 import type { EditorApi } from '../editor/CodeEditor.tsx'
@@ -10,20 +10,15 @@ import { syncTarget } from '../render/scrollSync.ts'
 import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { loadDraft, saveDraft } from './draft.ts'
-import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
 import { useMode, type Mode } from './mode.ts'
 import { readPref, writePref } from './prefs.ts'
 import { StatusBar } from './StatusBar.tsx'
 import { useDocumentTitle } from './docTitle.ts'
-import { QrCode } from './QrCode.tsx'
+import { SealModal, type SealResult } from './SealModal.tsx'
 import type { Theme } from './theme.ts'
 
 
-type Shared =
-  | { kind: 'link'; url: string; fallback: boolean; copied: boolean }
-  | { kind: 'too-large' }
-  | { kind: 'failed' }
 
 const DRAFT_DELAY_MS = 500
 const MODES: Mode[] = ['write', 'split', 'read']
@@ -47,10 +42,10 @@ export function EditorPage({ theme }: { theme: Theme }) {
   }
   const [saved, setSaved] = useState(true)
   useDocumentTitle(text)
-  const [shared, setShared] = useState<Shared | null>(null)
+  const [shared, setShared] = useState<SealResult | null>(null)
+  const sealButton = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState(false)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
-  const [protect, setProtect] = useState(false)
   const [password, setPassword] = useState('')
   const editorApi = useRef<EditorApi | null>(null)
 
@@ -112,6 +107,12 @@ export function EditorPage({ theme }: { theme: Theme }) {
     pane.scrollTo({ top: pane.scrollTop + offset - 8 })
   }
 
+  // Stable, so the dialog's keyboard and focus effect runs once per opening.
+  const closeSeal = useCallback(() => {
+    setShared(null)
+    sealButton.current?.focus()
+  }, [])
+
   async function generate() {
     setBusy(true)
     const source = text
@@ -119,7 +120,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
       const result = await createLink(source, {
         storage: defaultStorage,
         baseUrl: window.location.origin + import.meta.env.BASE_URL,
-        password: protect ? password : undefined,
+        password: password || undefined,
       })
       // Edited while the link was being made: that link is for a version that no longer exists.
       if (latest.current !== source) return
@@ -127,7 +128,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
       track('link_created', {
         result: result.kind === 'too-large' ? 'too_large' : result.kind,
         storage: result.kind !== 'too-large' && /#\/[sq]\//.test(result.url) ? 'stored' : 'inline',
-        protected: protect,
+        protected: password !== '',
         size_kb: Math.round(new Blob([source]).size / 1024),
         diagram_count: types.length,
         diagram_types: types,
@@ -143,10 +144,17 @@ export function EditorPage({ theme }: { theme: Theme }) {
       } catch {
         // Clipboard blocked or unavailable: the link is still shown for manual copying.
       }
-      setShared({ kind: 'link', url: result.url, fallback: result.kind === 'fallback', copied })
+      setShared({
+        kind: 'link',
+        url: result.url,
+        fallback: result.kind === 'fallback',
+        copied,
+        protected: password !== '',
+        stored: /#\/[sq]\//.test(result.url),
+      })
     } catch {
       if (latest.current === source) {
-        track('link_created', { result: 'failed', protected: protect })
+        track('link_created', { result: 'failed', protected: password !== '' })
         setShared({ kind: 'failed' })
       }
     } finally {
@@ -188,44 +196,27 @@ export function EditorPage({ theme }: { theme: Theme }) {
             />
           </label>
         </div>
-        <button
-          type="button"
-          className="primary"
-          disabled={busy || text.trim() === '' || (protect && password === '')}
-          onClick={generate}
-        >
-          {t(busy ? 'editor.generating' : 'editor.generate')}
-        </button>
-      </div>
-
-      <div className="protect">
-        <label>
+        <div className="seal-controls">
           <input
-            type="checkbox"
+            type="password"
+            className="password-input"
+            aria-label={t('password.label')}
+            placeholder={t('seal.passwordPlaceholder')}
+            autoComplete="new-password"
             disabled={busy}
-            checked={protect}
-            onChange={(e) => {
-              setProtect(e.target.checked)
-              setShared(null)
-            }}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
-          {t('password.protect')}
-        </label>
-        {protect && (
-          <label>
-            {t('password.label')}
-            <input
-              type="password"
-              autoComplete="new-password"
-              disabled={busy}
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                setShared(null)
-              }}
-            />
-          </label>
-        )}
+          <button
+            ref={sealButton}
+            type="button"
+            className="primary seal-button"
+            disabled={busy || text.trim() === ''}
+            onClick={generate}
+          >
+            🔒 {t(busy ? 'seal.sealing' : 'seal.button')}
+          </button>
+        </div>
       </div>
 
       {fileProblem && (
@@ -233,21 +224,8 @@ export function EditorPage({ theme }: { theme: Theme }) {
           <p>{t(fileProblem === 'not-text' ? 'editor.fileNotText' : 'editor.fileTooLarge')}</p>
         </div>
       )}
-      {shared?.kind === 'too-large' && <ErrorMessage kind="too-large" />}
-      {shared?.kind === 'failed' && <ErrorMessage kind="generate-failed" />}
-      {shared?.kind === 'link' && (
-        <div className="share-result">
-          {shared.fallback && <ErrorMessage kind="storage-unavailable" />}
-          <p role="status">{t(shared.copied ? 'editor.copied' : 'editor.copyManually')}</p>
-          <input
-            data-testid="share-url"
-            aria-label={t('editor.shareUrl')}
-            readOnly
-            value={shared.url}
-            onFocus={(e) => e.currentTarget.select()}
-          />
-          <QrCode key={shared.url} url={shared.url} />
-        </div>
+      {shared && (
+        <SealModal result={shared} onClose={closeSeal} />
       )}
 
       {mode !== 'read' && (

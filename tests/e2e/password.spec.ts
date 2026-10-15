@@ -5,19 +5,20 @@ const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type 
 async function protectedLink(page: Page, text: string, password: string): Promise<string> {
   await page.goto('/')
   await editor(page).fill(text)
-  await page.getByRole('checkbox', { name: 'Protect with password' }).check()
   await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Generate link' }).click()
+  await page.getByRole('button', { name: 'Seal link' }).click()
   return page.getByTestId('share-url').inputValue()
 }
 
-test('generate is disabled until a password is typed', async ({ page }) => {
+test('an empty password seals without protection; a password protects', async ({ page }) => {
   await page.goto('/')
   await editor(page).fill('# Secret')
-  await page.getByRole('checkbox', { name: 'Protect with password' }).check()
-  await expect(page.getByRole('button', { name: 'Generate link' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Seal link' }).click()
+  await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
+  await page.keyboard.press('Escape')
   await page.getByLabel('Password', { exact: true }).fill('pw')
-  await expect(page.getByRole('button', { name: 'Generate link' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Seal link' }).click()
+  await expect(page.getByTestId('share-url')).toHaveValue(/#\/p\//)
 })
 
 test('a protected link asks for the password', async ({ page, context }) => {

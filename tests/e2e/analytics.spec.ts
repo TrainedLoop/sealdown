@@ -35,7 +35,7 @@ test('events are sent without URLs fragments or document text', async ({ page })
   await expect(page.getByRole('heading', { name: secret })).toBeVisible()
   await page.goto('/#/')
   await page.getByRole('textbox', { name: /Paste or type Markdown/ }).fill(`# ${secret}\n\n\`\`\`mermaid\ngraph TD; A-->B\n\`\`\``)
-  await page.getByRole('button', { name: 'Generate link' }).click()
+  await page.getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByTestId('share-url')).toBeVisible()
 
   await expect.poll(() => requests.map((r) => decode(r.body)).join('\n'), { timeout: 15_000 }).toContain('link_created')

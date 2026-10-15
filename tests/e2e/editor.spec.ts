@@ -38,7 +38,7 @@ test('short document produces an inline link that opens', async ({ page, context
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.goto('/')
   await editor(page).fill('# Shared\n\nHello')
-  await page.getByRole('button', { name: 'Generate link' }).click()
+  await page.getByRole('button', { name: 'Seal link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
   expect(url).toMatch(/#\/e\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/)
   await expect(page.getByRole('status')).toHaveText('Link copied to the clipboard.')
@@ -52,7 +52,7 @@ test('short document produces an inline link that opens', async ({ page, context
 test('large document falls back to a long link when storage is unavailable', async ({ page }) => {
   await page.goto('/')
   await editor(page).fill(randomWords(20_000))
-  await page.getByRole('button', { name: 'Generate link' }).click()
+  await page.getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByRole('alert')).toContainText("Couldn't save the document")
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
 })
@@ -63,7 +63,7 @@ test('oversized document is refused', async ({ page }) => {
     Array.from({ length: 1_000_000 }, () => String.fromCharCode(0x4e00 + Math.floor(Math.random() * 20000))).join(''),
   )
   await editor(page).fill(big)
-  await page.getByRole('button', { name: 'Generate link' }).click()
+  await page.getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByRole('alert')).toContainText('too large to share by link')
   await expect(page.getByTestId('share-url')).toHaveCount(0)
 })
@@ -76,18 +76,19 @@ test('blocked clipboard asks to copy manually', async ({ page }) => {
   })
   await page.goto('/')
   await editor(page).fill('# Hi')
-  await page.getByRole('button', { name: 'Generate link' }).click()
+  await page.getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByRole('status')).toHaveText('Copy the link below.')
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
 })
 
-test('editing after generating clears the stale link', async ({ page }) => {
+test('the seal dialog closes with Escape and returns focus to the button', async ({ page }) => {
   await page.goto('/')
   await editor(page).fill('# One')
-  await page.getByRole('button', { name: 'Generate link' }).click()
-  await expect(page.getByTestId('share-url')).toBeVisible()
-  await editor(page).fill('# Two')
-  await expect(page.getByTestId('share-url')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Seal link' }).click()
+  await expect(page.getByRole('dialog', { name: 'Document sealed' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Document sealed' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Seal link' })).toBeFocused()
 })
 
 test('edits made right before leaving the editor are kept', async ({ page }) => {

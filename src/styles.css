@@ -918,3 +918,143 @@ button:disabled {
   border: 0;
   border-top: 1px solid var(--border);
 }
+
+/* Seal controls and dialog */
+.seal-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.password-input {
+  font: inherit;
+  font-size: 0.9rem;
+  width: 12rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, #05080b 70%, transparent);
+}
+
+.seal-modal {
+  position: relative;
+  width: min(440px, 100%);
+  display: grid;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.seal-modal h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.seal-stamp {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #4ee3b8, #128c6e);
+  box-shadow: 0 0 0 8px color-mix(in srgb, #2dd4a7 15%, transparent);
+  animation: seal-press 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.seal-stamp::after {
+  content: '🔒';
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 26px;
+}
+
+@keyframes seal-press {
+  from {
+    transform: scale(1.6) rotate(-12deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seal-stamp {
+    animation: none;
+  }
+}
+
+.seal-link {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.seal-link input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--accent);
+  font: 0.85rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.seal-status,
+.seal-how {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.seal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seal-chips li {
+  padding: 0.15rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.seal-reminder {
+  margin: 0;
+  font-weight: 600;
+}
+
+.seal-modal .qr {
+  align-items: center;
+}
+
+.seal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
