@@ -126,7 +126,7 @@ async function load() {
     request_batching: false,
     before_send: (event) => (event ? sanitizeEvent(event) : event),
   })
-  posthog.register({ app: 'rendermd' })
+  posthog.register({ app: 'sealdown' })
   client = posthog
   for (const [event, props] of queue.splice(0)) posthog.capture(event, props)
 }

@@ -6,7 +6,7 @@ import pt from './locales/pt.ts'
 
 export type Lang = 'pt' | 'en'
 
-const KEY = 'rendermd.lang'
+const KEY = 'sealdown.lang'
 
 /** English unless the visitor picked Portuguese with the language toggle. */
 function initialLang(): Lang {

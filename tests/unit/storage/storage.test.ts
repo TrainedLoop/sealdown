@@ -22,7 +22,7 @@ test('save posts standard base64 to create_doc and returns the id', async () => 
   expect(calls[0].url).toBe('https://example.supabase.co/rest/v1/rpc/create_doc')
   expect(calls[0].init.method).toBe('POST')
   expect(new Headers(calls[0].init.headers).get('apikey')).toBe('pk')
-  expect(new Headers(calls[0].init.headers).get('content-profile')).toBe('rendermd')
+  expect(new Headers(calls[0].init.headers).get('content-profile')).toBe('sealdown')
   expect(JSON.parse(calls[0].init.body as string)).toEqual({ content: '+//+' })
 })
 
@@ -30,7 +30,7 @@ test('load posts doc_id to get_doc and decodes the bytes', async () => {
   const { impl, calls } = fakeFetch(() => json('+//+'))
   const bytes = await createSupabaseStorage(config, impl).load('Ab3dE5gH9k')
   expect(calls[0].url).toBe('https://example.supabase.co/rest/v1/rpc/get_doc')
-  expect(new Headers(calls[0].init.headers).get('content-profile')).toBe('rendermd')
+  expect(new Headers(calls[0].init.headers).get('content-profile')).toBe('sealdown')
   expect(JSON.parse(calls[0].init.body as string)).toEqual({ doc_id: 'Ab3dE5gH9k' })
   expect(Array.from(bytes!)).toEqual([251, 255, 254])
 })

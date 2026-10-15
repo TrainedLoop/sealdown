@@ -19,7 +19,7 @@ test('malformed link shows the incomplete-link message', async ({ page }) => {
 
 test('unknown format asks to reload', async ({ page }) => {
   await page.goto('/#/x/whatever')
-  await expect(page.getByRole('alert')).toContainText('newer version of rendermd')
+  await expect(page.getByRole('alert')).toContainText('newer version of sealdown')
 })
 
 test.describe('with a Portuguese browser', () => {

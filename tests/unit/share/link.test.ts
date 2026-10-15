@@ -2,7 +2,7 @@ import { parseRoute } from '../../../src/router/route.ts'
 import { createLink, fetchProtected, openProtected, openRoute } from '../../../src/share/link.ts'
 import { StorageUnavailableError, type DocStorage } from '../../../src/storage/storage.ts'
 
-const baseUrl = 'https://trainedloop.github.io/rendermd/'
+const baseUrl = 'https://trainedloop.github.io/sealdown/'
 
 function memoryStorage() {
   const docs = new Map<string, Uint8Array>()

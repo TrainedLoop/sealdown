@@ -44,7 +44,7 @@ test('events are sent without URLs fragments or document text', async ({ page })
   // Pageviews feed PostHog's Web Analytics; one per route kind visited, URL cut down like every event.
   expect(sent).toContain('"event":"$pageview"')
   expect(sent).toMatch(/"\$pageview"[\s\S]*"route":"inline"|"route":"inline"[\s\S]*"\$pageview"/)
-  expect(sent).toContain('"app":"rendermd"')
+  expect(sent).toContain('"app":"sealdown"')
   expect(sent).toContain('"diagram_types":["graph"]')
   expect(sent).toContain('"$current_url":"http://localhost:4317/"')
   expect(sent).not.toContain('#/')

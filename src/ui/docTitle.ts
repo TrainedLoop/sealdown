@@ -8,7 +8,7 @@ const listeners = new Set<() => void>()
 function set(title: string | null) {
   if (title === current) return
   current = title
-  document.title = title ? `${title} · rendermd` : 'rendermd'
+  document.title = title ? `${title} · sealdown` : 'sealdown'
   for (const listener of listeners) listener()
 }
 

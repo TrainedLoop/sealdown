@@ -69,7 +69,7 @@ test('headings named after document properties keep an id', () => {
 })
 
 test('links leaving the document open in a new tab, whatever their form', () => {
-  const root = renderToDom('[a](//evil.example/x) [b](other.html) [c](/rendermd/)')
+  const root = renderToDom('[a](//evil.example/x) [b](other.html) [c](/sealdown/)')
   for (const a of root.querySelectorAll('a')) {
     expect(a.getAttribute('target')).toBe('_blank')
     expect(a.getAttribute('rel')).toBe('noopener noreferrer')

@@ -14,7 +14,7 @@ export class StorageUnavailableError extends Error {
   }
 }
 
-const SCHEMA = 'rendermd'
+const SCHEMA = 'sealdown'
 
 export function createSupabaseStorage(
   config: { url?: string; anonKey?: string },

@@ -35,9 +35,9 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const [text, setText] = useState(loadDraft)
   const { mode, setMode, splitAvailable } = useMode()
   const previewPane = useRef<HTMLDivElement>(null)
-  const [syncScroll, setSyncScrollState] = useState(() => readPref('rendermd.syncScroll') !== 'false')
+  const [syncScroll, setSyncScrollState] = useState(() => readPref('sealdown.syncScroll') !== 'false')
   const setSyncScroll = (on: boolean) => {
-    writePref('rendermd.syncScroll', String(on))
+    writePref('sealdown.syncScroll', String(on))
     setSyncScrollState(on)
   }
   const [saved, setSaved] = useState(true)

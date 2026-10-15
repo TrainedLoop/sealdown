@@ -1,14 +1,14 @@
-# rendermd — Design
+# sealdown — Design
 
 - **Date:** 2026-10-14
 - **Status:** approved
-- **Planned URL:** `https://trainedloop.github.io/rendermd/`
+- **Planned URL:** `https://trainedloop.github.io/sealdown/`
 
 ## 1. Context and goal
 
 The real problem behind the project: render a `.md` file with Mermaid diagrams and send someone **a link to the rendered document**. Existing options (Gist, HackMD, Notion) require an account, store the content in plaintext on a third-party server, show the platform's UI, and ship old Mermaid versions, so recent diagram types don't render.
 
-rendermd is a **tool for real use** (the portfolio value comes as a consequence): paste or type Markdown, see the result, and share a link, with no account and no friction.
+sealdown is a **tool for real use** (the portfolio value comes as a consequence): paste or type Markdown, see the result, and share a link, with no account and no friction.
 
 ### Success criteria
 
@@ -73,7 +73,7 @@ flowchart LR
     UI --> S
     S --> ST
   end
-  ST -- "RPC create_doc / get_doc<br/>(ciphertext only)" --> DB[("Supabase<br/>rendermd schema + pg_cron")]
+  ST -- "RPC create_doc / get_doc<br/>(ciphertext only)" --> DB[("Supabase<br/>sealdown schema + pg_cron")]
   GH["GitHub Actions<br/>deploy, tests, keepalive"] -- ping every 3 days --> DB
   GH -- deploy --> Pages["GitHub Pages<br/>static site"]
 ```
@@ -103,10 +103,10 @@ Each module has one responsibility and a small interface, testable in isolation.
 
 ### 4.3 Database (Supabase)
 
-The Supabase project, and its ~500 MB free-tier database, is shared with other small projects, each in its own schema. Everything rendermd owns lives in the `rendermd` schema, which must be listed in the project's exposed API schemas; requests select it with the `Content-Profile: rendermd` header.
+The Supabase project, and its ~500 MB free-tier database, is shared with other small projects, each in its own schema. Everything sealdown owns lives in the `sealdown` schema, which must be listed in the project's exposed API schemas; requests select it with the `Content-Profile: sealdown` header.
 
 ```sql
-create table rendermd.docs (
+create table sealdown.docs (
   id               text primary key,         -- 10 random base62 characters
   content          bytea not null,            -- IV + compressed, encrypted content
   created_at       timestamptz not null default now(),
@@ -114,7 +114,7 @@ create table rendermd.docs (
   constraint content_max_1mb check (octet_length(content) <= 1048576)
 );
 
-alter table rendermd.docs enable row level security;  -- no policies: direct access blocked
+alter table sealdown.docs enable row level security;  -- no policies: direct access blocked
 ```
 
 Access happens **only** through `security definer` functions, exposed as RPC:
@@ -125,9 +125,9 @@ Access happens **only** through `security definer` functions, exposed as RPC:
 
 Nobody can list, edit or delete through the API.
 
-**Migrations:** plain SQL in `db/migrations`, applied with dbmate. Its history table is `rendermd.schema_migrations`, because the Supabase CLI keeps one history per database and other projects share it.
+**Migrations:** plain SQL in `db/migrations`, applied with dbmate. Its history table is `sealdown.schema_migrations`, because the Supabase CLI keeps one history per database and other projects share it.
 
-**Cleanup:** `prune_docs()` runs hourly via `pg_cron` (job `rendermd-prune-docs`). It orders by `last_accessed_at` descending, sums the running size and deletes everything past rendermd's budget of **100 MB**, leaving the rest of the shared database to other projects. Space freed by `DELETE` is reused by autovacuum but not returned to disk immediately.
+**Cleanup:** `prune_docs()` runs hourly via `pg_cron` (job `sealdown-prune-docs`). It orders by `last_accessed_at` descending, sums the running size and deletes everything past sealdown's budget of **100 MB**, leaving the rest of the shared database to other projects. Space freed by `DELETE` is reused by autovacuum but not returned to disk immediately.
 
 ## 5. Data flow
 
@@ -166,7 +166,7 @@ Principle: a local problem never takes down the page, and every message says wha
 | Decode, decompress or decrypt fails | "This link looks incomplete. Messaging apps sometimes cut long links; ask the sender to generate it again." |
 | `get_doc` returns null | "This document has expired. Large, rarely accessed documents are removed when space runs out." |
 | Network error or Supabase down | "Couldn't load the document right now", with **Try again** |
-| Unknown prefix | "This link was created by a newer version of rendermd. Reload the page." |
+| Unknown prefix | "This link was created by a newer version of sealdown. Reload the page." |
 
 ### Generating a link
 

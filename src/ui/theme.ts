@@ -3,7 +3,7 @@ import { readPref, writePref } from './prefs.ts'
 
 export type Theme = 'light' | 'dark'
 
-const KEY = 'rendermd.theme'
+const KEY = 'sealdown.theme'
 
 function initialTheme(): Theme {
   const saved = readPref(KEY)

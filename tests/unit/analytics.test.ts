@@ -3,18 +3,18 @@ import { diagramTypes, sanitizeEvent } from '../../src/analytics.ts'
 test('strips query and fragment from every URL property', () => {
   const event = sanitizeEvent({
     properties: {
-      $current_url: 'https://trainedloop.github.io/rendermd/#/s/Ab3dE5gH9k.secretkey',
+      $current_url: 'https://trainedloop.github.io/sealdown/#/s/Ab3dE5gH9k.secretkey',
       $referrer: 'https://chat.example/x?token=1#frag',
-      $initial_current_url: 'https://trainedloop.github.io/rendermd/?embed#/v/payload',
+      $initial_current_url: 'https://trainedloop.github.io/sealdown/?embed#/v/payload',
       custom: 'http://localhost:4173/#/v/abc',
       route: 'inline',
       count: 3,
     },
   })
   expect(event.properties).toEqual({
-    $current_url: 'https://trainedloop.github.io/rendermd/',
+    $current_url: 'https://trainedloop.github.io/sealdown/',
     $referrer: 'https://chat.example/x',
-    $initial_current_url: 'https://trainedloop.github.io/rendermd/',
+    $initial_current_url: 'https://trainedloop.github.io/sealdown/',
     custom: 'http://localhost:4173/',
     route: 'inline',
     count: 3,

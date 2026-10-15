@@ -1,8 +1,8 @@
-# rendermd
+# sealdown
 
 Paste or type Markdown, preview it, and share a link to the rendered document. Mermaid diagrams
 (every type in the latest release), KaTeX math and highlighted code blocks are supported. No
-account, no server-side rendering. Live at https://trainedloop.github.io/rendermd/.
+account, no server-side rendering. Live at https://trainedloop.github.io/sealdown/.
 
 ## Features
 
@@ -30,10 +30,10 @@ documents are fetched once, and password attempts happen in the browser.
 
 Everything after `#` stays in the browser; it is never sent to a server. Supabase only ever sees
 ciphertext and cannot read stored documents. Stored documents never expire on a timer: when they
-exceed rendermd's 100 MB budget, the least recently opened ones are removed first.
+exceed sealdown's 100 MB budget, the least recently opened ones are removed first.
 
-The Supabase project is shared with other small projects, so everything rendermd owns lives in the
-`rendermd` schema. Add `rendermd` to the project's exposed schemas (Settings → API → Exposed
+The Supabase project is shared with other small projects, so everything sealdown owns lives in the
+`sealdown` schema. Add `sealdown` to the project's exposed schemas (Settings → API → Exposed
 schemas). Avoid `supabase config push`: it would overwrite settings other projects rely on.
 
 ## Metrics and privacy
@@ -46,7 +46,7 @@ of page with a `route` property, so every document counts as the same page. Noth
 Privacy Control on, or when `VITE_POSTHOG_KEY` is missing. PostHog also drops events from
 automated browsers.
 
-Every event carries `app: rendermd` and `lang`:
+Every event carries `app: sealdown` and `lang`:
 
 | Event | Properties |
 |---|---|
@@ -83,8 +83,8 @@ To run the app against the local database, put the `API_URL` and `PUBLISHABLE_KE
 ## Database migrations
 
 The Supabase project is shared with other projects, and the Supabase CLI keeps a single migration
-history per database. So rendermd uses [dbmate](https://github.com/amacneil/dbmate) instead, with
-its history in `rendermd.schema_migrations`: each project tracks only its own migrations and never
+history per database. So sealdown uses [dbmate](https://github.com/amacneil/dbmate) instead, with
+its history in `sealdown.schema_migrations`: each project tracks only its own migrations and never
 blocks another.
 
 - Migrations live in `db/migrations` as plain SQL with `-- migrate:up` / `-- migrate:down` sections.

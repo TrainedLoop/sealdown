@@ -1,5 +1,5 @@
 const en = {
-  app: { name: 'rendermd', tagline: 'Paste Markdown, share a rendered link.' },
+  app: { name: 'sealdown', tagline: 'Paste Markdown, share a rendered link.' },
   editor: {
     write: 'Write',
     split: 'Split',
@@ -117,7 +117,7 @@ const en = {
     corrupt: 'This link looks incomplete. Messaging apps sometimes cut long links; ask the sender to generate it again.',
     expired: 'This document has expired. Large, rarely accessed documents are removed when space runs out.',
     network: "Couldn't load the document right now.",
-    unknownFormat: 'This link was created by a newer version of rendermd. Reload the page.',
+    unknownFormat: 'This link was created by a newer version of sealdown. Reload the page.',
     storageUnavailable:
       "Couldn't save the document, so the link carries the whole document instead. Some apps cut long links.",
     generateFailed: "Couldn't generate the link. Try again.",

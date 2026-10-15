@@ -1,7 +1,7 @@
 import type en from './en.ts'
 
 const pt: typeof en = {
-  app: { name: 'rendermd', tagline: 'Cole Markdown, compartilhe um link renderizado.' },
+  app: { name: 'sealdown', tagline: 'Cole Markdown, compartilhe um link renderizado.' },
   editor: {
     write: 'Escrever',
     split: 'Dividido',
@@ -120,7 +120,7 @@ const pt: typeof en = {
       'Este link parece incompleto. Apps de mensagem às vezes cortam links longos; peça para quem enviou gerar de novo.',
     expired: 'Este documento expirou. Documentos grandes pouco acessados são removidos quando o espaço enche.',
     network: 'Não foi possível carregar o documento agora.',
-    unknownFormat: 'Este link foi criado por uma versão mais nova do rendermd. Recarregue a página.',
+    unknownFormat: 'Este link foi criado por uma versão mais nova do sealdown. Recarregue a página.',
     storageUnavailable:
       'Não foi possível salvar o documento, então o link leva o documento inteiro. Alguns apps cortam links longos.',
     generateFailed: 'Não foi possível gerar o link. Tente de novo.',

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Applies pending migrations from db/migrations with dbmate. The migration history lives in
-# rendermd.schema_migrations, so other projects sharing the Supabase database keep their own.
+# sealdown.schema_migrations, so other projects sharing the Supabase database keep their own.
 #
 #   scripts/db-migrate.sh local        # local Supabase (pnpm db:start runs this)
 #   scripts/db-migrate.sh              # production: DATABASE_URL from the environment or .env.local
@@ -25,6 +25,6 @@ elif [[ -z "${DATABASE_URL:-}" ]]; then
 fi
 
 export DBMATE_MIGRATIONS_DIR=db/migrations
-export DBMATE_MIGRATIONS_TABLE=rendermd.schema_migrations
+export DBMATE_MIGRATIONS_TABLE=sealdown.schema_migrations
 export DBMATE_NO_DUMP_SCHEMA=true
 exec node_modules/.bin/dbmate "${@:-up}"

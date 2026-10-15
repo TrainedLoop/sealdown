@@ -1,6 +1,6 @@
 ---
 title: Syntax reference
-author: rendermd
+author: sealdown
 tags: [markdown, visual]
 ---
 

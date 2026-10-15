@@ -3,10 +3,10 @@ import { expect, test } from '@playwright/test'
 test('link preview tags for chat apps', async ({ page }) => {
   await page.goto('/')
   const meta = (selector: string) => page.locator(selector).getAttribute('content')
-  expect(await meta('meta[property="og:title"]')).toBe('rendermd')
+  expect(await meta('meta[property="og:title"]')).toBe('sealdown')
   expect(await meta('meta[property="og:description"]')).toMatch(/Markdown/)
   expect(await meta('meta[property="og:type"]')).toBe('website')
-  expect(await meta('meta[property="og:image"]')).toBe('https://trainedloop.github.io/rendermd/og.png')
+  expect(await meta('meta[property="og:image"]')).toBe('https://trainedloop.github.io/sealdown/og.png')
   expect(await meta('meta[name="twitter:card"]')).toBe('summary_large_image')
   expect(await meta('meta[name="description"]')).toMatch(/Markdown/)
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', /favicon\.svg$/)

@@ -1,4 +1,4 @@
-# rendermd v3 — Design
+# sealdown v3 — Design
 
 - **Date:** 2026-10-14
 - **Status:** approved (scope confirmed in chat)
@@ -6,7 +6,7 @@
 
 ## 1. Goal
 
-Bring writing and reading up to the level of the best Markdown tools, keeping rendermd's sharing strengths (short encrypted links, passwords, presentation) and principles (no account, no server reads documents, privacy-safe metrics).
+Bring writing and reading up to the level of the best Markdown tools, keeping sealdown's sharing strengths (short encrypted links, passwords, presentation) and principles (no account, no server reads documents, privacy-safe metrics).
 
 ## 2. Scope
 
@@ -34,9 +34,9 @@ Out: section permalinks (the URL fragment holds the document, so a section link 
 ## 3. Design
 
 ### 3.1 Modes and scroll sync
-- A tab group **Write | Split | Read** replaces Code | Preview. Split appears only when the viewport is at least 900 px wide; on narrower screens a saved Split falls back to Write. The choice is saved (`rendermd.mode`); default Split on wide screens, Write otherwise.
+- A tab group **Write | Split | Read** replaces Code | Preview. Split appears only when the viewport is at least 900 px wide; on narrower screens a saved Split falls back to Write. The choice is saved (`sealdown.mode`); default Split on wide screens, Write otherwise.
 - Block elements in rendered HTML carry `data-source-line` (from markdown-it token maps; data attributes survive sanitization).
-- With **Sync scroll** on (default; toggle in the status bar, saved as `rendermd.syncScroll`), scrolling the editor scrolls the preview so the element whose source line is the last one at or above the editor's top visible line sits at the top. One way only (editor → preview), to avoid feedback loops.
+- With **Sync scroll** on (default; toggle in the status bar, saved as `sealdown.syncScroll`), scrolling the editor scrolls the preview so the element whose source line is the last one at or above the editor's top visible line sits at the top. One way only (editor → preview), to avoid feedback loops.
 
 ### 3.2 Formatting toolbar
 Buttons with icons and accessible names: Heading 1, Heading 2, Heading 3, Bold, Italic, Strikethrough, Inline code, Link, Image, Bulleted list, Numbered list, Task list, Quote, Code block, Table, Math, Mermaid diagram (opens the picker), Divider.
@@ -62,7 +62,7 @@ Line numbers and active-line highlight (theme colors).
 Below the editor: `N words · N chars · N lines · N min read` (200 words per minute, at least 1), the Sync scroll toggle (Split only), and "Saved on this device" after the draft is saved.
 
 ### 3.8 Title
-`documentTitle(markdown)`: front matter `title`, else the first heading's text, else none. Shown in the header next to the brand (truncated with ellipsis), and as the browser tab title `"<title> · rendermd"`. The tab title never reaches analytics (events send no titles).
+`documentTitle(markdown)`: front matter `title`, else the first heading's text, else none. Shown in the header next to the brand (truncated with ellipsis), and as the browser tab title `"<title> · sealdown"`. The tab title never reaches analytics (events send no titles).
 
 ### 3.9 Front matter
 `markdown-it-front-matter` captures a leading `---` YAML block. A small parser reads `key: value` lines and `[a, b]` lists (no YAML library); the block renders as a two-column metadata table above the document. Unparseable lines show as raw text.
@@ -71,7 +71,7 @@ Below the editor: `N words · N chars · N lines · N min read` (200 words per m
 `markdown-it-footnote`, `markdown-it-mark`, `markdown-it-emoji` (light set). `<kbd>` and `<mark>` HTML already pass the sanitizer; style them.
 
 ### 3.11 Typeset styles
-An **Aa** menu on the reader and preview: Modern (current sans), Editorial (serif text, larger leading), Technical (monospace headings, compact). System font stacks only; no web fonts. Saved as `rendermd.typeset`; it applies to the reading view and to slides.
+An **Aa** menu on the reader and preview: Modern (current sans), Editorial (serif text, larger leading), Technical (monospace headings, compact). System font stacks only; no web fonts. Saved as `sealdown.typeset`; it applies to the reading view and to slides.
 
 ### 3.12 Paper preview
 On screens ≥ 900 px, the document sits on a card (surface color, border, soft shadow) with a small "N words · N min read" line above it. Print and presentation ignore the card.

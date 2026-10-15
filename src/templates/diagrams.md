@@ -127,7 +127,7 @@ gitGraph
 ```mermaid
 C4Context
   Person(user, "User")
-  System(app, "rendermd")
+  System(app, "sealdown")
   Rel(user, app, "Shares documents")
 ```
 
@@ -135,7 +135,7 @@ C4Context
 
 ```mermaid
 mindmap
-  root((rendermd))
+  root((sealdown))
     Editor
     Reader
       TOC
@@ -221,7 +221,7 @@ architecture-beta
 ```mermaid
 radar-beta
   axis a["Speed"], b["Privacy"], c["Cost"]
-  curve r["rendermd"]{4, 5, 5}
+  curve r["sealdown"]{4, 5, 5}
   max 5
 ```
 
@@ -348,7 +348,7 @@ complex --> complicated : "Pattern"
 
 ```mermaid
 treeView-beta
-    rendermd/
+    sealdown/
         src/
             main.tsx
         package.json

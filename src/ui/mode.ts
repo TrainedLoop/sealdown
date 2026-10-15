@@ -3,7 +3,7 @@ import { readPref, writePref } from './prefs.ts'
 
 export type Mode = 'write' | 'split' | 'read'
 
-const KEY = 'rendermd.mode'
+const KEY = 'sealdown.mode'
 const SPLIT_QUERY = '(min-width: 900px)'
 
 function subscribe(onChange: () => void) {

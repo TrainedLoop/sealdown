@@ -1,12 +1,12 @@
-# rendermd v2 — Design
+# sealdown v2 — Design
 
 - **Date:** 2026-10-14
 - **Status:** approved (scope confirmed in chat)
-- **Builds on:** `2026-10-14-rendermd-design.md` (v1, live)
+- **Builds on:** `2026-10-14-sealdown-design.md` (v1, live)
 
 ## 1. Goal
 
-Make rendermd nicer to use day to day and to receive, without breaking its principles: no account, zero running cost, and no server ever reads a document.
+Make sealdown nicer to use day to day and to receive, without breaking its principles: no account, zero running cost, and no server ever reads a document.
 
 ## 2. Scope
 
@@ -27,7 +27,7 @@ Out (decided): import from URL, iframe embeds, delete after first view.
 
 ### 3.1 Link previews
 
-Chat apps fetch the page HTML without running scripts and never see the fragment, so every link previews the same: title "rendermd", a one-line description and a 1200×630 image in the site's style (`public/og.png`). Tags: `og:title`, `og:description`, `og:image` (absolute URL), `og:type=website`, `twitter:card=summary_large_image`. Also a favicon.
+Chat apps fetch the page HTML without running scripts and never see the fragment, so every link previews the same: title "sealdown", a one-line description and a 1200×630 image in the site's style (`public/og.png`). Tags: `og:title`, `og:description`, `og:image` (absolute URL), `og:type=website`, `twitter:card=summary_large_image`. Also a favicon.
 
 ### 3.2 Open a file
 
@@ -67,11 +67,11 @@ After a link is generated, a **QR code** button shows the link as a QR image (li
 
 ### 3.8 Metrics (PostHog)
 
-Same PostHog project and privacy model as `danielporto-site`: loaded lazily, `persistence: 'memory'` (no cookies or storage), no autocapture, no automatic pageviews (the app sends `$pageview` itself, once per kind of page, with property `route`; pageleaves on, both with URLs cut down like every event), nothing when Do Not Track / Global Privacy Control is on or when `VITE_POSTHOG_KEY` is missing. Extra rules for rendermd:
+Same PostHog project and privacy model as `danielporto-site`: loaded lazily, `persistence: 'memory'` (no cookies or storage), no autocapture, no automatic pageviews (the app sends `$pageview` itself, once per kind of page, with property `route`; pageleaves on, both with URLs cut down like every event), nothing when Do Not Track / Global Privacy Control is on or when `VITE_POSTHOG_KEY` is missing. Extra rules for sealdown:
 
 - **No session recording** (it would record document text).
 - **The URL never reaches PostHog.** The fragment holds documents and keys. A `before_send` hook rewrites `$current_url` and `$referrer` (and any other URL property) to origin + path, dropping query and fragment.
-- **Only these events**, each with `app: 'rendermd'` and `lang`:
+- **Only these events**, each with `app: 'sealdown'` and `lang`:
 
 | Event | Properties |
 |---|---|
