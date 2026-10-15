@@ -27,6 +27,7 @@ export default function App() {
       <main className="page">
         {route.kind === 'editor' && <EditorPage theme={theme} />}
         {(route.kind === 'inline' ||
+          route.kind === 'inline-sealed' ||
           route.kind === 'stored' ||
           route.kind === 'inline-protected' ||
           route.kind === 'stored-protected') && <ReaderPage key={JSON.stringify(route)} route={route} theme={theme} />}

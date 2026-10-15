@@ -1,6 +1,9 @@
 export type Route =
   | { kind: 'editor' }
+  /** Legacy: plaintext (compressed) document in the link. Opened, never generated. */
   | { kind: 'inline'; payload: string }
+  /** Encrypted document in the link, with its key after the dot. */
+  | { kind: 'inline-sealed'; payload: string; key: string }
   | { kind: 'stored'; id: string; key: string }
   | { kind: 'inline-protected'; payload: string }
   | { kind: 'stored-protected'; id: string }
@@ -39,6 +42,13 @@ export function parseRoute(hash: string): Route {
     const key = rest.slice(dot + 1)
     return ID.test(id) && TOKEN.test(key) ? { kind: 'stored', id, key } : { kind: 'malformed' }
   }
+  if (prefix === 'e') {
+    const dot = rest.indexOf('.')
+    if (dot < 0) return { kind: 'malformed' }
+    const payload = rest.slice(0, dot)
+    const key = rest.slice(dot + 1)
+    return TOKEN.test(payload) && TOKEN.test(key) ? { kind: 'inline-sealed', payload, key } : { kind: 'malformed' }
+  }
   if (prefix === 'p') {
     return TOKEN.test(rest) ? { kind: 'inline-protected', payload: rest } : { kind: 'malformed' }
   }
@@ -56,6 +66,8 @@ export function buildHash(route: ShareableRoute): string {
       return `#/v/${route.payload}`
     case 'stored':
       return `#/s/${route.id}.${route.key}`
+    case 'inline-sealed':
+      return `#/e/${route.payload}.${route.key}`
     case 'inline-protected':
       return `#/p/${route.payload}`
     case 'stored-protected':

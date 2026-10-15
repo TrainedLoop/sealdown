@@ -43,16 +43,17 @@ function randomChars(length: number): string {
 
 async function open(url: string, storage: DocStorage) {
   const route = parseRoute(url.slice(url.indexOf('#')))
-  if (route.kind !== 'inline' && route.kind !== 'stored') throw new Error(`unexpected route ${route.kind}`)
+  if (route.kind !== 'inline' && route.kind !== 'inline-sealed' && route.kind !== 'stored') throw new Error(`unexpected route ${route.kind}`)
   return openRoute(route, storage)
 }
 
-test('short text stays in the URL', async () => {
+test('short text stays in the URL, encrypted', async () => {
   const { storage, saves } = memoryStorage()
   const result = await createLink('# Hi ✓', { storage, baseUrl })
   expect(result.kind).toBe('ok')
   if (result.kind !== 'ok') return
-  expect(result.url.startsWith(`${baseUrl}#/v/`)).toBe(true)
+  expect(result.url).toMatch(/#\/e\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/)
+  expect(decodeURIComponent(result.url)).not.toContain('Hi')
   expect(saves()).toBe(0)
   expect(await open(result.url, storage)).toBe('# Hi ✓')
 })
@@ -73,7 +74,7 @@ test('large text falls back to a long URL when storage is unavailable', async ()
   const result = await createLink(text, { storage: unavailable, baseUrl })
   expect(result.kind).toBe('fallback')
   if (result.kind !== 'fallback') return
-  expect(result.url).toContain('#/v/')
+  expect(result.url).toContain('#/e/')
   expect(await open(result.url, unavailable)).toBe(text)
 })
 
@@ -150,4 +151,22 @@ test('fetching a missing protected doc is expired', async () => {
 test('a protected payload too short to hold salt and IV is corrupt', async () => {
   const { storage } = memoryStorage()
   await expect(fetchProtected({ kind: 'inline-protected', payload: 'AAAA' }, storage)).rejects.toMatchObject({ kind: 'corrupt' })
+})
+
+test('legacy plaintext #/v/ links still open', async () => {
+  const { base64urlEncode } = await import('../../../src/share/base64url.ts')
+  const { compress } = await import('../../../src/share/codec.ts')
+  const { storage } = memoryStorage()
+  const payload = base64urlEncode(await compress('# Old link'))
+  expect(await openRoute({ kind: 'inline', payload }, storage)).toBe('# Old link')
+})
+
+test('a sealed inline link with the wrong key is corrupt', async () => {
+  const { storage } = memoryStorage()
+  const result = await createLink('# Small', { storage, baseUrl })
+  if (result.kind !== 'ok') throw new Error('expected ok')
+  const route = parseRoute(result.url.slice(result.url.indexOf('#')))
+  if (route.kind !== 'inline-sealed') throw new Error('expected inline-sealed')
+  const wrong = (route.key[0] === 'A' ? 'B' : 'A') + route.key.slice(1)
+  await expect(openRoute({ ...route, key: wrong }, storage)).rejects.toMatchObject({ kind: 'corrupt' })
 })

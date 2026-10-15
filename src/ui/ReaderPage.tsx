@@ -19,7 +19,7 @@ import type { Theme } from './theme.ts'
 import { Toc } from './Toc.tsx'
 import { useDocumentTitle } from './docTitle.ts'
 
-type ReadableRoute = Extract<Route, { kind: 'inline' | 'stored' | 'inline-protected' | 'stored-protected' }>
+type ReadableRoute = Extract<Route, { kind: 'inline' | 'inline-sealed' | 'stored' | 'inline-protected' | 'stored-protected' }>
 
 type State =
   | { kind: 'loading' }

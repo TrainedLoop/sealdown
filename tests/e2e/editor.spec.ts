@@ -40,7 +40,7 @@ test('short document produces an inline link that opens', async ({ page, context
   await editor(page).fill('# Shared\n\nHello')
   await page.getByRole('button', { name: 'Generate link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
-  expect(url).toContain('#/v/')
+  expect(url).toMatch(/#\/e\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/)
   await expect(page.getByRole('status')).toHaveText('Link copied to the clipboard.')
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url)
 
@@ -54,7 +54,7 @@ test('large document falls back to a long link when storage is unavailable', asy
   await editor(page).fill(randomWords(20_000))
   await page.getByRole('button', { name: 'Generate link' }).click()
   await expect(page.getByRole('alert')).toContainText("Couldn't save the document")
-  await expect(page.getByTestId('share-url')).toHaveValue(/#\/v\//)
+  await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
 })
 
 test('oversized document is refused', async ({ page }) => {
@@ -78,7 +78,7 @@ test('blocked clipboard asks to copy manually', async ({ page }) => {
   await editor(page).fill('# Hi')
   await page.getByRole('button', { name: 'Generate link' }).click()
   await expect(page.getByRole('status')).toHaveText('Copy the link below.')
-  await expect(page.getByTestId('share-url')).toHaveValue(/#\/v\//)
+  await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
 })
 
 test('editing after generating clears the stale link', async ({ page }) => {

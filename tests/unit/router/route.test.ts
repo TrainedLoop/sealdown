@@ -56,3 +56,11 @@ test('password-protected routes', () => {
     expect(parseRoute(buildHash(r))).toEqual(r)
   }
 })
+
+test('sealed inline route carries payload and key', () => {
+  expect(parseRoute('#/e/abc-_09.key-_X')).toEqual({ kind: 'inline-sealed', payload: 'abc-_09', key: 'key-_X' })
+  expect(parseRoute('#/e/abc.key.')).toEqual({ kind: 'inline-sealed', payload: 'abc', key: 'key' })
+  for (const h of ['#/e/', '#/e/abc', '#/e/abc.', '#/e/.key', '#/e/a+b.key']) expect(parseRoute(h)).toEqual({ kind: 'malformed' })
+  const r = { kind: 'inline-sealed', payload: 'abc', key: 'k' } as const
+  expect(parseRoute(buildHash(r))).toEqual(r)
+})

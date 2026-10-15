@@ -15,14 +15,18 @@ export type CreateLinkResult = { kind: 'ok'; url: string } | { kind: 'fallback';
 
 export type CreateLinkOptions = { storage: DocStorage; baseUrl: string; password?: string }
 
+/**
+ * Every link is encrypted. Small documents travel in the link itself (`#/e/<ciphertext>.<key>`);
+ * larger ones are stored and the link carries only their id and key (`#/s/<id>.<key>`).
+ */
 export async function createLink(text: string, opts: CreateLinkOptions): Promise<CreateLinkResult> {
   const compressed = await compress(text)
   if (opts.password) return createProtectedLink(compressed, opts.password, opts)
-  const payload = base64urlEncode(compressed)
-  const inlineUrl = opts.baseUrl + buildHash({ kind: 'inline', payload })
-  if (payload.length <= INLINE_LIMIT) return { kind: 'ok', url: inlineUrl }
 
   const { bytes, key } = await encrypt(compressed)
+  const payload = base64urlEncode(bytes)
+  const inlineUrl = opts.baseUrl + buildHash({ kind: 'inline-sealed', payload, key })
+  if (payload.length <= INLINE_LIMIT) return { kind: 'ok', url: inlineUrl }
   if (bytes.length > MAX_STORED_BYTES) return { kind: 'too-large' }
   try {
     const id = await opts.storage.save(bytes)
@@ -76,7 +80,11 @@ export async function openProtected(bytes: Uint8Array, password: string): Promis
   return decompress(await decryptWithPassword(bytes, password))
 }
 
-export async function openRoute(route: Extract<Route, { kind: 'inline' | 'stored' }>, storage: DocStorage): Promise<string> {
+export async function openRoute(
+  route: Extract<Route, { kind: 'inline' | 'inline-sealed' | 'stored' }>,
+  storage: DocStorage,
+): Promise<string> {
   if (route.kind === 'inline') return decompress(base64urlDecode(route.payload))
+  if (route.kind === 'inline-sealed') return decompress(await decrypt(base64urlDecode(route.payload), route.key))
   return decompress(await decrypt(await load(storage, route.id), route.key))
 }
