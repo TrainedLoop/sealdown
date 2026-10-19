@@ -84,3 +84,17 @@ test('in split mode the editor follows the preview scroll', async ({ page }) => 
     })
     .toBeLessThan(80)
 })
+
+test('read mode in the editor shows the table of contents', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/')
+  const filler = Array.from({ length: 40 }, (_, i) => `Paragraph ${i}.`).join('\n\n')
+  await editor(page).fill(`# One\n\n${filler}\n\n## Two\n\n${filler}\n\n## Three\n\nEnd.`)
+  await page.getByRole('tab', { name: 'Read' }).click()
+  const toc = page.getByRole('navigation', { name: 'Contents' })
+  await expect(toc).toBeVisible()
+  const before = await page.evaluate(() => location.hash)
+  await toc.getByRole('link', { name: 'Three' }).click()
+  await expect(page.getByRole('heading', { name: 'Three' })).toBeInViewport()
+  expect(await page.evaluate(() => location.hash)).toBe(before)
+})

@@ -12,6 +12,8 @@ for (const theme of ['light', 'dark'] as const) {
     await withTheme(page, theme)
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/' + inlineHash(reference))
+    // The sticky top bar would overlap elements scrolled under it; these tests are about the document.
+    await page.addStyleTag({ content: '.app-header { display: none !important; }' })
 
     const figures = page.locator('figure.diagram')
     await expect(figures).toHaveCount(fenceCount)
@@ -41,6 +43,7 @@ for (const theme of ['light', 'dark'] as const) {
     await withTheme(page, theme)
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/' + inlineHash(syntax))
+    await page.addStyleTag({ content: '.app-header { display: none !important; }' })
     await expect(page.locator('.markdown-alert')).toHaveCount(5)
     await page.evaluate(() => document.fonts.ready)
     await expect(page.locator('.markdown-body')).toHaveScreenshot(`${theme}-syntax.png`)

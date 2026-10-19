@@ -25,7 +25,7 @@ export default function App() {
   return (
     <HeaderSlotsProvider>
       <Header theme={theme} onThemeChange={setTheme} />
-      <main className={route.kind === 'editor' ? 'page page-app' : 'page'}>
+      <main className={route.kind === 'editor' ? 'page page-app' : 'page page-reader'}>
         {route.kind === 'editor' && <EditorPage theme={theme} />}
         {(route.kind === 'inline' ||
           route.kind === 'inline-sealed' ||

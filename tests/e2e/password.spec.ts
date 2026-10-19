@@ -27,15 +27,15 @@ test('a protected link asks for the password', async ({ page, context }) => {
 
   const reader = await context.newPage()
   await reader.goto(url)
-  await expect(reader.getByText('This document is protected')).toBeVisible()
+  await expect(reader.getByRole('heading', { name: 'Document sealed' })).toBeVisible()
   await expect(reader.getByRole('heading', { name: 'Board notes' })).toHaveCount(0)
 
   await reader.getByLabel('Password', { exact: true }).fill('wrong')
-  await reader.getByRole('button', { name: 'Open' }).click()
+  await reader.getByRole('button', { name: 'Unseal' }).click()
   await expect(reader.getByRole('alert')).toContainText('Wrong password')
 
   await reader.getByLabel('Password', { exact: true }).fill('hunter2')
-  await reader.getByRole('button', { name: 'Open' }).click()
+  await reader.getByRole('button', { name: 'Unseal' }).click()
   await expect(reader.getByRole('heading', { name: 'Board notes' })).toBeVisible()
 })
 

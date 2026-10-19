@@ -43,7 +43,8 @@ test('download .md returns the original text', async ({ page }) => {
   const text = '# Doc ✓\n\nBody'
   await open(page, text)
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download .md' }).click()
+  await page.getByRole('button', { name: 'Export' }).click()
+  await page.getByRole('menuitem', { name: 'Download .md' }).click()
   const file = await download
   expect(file.suggestedFilename()).toBe('document.md')
   expect(await readFile(await file.path(), 'utf8')).toBe(text)
@@ -89,7 +90,8 @@ test('export PDF prints in light theme and restores dark', async ({ page }) => {
     .poll(() => page.locator('figure.diagram svg .node rect').first().evaluate((el) => getComputedStyle(el).fill))
     .not.toBe(lightFill)
 
-  await page.getByRole('button', { name: 'Export PDF' }).click()
+  await page.getByRole('button', { name: 'Export' }).click()
+  await page.getByRole('menuitem', { name: 'Export PDF' }).click()
   await expect.poll(() => page.evaluate(() => (window as unknown as { __printed?: unknown }).__printed)).toEqual({
     theme: 'light',
     fill: lightFill,
@@ -174,4 +176,28 @@ test('edit a copy does not ask when there is no draft', async ({ page }) => {
   await page.getByRole('button', { name: 'Edit a copy' }).click()
   await expect.poll(() => editorValue(page)).toBe('# Shared doc')
   expect(asked).toBe(false)
+})
+
+test('encrypted documents say they were unsealed only in this browser', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('textbox', { name: /Paste or type Markdown/ }).fill('# Sealed note')
+  await page.getByRole('button', { name: 'Seal link' }).click()
+  const url = await page.getByTestId('share-url').inputValue()
+  await page.goto(url)
+  await expect(page.getByRole('heading', { name: 'Sealed note' })).toBeVisible()
+  await expect(page.getByText('Unsealed only in this browser')).toBeVisible()
+})
+
+test('legacy plaintext links do not claim to be encrypted', async ({ page }) => {
+  await page.goto('/' + inlineHash('# Old plaintext'))
+  await expect(page.getByRole('heading', { name: 'Old plaintext' })).toBeVisible()
+  await expect(page.getByText('Unsealed only in this browser')).toHaveCount(0)
+})
+
+test('reader actions live in the top bar', async ({ page }) => {
+  await page.goto('/' + inlineHash('# Doc'))
+  const header = page.locator('.app-header')
+  await expect(header.getByRole('button', { name: 'Edit a copy' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Present' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Export' })).toBeVisible()
 })

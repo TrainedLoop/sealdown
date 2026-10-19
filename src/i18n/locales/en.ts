@@ -25,6 +25,7 @@ const en = {
   reader: {
     editCopy: 'Edit a copy',
     loading: 'Loading document…',
+    unsealed: 'Unsealed only in this browser',
     toc: 'Contents',
     replaceDraft: 'Replace your current draft in the editor with this document?',
   },
@@ -88,9 +89,9 @@ const en = {
   password: {
     protect: 'Protect with password',
     label: 'Password',
-    locked: 'This document is protected. Enter the password to open it.',
-    open: 'Open',
-    opening: 'Opening…',
+    locked: 'Enter the password you received. The document opens only in this browser.',
+    unseal: 'Unseal',
+    unsealing: 'Unsealing…',
   },
   present: {
     button: 'Present',

@@ -12,6 +12,8 @@ import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { loadDraft, saveDraft } from './draft.ts'
 import { MarkdownView } from './MarkdownView.tsx'
+import { Toc, TOC_MIN_ENTRIES } from './Toc.tsx'
+import { extractToc } from '../render/toc.ts'
 import { useMode, type Mode } from './mode.ts'
 import { readPref, writePref } from './prefs.ts'
 import { StatusBar } from './StatusBar.tsx'
@@ -324,7 +326,11 @@ export function EditorPage({ theme }: { theme: Theme }) {
             ref={previewPane}
             onScroll={mode === 'split' ? followPreview : undefined}
           >
-            {text.trim() === '' ? <p className="status">{t('editor.empty')}</p> : <Preview text={text} theme={theme} />}
+            {text.trim() === '' ? (
+              <p className="status">{t('editor.empty')}</p>
+            ) : (
+              <Preview text={text} theme={theme} withToc={mode === 'read'} />
+            )}
           </div>
         )}
       </div>
@@ -340,7 +346,20 @@ export function EditorPage({ theme }: { theme: Theme }) {
   )
 }
 
-function Preview({ text, theme }: { text: string; theme: Theme }) {
+function Preview({ text, theme, withToc }: { text: string; theme: Theme; withToc: boolean }) {
   const html = useMemo(() => renderMarkdown(text), [text])
-  return <MarkdownView html={html} theme={theme} />
+  // DOMParser documents don't fetch images, unlike a detached element.
+  const toc = useMemo(
+    () => (withToc ? extractToc(new DOMParser().parseFromString(html, 'text/html').body) : []),
+    [html, withToc],
+  )
+  if (!withToc) return <MarkdownView html={html} theme={theme} />
+  return (
+    <div className={toc.length >= TOC_MIN_ENTRIES ? 'reader-body with-toc' : 'reader-body'}>
+      <Toc entries={toc} />
+      <div className="reader-sheet">
+        <MarkdownView html={html} theme={theme} />
+      </div>
+    </div>
+  )
 }

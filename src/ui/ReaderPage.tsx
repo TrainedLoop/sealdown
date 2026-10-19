@@ -17,6 +17,9 @@ import { PasswordPrompt } from './PasswordPrompt.tsx'
 import { Presentation } from './Presentation.tsx'
 import type { Theme } from './theme.ts'
 import { Toc } from './Toc.tsx'
+import { ExportMenu } from './ExportMenu.tsx'
+import { HeaderSlot } from './headerSlots.tsx'
+import { Lock, Play } from './icons.tsx'
 import { useDocumentTitle } from './docTitle.ts'
 
 type ReadableRoute = Extract<Route, { kind: 'inline' | 'inline-sealed' | 'stored' | 'inline-protected' | 'stored-protected' }>
@@ -87,10 +90,10 @@ export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Them
         : undefined
     return <ErrorMessage kind={state.error} onRetry={retry} />
   }
-  return <Document text={state.text} theme={theme} />
+  return <Document text={state.text} theme={theme} sealed={route.kind !== 'inline'} />
 }
 
-function Document({ text, theme }: { text: string; theme: Theme }) {
+function Document({ text, theme, sealed }: { text: string; theme: Theme; sealed: boolean }) {
   const { t } = useTranslation()
   const wrapper = useRef<HTMLDivElement>(null)
   const [slides, setSlides] = useState<string[] | null>(null)
@@ -127,37 +130,48 @@ function Document({ text, theme }: { text: string; theme: Theme }) {
 
   return (
     <div className="reader" ref={wrapper}>
-      <div className="reader-toolbar">
-        <button type="button" onClick={editCopy}>
-          {t('reader.editCopy')}
-        </button>
+      <HeaderSlot name="actions">
+        <ExportMenu
+          items={[
+            {
+              id: 'md',
+              label: t('export.md'),
+              run: () => {
+                track('export', { format: 'md' })
+                downloadBlob(new Blob([text], { type: 'text/markdown' }), 'document.md')
+              },
+            },
+            { id: 'pdf', label: t('export.pdf'), run: () => void exportPdf() },
+          ]}
+        />
         <button
           type="button"
-          onClick={() => {
-            track('export', { format: 'md' })
-            downloadBlob(new Blob([text], { type: 'text/markdown' }), 'document.md')
-          }}
-        >
-          {t('export.md')}
-        </button>
-        <button type="button" onClick={exportPdf}>
-          {t('export.pdf')}
-        </button>
-        <button
-          type="button"
+          className="header-button"
           onClick={() => {
             const split = splitSlides(html)
             track('present_started', { slides: split.length })
             setSlides(split)
           }}
         >
-          {t('present.button')}
+          <Play />
+          <span className="header-button-label">{t('present.button')}</span>
         </button>
-      </div>
+        <button type="button" className="primary reader-edit" onClick={editCopy}>
+          {t('reader.editCopy')}
+        </button>
+      </HeaderSlot>
       {slides && <Presentation slides={slides} theme={theme} onClose={closePresentation} />}
       <div className={toc.length >= 3 ? 'reader-body with-toc' : 'reader-body'}>
         <Toc entries={toc} />
-        <MarkdownView html={html} theme={theme} />
+        <div className="reader-sheet">
+          {sealed && (
+            <p className="unsealed-badge">
+              <Lock />
+              {t('reader.unsealed')}
+            </p>
+          )}
+          <MarkdownView html={html} theme={theme} />
+        </div>
       </div>
     </div>
   )

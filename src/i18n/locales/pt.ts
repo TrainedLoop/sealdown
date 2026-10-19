@@ -27,6 +27,7 @@ const pt: typeof en = {
   reader: {
     editCopy: 'Editar uma cópia',
     loading: 'Carregando documento…',
+    unsealed: 'Deslacrado só neste navegador',
     toc: 'Sumário',
     replaceDraft: 'Substituir o rascunho atual do editor por este documento?',
   },
@@ -90,9 +91,9 @@ const pt: typeof en = {
   password: {
     protect: 'Proteger com senha',
     label: 'Senha',
-    locked: 'Este documento é protegido. Digite a senha para abrir.',
-    open: 'Abrir',
-    opening: 'Abrindo…',
+    locked: 'Digite a senha que você recebeu. O documento abre só neste navegador.',
+    unseal: 'Deslacrar',
+    unsealing: 'Deslacrando…',
   },
   present: {
     button: 'Apresentar',

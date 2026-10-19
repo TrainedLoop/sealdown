@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { QrCode } from './QrCode.tsx'
+import { Key, Lock, SealStamp } from './icons.tsx'
 
 export type SealResult =
   | { kind: 'link'; url: string; fallback: boolean; copied: boolean; protected: boolean; stored: boolean }
@@ -45,7 +46,7 @@ export function SealModal({ result, onClose }: { result: SealResult; onClose: ()
         aria-modal="true"
         aria-labelledby="seal-title"
       >
-        {ok && <div className="seal-stamp" aria-hidden="true" />}
+        {ok && <SealStamp />}
         <h2 id="seal-title">{t(ok ? 'seal.title' : 'seal.failedTitle')}</h2>
 
         {result.kind === 'too-large' && <ErrorMessage kind="too-large" />}
@@ -69,8 +70,16 @@ export function SealModal({ result, onClose }: { result: SealResult; onClose: ()
               {t(copied ? 'editor.copied' : 'editor.copyManually')}
             </p>
             <ul className="seal-chips">
-              <li>🔒 {t('seal.aes')}</li>
-              {result.protected && <li>🔑 {t('seal.passwordProtected')}</li>}
+              <li>
+                <Lock />
+                {t('seal.aes')}
+              </li>
+              {result.protected && (
+                <li>
+                  <Key />
+                  {t('seal.passwordProtected')}
+                </li>
+              )}
               <li>{t(result.stored ? 'seal.shortLink' : 'seal.inLink')}</li>
             </ul>
             {result.protected && <p className="seal-reminder">{t('seal.reminder')}</p>}

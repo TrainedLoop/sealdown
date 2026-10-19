@@ -61,3 +61,31 @@ export function Download(props: SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+export function Play(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" {...props}>
+      <rect x="3.5" y="5" width="17" height="12" rx="1.6" />
+      <path d="m10.5 8.5 4 2.5-4 2.5Z" fill="currentColor" />
+      <path d="M9 20.5h6" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function Key(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="8" cy="15" r="4" />
+      <path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2" />
+    </svg>
+  )
+}
+
+/** The seal, large, pressed in when it appears (the one animated moment in the app). */
+export function SealStamp() {
+  return (
+    <div className="seal-stamp" aria-hidden="true">
+      <SealMark width={76} height={76} />
+    </div>
+  )
+}
