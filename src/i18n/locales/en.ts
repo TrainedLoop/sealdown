@@ -23,9 +23,6 @@ const en = {
     fileTooLarge: 'This file is larger than 5 MB.',
   },
   json: {
-    text: 'Text',
-    tree: 'Tree',
-    panes: 'JSON view',
     textLabel: 'JSON text',
     treeLabel: 'JSON tree',
     viewerLabel: 'JSON document',

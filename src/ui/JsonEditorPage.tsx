@@ -8,7 +8,7 @@ import { ExportMenu } from './ExportMenu.tsx'
 import { HeaderSlot } from './headerSlots.tsx'
 import { Folder } from './icons.tsx'
 import { loadJsonDraft, saveJsonDraft } from './jsonDraft.ts'
-import { useSplitAvailable } from './mode.ts'
+import { useMode, type Mode } from './mode.ts'
 import { readTextFile, type FileProblem } from './readTextFile.ts'
 import { SealControls } from './SealControls.tsx'
 import { SealModal } from './SealModal.tsx'
@@ -20,15 +20,13 @@ const JsonEditor = lazy(() => import('../json/JsonEditor.tsx'))
 
 const DRAFT_DELAY_MS = 500
 const JSON_FILE = /\.json$/i
-const PANES = ['text', 'tree'] as const
-type Pane = (typeof PANES)[number]
+const MODES: Mode[] = ['write', 'split', 'read']
 
-/** Text on the left, tree on the right, kept in sync through the text. Tabs on narrow screens. */
+/** Write (text), Split (text left, tree right, in sync through the text) and Read (the tree). */
 export function JsonEditorPage() {
   const { t } = useTranslation()
   const [text, setText] = useState(loadJsonDraft)
-  const wide = useSplitAvailable()
-  const [pane, setPane] = useState<Pane>('text')
+  const { mode, setMode, splitAvailable } = useMode('sealdown.mode.json')
   const seal = useSealLink(text, 'json')
   const fileInput = useRef<HTMLInputElement>(null)
   const textPane = useRef<JsonEditorApi | null>(null)
@@ -83,28 +81,28 @@ export function JsonEditorPage() {
     { id: 'export-json', label: t('export.json'), run: downloadJson },
   ])
 
-  const shown = (name: Pane) => wide || pane === name
 
   return (
     <section className="json-page">
-      {!wide && (
-        <HeaderSlot name="center">
-          <div role="tablist" className="tabs" aria-label={t('json.panes')}>
-            {PANES.map((name) => (
-              <button
-                key={name}
-                type="button"
-                role="tab"
-                aria-selected={pane === name}
-                className={pane === name ? 'tab active' : 'tab'}
-                onClick={() => setPane(name)}
-              >
-                {t(`json.${name}`)}
-              </button>
-            ))}
-          </div>
-        </HeaderSlot>
-      )}
+      <HeaderSlot name="center">
+        <div role="tablist" className="tabs" aria-label={t('editor.modes')}>
+          {MODES.filter((name) => name !== 'split' || splitAvailable).map((name) => (
+            <button
+              key={name}
+              type="button"
+              role="tab"
+              aria-selected={mode === name}
+              className={mode === name ? 'tab active' : 'tab'}
+              onClick={() => {
+                if (mode !== name) track('mode_changed', { mode: name, doc_type: 'json' })
+                setMode(name)
+              }}
+            >
+              {t(`editor.${name}`)}
+            </button>
+          ))}
+        </div>
+      </HeaderSlot>
       <HeaderSlot name="actions">
         <label className="header-button file-button">
           <Folder />
@@ -133,7 +131,7 @@ export function JsonEditorPage() {
       {seal.shared && <SealModal result={seal.shared} onClose={seal.closeSeal} />}
 
       <div
-        className={wide ? 'json-main split' : 'json-main'}
+        className={mode === 'split' ? 'json-main split' : 'json-main'}
         // Capture phase: the library would otherwise take a dropped file's text itself.
         onDragOverCapture={(e) => {
           if (e.dataTransfer.types.includes('Files')) e.preventDefault()
@@ -147,20 +145,28 @@ export function JsonEditorPage() {
         }}
       >
         <Suspense fallback={<p className="status editor-loading">{t('json.loading')}</p>}>
-          {shown('text') && (
+          {mode !== 'read' && (
             <div className="json-pane json-text">
               <JsonEditor
                 text={text}
                 mode="text"
+                lockMode
                 label={t('json.textLabel')}
                 onChange={edit}
                 onReady={(api) => (textPane.current = api)}
               />
             </div>
           )}
-          {shown('tree') && (
+          {mode !== 'write' && (
             <div className="json-pane json-tree">
-              <JsonEditor text={text} mode="tree" label={t('json.treeLabel')} onChange={edit} />
+              <JsonEditor
+                text={text}
+                mode="tree"
+                lockMode
+                readOnly={mode === 'read'}
+                label={t('json.treeLabel')}
+                onChange={edit}
+              />
             </div>
           )}
         </Suspense>

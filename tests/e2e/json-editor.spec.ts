@@ -79,15 +79,40 @@ test('the text style menu is hidden on JSON pages', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Text style' })).toBeHidden()
 })
 
-test('phones switch between text and tree', async ({ page }) => {
+test('Write, Split and Read, like Markdown', async ({ page }) => {
+  await page.goto('/#/json')
+  await setJsonText(page, '{"mode":1}')
+  const tabs = page.getByRole('tablist', { name: 'View' })
+  await tabs.getByRole('tab', { name: 'Write' }).click()
+  await expect(page.locator('.json-text')).toBeVisible()
+  await expect(tree(page)).toHaveCount(0)
+  await tabs.getByRole('tab', { name: 'Read' }).click()
+  await expect(page.locator('.json-text')).toHaveCount(0)
+  await expect(tree(page).getByText('mode', { exact: true })).toBeVisible()
+  await expect(tree(page).locator('.jse-readonly').first()).toBeAttached()
+  await tabs.getByRole('tab', { name: 'Split' }).click()
+  await expect(page.locator('.json-text')).toBeVisible()
+  await expect(tree(page)).toBeVisible()
+})
+
+test('the panes never offer text | tree | table', async ({ page }) => {
+  await page.goto('/#/json')
+  await expect(page.locator('.json-text .cm-content')).toBeVisible()
+  await expect(tree(page).locator('.jse-tree-mode')).toBeVisible()
+  await expect(page.locator('.json-main').getByRole('button', { name: 'table', exact: true })).toHaveCount(0)
+  await expect(page.locator('.json-main').getByRole('button', { name: 'tree', exact: true })).toHaveCount(0)
+})
+
+test('phones switch between Write and Read', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 })
   await page.goto('/#/json')
   await setJsonText(page, '{"phone":1}')
-  await expect(tree(page)).toBeHidden()
-  await page.getByRole('tab', { name: 'Tree' }).click()
+  await expect(tree(page)).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'Split' })).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Read' }).click()
   await expect(tree(page).getByText('phone', { exact: true })).toBeVisible()
-  await expect(page.locator('.json-text')).toBeHidden()
-  await page.getByRole('tab', { name: 'Text' }).click()
+  await expect(page.locator('.json-text')).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Write' }).click()
   await expect(page.locator('.json-text')).toBeVisible()
 })
 

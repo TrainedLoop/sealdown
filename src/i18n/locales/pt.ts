@@ -25,9 +25,6 @@ const pt: typeof en = {
     fileTooLarge: 'Este arquivo tem mais de 5 MB.',
   },
   json: {
-    text: 'Texto',
-    tree: 'Árvore',
-    panes: 'Visualização do JSON',
     textLabel: 'Texto do JSON',
     treeLabel: 'Árvore do JSON',
     viewerLabel: 'Documento JSON',

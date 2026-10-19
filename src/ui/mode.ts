@@ -17,15 +17,16 @@ export function useSplitAvailable(): boolean {
   return useSyncExternalStore(subscribe, () => window.matchMedia(SPLIT_QUERY).matches)
 }
 
-export function useMode(): { mode: Mode; setMode: (mode: Mode) => void; splitAvailable: boolean } {
+/** The editor's view, remembered under `key` (each document type keeps its own). */
+export function useMode(key = KEY): { mode: Mode; setMode: (mode: Mode) => void; splitAvailable: boolean } {
   const splitAvailable = useSplitAvailable()
   const [chosen, setChosen] = useState<Mode>(() => {
-    const saved = readPref(KEY)
+    const saved = readPref(key)
     if (saved === 'write' || saved === 'split' || saved === 'read') return saved
     return window.matchMedia(SPLIT_QUERY).matches ? 'split' : 'write'
   })
   const setMode = (mode: Mode) => {
-    writePref(KEY, mode)
+    writePref(key, mode)
     setChosen(mode)
   }
   return { mode: chosen === 'split' && !splitAvailable ? 'write' : chosen, setMode, splitAvailable }
