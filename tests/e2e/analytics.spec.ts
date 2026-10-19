@@ -61,3 +61,14 @@ test('nothing is sent with Do Not Track', async ({ page }) => {
   await page.waitForTimeout(3000)
   expect(requests).toHaveLength(0)
 })
+
+test('the document title is never sent, even when analytics loads after it is set', async ({ page }) => {
+  const requests = await capture(page)
+  const title = 'READER SECRET HEADING 7c1e'
+  await page.goto('/' + inlineHash(`# ${title}\n\nbody`))
+  await expect(page).toHaveTitle(new RegExp(title))
+  await expect.poll(() => requests.map((r) => decode(r.body)).join('\n'), { timeout: 15_000 }).toContain('$pageview')
+  const sent = requests.map((r) => decode(r.body)).join('\n')
+  expect(sent).not.toContain(title)
+  expect(sent).not.toContain('"title"')
+})

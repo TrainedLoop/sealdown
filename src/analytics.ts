@@ -47,12 +47,19 @@ function stripUrl(value: string): string {
   }
 }
 
+// PostHog attaches document.title to pageviews, and the tab title is the document's title.
+const DROPPED_PROPS = new Set(['title', '$title'])
+
 function sanitizeProps(props: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!props) return props
-  return Object.fromEntries(Object.entries(props).map(([k, v]) => [k, typeof v === 'string' ? stripUrl(v) : v]))
+  return Object.fromEntries(
+    Object.entries(props)
+      .filter(([k]) => !DROPPED_PROPS.has(k))
+      .map(([k, v]) => [k, typeof v === 'string' ? stripUrl(v) : v]),
+  )
 }
 
-/** Cuts every URL-looking string property down to origin + path (no query, no fragment). */
+/** Drops page titles and cuts every URL-looking string property down to origin + path. */
 export function sanitizeEvent<
   T extends { properties?: Record<string, unknown>; $set?: Record<string, unknown>; $set_once?: Record<string, unknown> },
 >(event: T): T {

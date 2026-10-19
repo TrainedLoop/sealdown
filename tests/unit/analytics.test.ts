@@ -40,3 +40,8 @@ test('only known diagram keywords are reported; anything else is "other"', () =>
   const text = '```mermaid\nProjectFalcon --> Legal\n```\n```mermaid\nflowchart LR\n```\n```mermaid\nzenuml\n```\n```mermaid\nstateDiagram-v2\n```'
   expect(diagramTypes(text)).toEqual(['other', 'flowchart', 'zenuml', 'stateDiagram-v2'])
 })
+
+test('page titles never leave the browser (they carry the document title)', () => {
+  const event = sanitizeEvent({ properties: { title: 'TOP SECRET · sealdown', $title: 'x', route: 'inline' } })
+  expect(event.properties).toEqual({ route: 'inline' })
+})
