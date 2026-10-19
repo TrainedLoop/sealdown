@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import type { Route } from '../router/route.ts'
+import { DocSwitch } from './DocSwitch.tsx'
 import { setLang } from '../i18n/index.ts'
 import { useCurrentTitle } from './docTitle.ts'
 import { useSlotRef } from './headerSlotsContext.ts'
@@ -8,7 +10,7 @@ import { TypesetMenu } from './TypesetMenu.tsx'
 import { useCommands } from './commands.ts'
 import { TYPESETS, useTypeset } from './typeset.ts'
 
-export function Header({ theme, onThemeChange }: { theme: Theme; onThemeChange: (theme: Theme) => void }) {
+export function Header({ route, theme, onThemeChange }: { route: Route; theme: Theme; onThemeChange: (theme: Theme) => void }) {
   const { t, i18n } = useTranslation()
   const nextTheme = theme === 'dark' ? 'light' : 'dark'
   const title = useCurrentTitle()
@@ -19,6 +21,9 @@ export function Header({ theme, onThemeChange }: { theme: Theme; onThemeChange: 
   useCommands('app', [
     { id: 'theme', label: t(nextTheme === 'dark' ? 'theme.dark' : 'theme.light'), run: () => onThemeChange(nextTheme) },
     { id: 'language', label: t('palette.language', { language: t('lang.switchTo') }), run: () => setLang(i18n.language === 'pt' ? 'en' : 'pt') },
+    route.kind === 'json-editor'
+      ? { id: 'switch-markdown', label: t('palette.switchMarkdown'), run: () => void (window.location.hash = '#/') }
+      : { id: 'switch-json', label: t('palette.switchJson'), run: () => void (window.location.hash = '#/json') },
     ...TYPESETS.map((style) => ({
       id: `typeset-${style}`,
       label: t('palette.typeset', { style: t(`typeset.${style}`) }),
@@ -32,6 +37,7 @@ export function Header({ theme, onThemeChange }: { theme: Theme; onThemeChange: 
           <SealMark />
           <span className="wordmark">{t('app.name')}</span>
         </a>
+        <DocSwitch route={route} />
         {title && (
           <span className="doc-title" title={title}>
             {title}

@@ -3,6 +3,7 @@ import { track, trackPageview } from './analytics.ts'
 import type { Route } from './router/route.ts'
 import { useHashRoute } from './router/useHashRoute.ts'
 import { EditorPage } from './ui/EditorPage.tsx'
+import { JsonEditorPage } from './ui/JsonEditorPage.tsx'
 import { ErrorMessage } from './ui/ErrorMessage.tsx'
 import { Header } from './ui/Header.tsx'
 import { HeaderSlotsProvider } from './ui/headerSlots.tsx'
@@ -25,10 +26,11 @@ export default function App() {
   useEffect(() => trackPageview(current), [current]) // per kind of page, not per URL
   return (
     <HeaderSlotsProvider>
-      <Header theme={theme} onThemeChange={setTheme} />
+      <Header route={route} theme={theme} onThemeChange={setTheme} />
       <CommandPalette />
-      <main className={route.kind === 'editor' ? 'page page-app' : 'page page-reader'}>
+      <main className={route.kind === 'editor' || route.kind === 'json-editor' ? 'page page-app' : 'page page-reader'}>
         {route.kind === 'editor' && <EditorPage theme={theme} />}
+        {route.kind === 'json-editor' && <JsonEditorPage />}
         {(route.kind === 'inline' ||
           route.kind === 'inline-sealed' ||
           route.kind === 'stored' ||

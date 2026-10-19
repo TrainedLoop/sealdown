@@ -25,7 +25,7 @@ export function TypesetMenu({ value, onChange }: { value: Typeset; onChange: (ty
   }, [open])
 
   return (
-    <div className="menu" ref={root}>
+    <div className="menu typeset-menu" ref={root}>
       <button
         type="button"
         className="header-button icon-only typeset-button"

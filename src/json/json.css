@@ -111,3 +111,14 @@
 :root:not([data-theme]) .jse-theme-sealdown {
   --jse-theme: dark;
 }
+
+/* The text | tree | table switch: the app's tabs, not an inverted block. */
+.json-editor.jse-theme-sealdown .jse-menu .jse-button.jse-group-button {
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+
+.json-editor.jse-theme-sealdown .jse-menu .jse-button.jse-group-button.jse-selected {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}

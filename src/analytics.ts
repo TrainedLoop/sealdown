@@ -107,7 +107,7 @@ export function track(event: EventName, props?: Props): void {
   else queue.push([event, withLang])
 }
 
-/** A pageview for PostHog's Web Analytics; `route` is the kind of page (editor, inline, …), never the URL. */
+/** A pageview for PostHog's Web Analytics; `route` is the kind of page (editor, json-editor, inline, …), never the URL. */
 export function trackPageview(route: string): void {
   track('$pageview', { route })
 }

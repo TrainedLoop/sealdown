@@ -15,3 +15,16 @@ export async function editorValue(page: Page): Promise<string> {
 export async function withTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await page.addInitScript((t) => localStorage.setItem('sealdown.theme', t), theme)
 }
+
+/** Replaces the text in the JSON editor's text pane (the library's CodeMirror). */
+export async function setJsonText(page: Page, text: string): Promise<void> {
+  const content = page.locator('.json-text .cm-content')
+  await content.click()
+  await page.keyboard.press('ControlOrMeta+A')
+  await page.keyboard.insertText(text)
+}
+
+/** The JSON editor's text pane, line by line. */
+export async function jsonText(page: Page): Promise<string> {
+  return (await page.locator('.json-text .cm-content .cm-line').allTextContents()).join('\n')
+}
