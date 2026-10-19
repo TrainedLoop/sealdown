@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
-import { inlineHash } from '../e2e/helpers.ts'
+import { inlineHash, withTheme } from '../e2e/helpers.ts'
 
 // Not a test: renders the editor's diagram-menu thumbnails from src/templates/diagrams.md.
 // Run with `pnpm thumbs` after changing the examples or updating Mermaid, then commit the PNGs.
@@ -15,7 +15,7 @@ test.use({ deviceScaleFactor: 2 })
 for (const theme of ['light', 'dark'] as const) {
   test(`thumbnails, ${theme}`, async ({ page }) => {
     mkdirSync(outDir, { recursive: true })
-    await page.emulateMedia({ colorScheme: theme })
+    await withTheme(page, theme)
     await page.goto('/' + inlineHash(reference))
     const figures = page.locator('figure.diagram')
     await expect(page.locator('figure.diagram .diagram-svg > svg')).toHaveCount(names.length, { timeout: 30_000 })

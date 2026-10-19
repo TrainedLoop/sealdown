@@ -12,7 +12,9 @@ const en = {
     shareUrl: 'Share link',
     empty: 'Nothing to preview yet.',
     loading: 'Loading editor…',
+    open: 'Open',
     openFile: 'Open .md',
+    modes: 'View',
     insertDiagram: 'Insert diagram',
     searchDiagrams: 'Search diagrams',
     noDiagrams: 'No diagram type matches.',
@@ -27,6 +29,7 @@ const en = {
     replaceDraft: 'Replace your current draft in the editor with this document?',
   },
   export: {
+    menu: 'Export',
     pdf: 'Export PDF',
     md: 'Download .md',
     svg: 'SVG',
@@ -60,6 +63,7 @@ const en = {
     minutes_other: '{{count}} min read',
     sync: 'Sync scroll',
     saved: 'Saved on this device',
+    sealed: 'Links are encrypted in your browser',
   },
   toolbar: {
     name: 'Formatting',

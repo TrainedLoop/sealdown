@@ -10,3 +10,8 @@ export function inlineHash(text: string): string {
 export async function editorValue(page: Page): Promise<string> {
   return (await page.locator('.cm-content .cm-line').allTextContents()).join('\n')
 }
+
+/** Starts the page with a saved theme (the app is dark by default, whatever the system says). */
+export async function withTheme(page: Page, theme: 'light' | 'dark'): Promise<void> {
+  await page.addInitScript((t) => localStorage.setItem('sealdown.theme', t), theme)
+}

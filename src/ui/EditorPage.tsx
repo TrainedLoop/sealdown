@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { diagramTypes, track } from '../analytics.ts'
 import type { EditorApi } from '../editor/CodeEditor.tsx'
@@ -16,6 +17,11 @@ import { readPref, writePref } from './prefs.ts'
 import { StatusBar } from './StatusBar.tsx'
 import { useDocumentTitle } from './docTitle.ts'
 import { SealModal, type SealResult } from './SealModal.tsx'
+import { ExportMenu } from './ExportMenu.tsx'
+import { HeaderSlot } from './headerSlots.tsx'
+import { Folder, Lock } from './icons.tsx'
+import { downloadBlob } from './download.ts'
+import { hydrate } from '../render/hydrate.ts'
 import type { Theme } from './theme.ts'
 
 
@@ -113,6 +119,30 @@ export function EditorPage({ theme }: { theme: Theme }) {
     sealButton.current?.focus()
   }, [])
 
+  function downloadMarkdown() {
+    track('export', { format: 'md' })
+    downloadBlob(new Blob([text], { type: 'text/markdown' }), 'document.md')
+  }
+
+  // Prints the rendered document in light colors: switch to Read, render light, print, restore.
+  async function exportPdf() {
+    track('export', { format: 'pdf' })
+    const previousMode = mode
+    flushSync(() => setMode('read'))
+    const article = document.querySelector<HTMLElement>('.read-view .markdown-body')
+    const root = document.documentElement
+    const previousTheme = root.dataset.theme
+    root.dataset.theme = 'light'
+    if (article) await hydrate(article, 'light')
+    try {
+      window.print()
+    } finally {
+      root.dataset.theme = previousTheme
+      if (article) await hydrate(article, theme)
+      setMode(previousMode)
+    }
+  }
+
   async function generate() {
     setBusy(true)
     const source = text
@@ -164,8 +194,8 @@ export function EditorPage({ theme }: { theme: Theme }) {
 
   return (
     <section className="editor">
-      <div className="editor-toolbar">
-        <div role="tablist" className="tabs">
+      <HeaderSlot name="center">
+        <div role="tablist" className="tabs" aria-label={t('editor.modes')}>
           {MODES.filter((name) => name !== 'split' || splitAvailable).map((name) => (
             <button
               key={name}
@@ -182,20 +212,28 @@ export function EditorPage({ theme }: { theme: Theme }) {
             </button>
           ))}
         </div>
-        <div className="editor-tools">
-          <label className="file-button">
-            {t('editor.openFile')}
-            <input
-              type="file"
-              accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                e.target.value = ''
-                if (file) void openFile(file, 'picker')
-              }}
-            />
-          </label>
-        </div>
+      </HeaderSlot>
+      <HeaderSlot name="actions">
+        <label className="header-button file-button">
+          <Folder />
+          <span className="header-button-label">{t('editor.open')}</span>
+          <input
+            type="file"
+            aria-label={t('editor.openFile')}
+            accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (file) void openFile(file, 'picker')
+            }}
+          />
+        </label>
+        <ExportMenu
+          items={[
+            { id: 'md', label: t('export.md'), run: downloadMarkdown },
+            { id: 'pdf', label: t('export.pdf'), run: () => void exportPdf() },
+          ]}
+        />
         <div className="seal-controls">
           <input
             type="password"
@@ -214,10 +252,11 @@ export function EditorPage({ theme }: { theme: Theme }) {
             disabled={busy || text.trim() === ''}
             onClick={generate}
           >
-            🔒 {t(busy ? 'seal.sealing' : 'seal.button')}
+            <Lock />
+            {t(busy ? 'seal.sealing' : 'seal.button')}
           </button>
         </div>
-      </div>
+      </HeaderSlot>
 
       {fileProblem && (
         <div className="notice" role="alert">

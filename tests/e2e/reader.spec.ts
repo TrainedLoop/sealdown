@@ -40,18 +40,17 @@ test('language toggle switches and persists', async ({ page }) => {
 })
 
 test('theme toggle flips and persists', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/' + inlineHash('# Hi'))
   const html = page.locator('html')
+  await expect(html).toHaveAttribute('data-theme', 'dark')
+  await page.getByRole('button', { name: 'Light theme' }).click()
   await expect(html).toHaveAttribute('data-theme', 'light')
-  await page.getByRole('button', { name: 'Dark theme' }).click()
-  await expect(html).toHaveAttribute('data-theme', 'dark')
   await page.reload()
-  await expect(html).toHaveAttribute('data-theme', 'dark')
+  await expect(html).toHaveAttribute('data-theme', 'light')
 })
 
-test('theme follows the system by default', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'dark' })
+test('dark by default, even when the system prefers light', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/' + inlineHash('# Hi'))
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 })

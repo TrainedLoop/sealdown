@@ -14,7 +14,9 @@ const pt: typeof en = {
     shareUrl: 'Link de compartilhamento',
     empty: 'Nada para mostrar ainda.',
     loading: 'Carregando editor…',
+    open: 'Abrir',
     openFile: 'Abrir .md',
+    modes: 'Visualização',
     insertDiagram: 'Inserir diagrama',
     searchDiagrams: 'Buscar diagramas',
     noDiagrams: 'Nenhum tipo de diagrama encontrado.',
@@ -29,6 +31,7 @@ const pt: typeof en = {
     replaceDraft: 'Substituir o rascunho atual do editor por este documento?',
   },
   export: {
+    menu: 'Exportar',
     pdf: 'Exportar PDF',
     md: 'Baixar .md',
     svg: 'SVG',
@@ -62,6 +65,7 @@ const pt: typeof en = {
     minutes_other: '{{count}} min de leitura',
     sync: 'Rolagem sincronizada',
     saved: 'Salvo neste dispositivo',
+    sealed: 'Os links são cifrados no seu navegador',
   },
   toolbar: {
     name: 'Formatação',

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue, inlineHash } from './helpers.ts'
+import { editorValue, inlineHash, withTheme } from './helpers.ts'
 
 const filler = Array.from({ length: 60 }, (_, i) => `Paragraph ${i}.`).join('\n\n')
 const flowchart = '```mermaid\ngraph TD; A[Hello]-->B[World]\n```\n'
@@ -79,7 +79,7 @@ test('export PDF prints in light theme and restores dark', async ({ page }) => {
       }
     }
   })
-  await page.emulateMedia({ colorScheme: 'light' })
+  await withTheme(page, 'light')
   await open(page, flowchart)
   const lightFill = await page.locator('figure.diagram svg .node rect').first().evaluate((el) => getComputedStyle(el).fill)
 
@@ -136,7 +136,7 @@ test('PNG export while other diagrams are still rendering succeeds', async ({ pa
 })
 
 test('browser print in dark theme uses dark text on the white page', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'dark' })
+  await withTheme(page, 'dark')
   await open(page, '# Printable\n\nBody text.')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.emulateMedia({ media: 'print', colorScheme: 'dark' })

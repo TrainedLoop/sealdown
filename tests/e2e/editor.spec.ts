@@ -113,7 +113,9 @@ test('the editor keeps a fixed height and scrolls its content', async ({ page })
   await editor(page).fill(lines)
   const box = (await page.locator('.cm-editor').boundingBox())!
   const viewport = page.viewportSize()!
-  expect(box.height).toBeLessThanOrEqual(viewport.height * 0.75)
+  // The editor fills the window but never grows past it: the page itself doesn't scroll.
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height)
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true)
   const scroller = page.locator('.cm-scroller')
   expect(await scroller.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
 })

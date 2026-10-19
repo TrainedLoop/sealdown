@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { inlineHash } from './helpers.ts'
+import { inlineHash, withTheme } from './helpers.ts'
 
 const fence = (lang: string, body: string) => '```' + lang + '\n' + body + '\n```\n'
 
@@ -26,7 +26,7 @@ test('one broken diagram does not stop the others and leaves no debris', async (
 })
 
 test('diagrams re-render when the theme changes', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'light' })
+  await withTheme(page, 'light')
   await open(page, fence('mermaid', 'graph TD; A-->B'))
   const node = page.locator('figure.diagram svg .node rect').first()
   await expect(node).toBeVisible()

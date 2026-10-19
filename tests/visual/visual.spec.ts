@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
-import { inlineHash } from '../e2e/helpers.ts'
+import { inlineHash, withTheme } from '../e2e/helpers.ts'
 
 // When Mermaid adds a diagram type, add an example to src/templates/diagrams.md and refresh the baselines
 // (`pnpm test:visual --update-snapshots`), reviewing every changed image.
@@ -9,7 +9,7 @@ const fenceCount = reference.match(/^```mermaid$/gm)?.length ?? 0
 
 for (const theme of ['light', 'dark'] as const) {
   test(`reference document, ${theme}`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: theme })
+    await withTheme(page, theme)
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/' + inlineHash(reference))
 
@@ -38,7 +38,7 @@ const syntax = readFileSync(new URL('./syntax.md', import.meta.url), 'utf8')
 
 for (const theme of ['light', 'dark'] as const) {
   test(`syntax reference, ${theme}`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: theme })
+    await withTheme(page, theme)
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.goto('/' + inlineHash(syntax))
     await expect(page.locator('.markdown-alert')).toHaveCount(5)

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue } from './helpers.ts'
+import { editorValue, withTheme } from './helpers.ts'
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
 
@@ -18,7 +18,7 @@ async function drop(page: Page, name: string, type: string, content: string) {
 }
 
 test('the diagram picker lists every example with a thumbnail', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'light' })
+  await withTheme(page, 'light')
   await page.goto('/')
   await editor(page).fill('# Notes\n')
   await page.getByRole('button', { name: 'Insert diagram' }).click()
@@ -55,7 +55,7 @@ test('clicking an example inserts it; Escape closes the picker', async ({ page }
 })
 
 test('the picker uses dark thumbnails in the dark theme', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'dark' })
+  await withTheme(page, 'dark')
   await page.goto('/')
   await page.getByRole('button', { name: 'Insert diagram' }).click()
   await expect(page.getByRole('option').first().locator('img')).toHaveAttribute('src', /-dark\.png$/)

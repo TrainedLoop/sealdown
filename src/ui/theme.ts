@@ -7,11 +7,11 @@ const KEY = 'sealdown.theme'
 
 function initialTheme(): Theme {
   const saved = readPref(KEY)
-  if (saved === 'light' || saved === 'dark') return saved
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  // Dark is Sealdown's identity; light is a choice, not inferred from the system.
+  return saved === 'light' ? 'light' : 'dark'
 }
 
-/** Saved choice, else the system preference. Mirrored on <html data-theme>. */
+/** Saved choice, else dark. Mirrored on <html data-theme>. */
 export function useTheme(): [Theme, (theme: Theme) => void] {
   const [theme, setThemeState] = useState(initialTheme)
   useEffect(() => {

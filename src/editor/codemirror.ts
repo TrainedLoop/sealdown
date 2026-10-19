@@ -19,17 +19,15 @@ const highlight = HighlightStyle.define([
 ])
 
 const theme = EditorView.theme({
+  // Fills its pane: long documents scroll inside the editor instead of growing the page.
   '&': {
     backgroundColor: 'var(--surface)',
     color: 'var(--text)',
-    border: '1px solid var(--border)',
-    borderRadius: '8px',
-    // Fixed height: long documents scroll inside the editor instead of growing the page.
-    height: '70vh',
-    fontSize: '0.95rem',
+    height: '100%',
+    fontSize: '0.92rem',
   },
-  '&.cm-focused': { outline: '2px solid var(--accent)', outlineOffset: '-1px' },
-  '.cm-scroller': { overflow: 'auto', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', lineHeight: '1.6' },
+  '&.cm-focused': { outline: 'none' },
+  '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono)', lineHeight: '1.7' },
   '.cm-content': { padding: '1rem 0', caretColor: 'var(--text)' },
   '.cm-line': { padding: '0 1rem 0 0.75rem' },
   '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--muted)', border: 'none', paddingLeft: '0.5rem' },
