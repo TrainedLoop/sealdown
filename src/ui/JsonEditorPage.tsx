@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { track } from '../analytics.ts'
 import { useCommands } from './commands.ts'
@@ -16,6 +16,10 @@ import { useSealLink } from './useSealLink.ts'
 import { useDocType } from './useDocType.ts'
 
 import type { JsonEditorApi } from '../json/JsonEditor.tsx'
+import { jsonLines } from '../json/jsonLines.ts'
+import { followText, followTree, isTextScroller, isTreeScroller } from '../json/scrollSync.ts'
+import { StatusBar } from './StatusBar.tsx'
+import { useSyncScrollPref } from './syncScrollPref.ts'
 
 const JsonEditor = lazy(() => import('../json/JsonEditor.tsx'))
 
@@ -34,11 +38,46 @@ export function JsonEditorPage() {
   const textPane = useRef<JsonEditorApi | null>(null)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
   useDocumentTitle(null)
+  const [saved, setSaved] = useState(true)
+  const [syncScroll, setSyncScroll] = useSyncScrollPref()
+  const main = useRef<HTMLDivElement>(null)
+  const lines = useMemo(() => jsonLines(text), [text])
+  const linesRef = useRef(lines)
+  useEffect(() => {
+    linesRef.current = lines
+  }, [lines])
+
+  // Split mode keeps the tree on the value at the top of the text, and the other way round. Each
+  // side ignores the one scroll event it causes on the other, so they never chase each other.
+  useEffect(() => {
+    const root = main.current
+    if (mode !== 'split' || !syncScroll || !root) return
+    let echo: 'text' | 'tree' | null = null
+    const onScroll = (event: Event) => {
+      const target = event.target as Element
+      const textPane = root.querySelector('.json-text')
+      const treePane = root.querySelector('.json-tree')
+      if (!textPane || !treePane) return
+      if (isTextScroller(target) && textPane.contains(target)) {
+        if (echo === 'text') return void (echo = null)
+        if (followText(textPane, treePane, linesRef.current)) echo = 'tree'
+      } else if (isTreeScroller(target) && treePane.contains(target)) {
+        if (echo === 'tree') return void (echo = null)
+        if (followTree(treePane, textPane, linesRef.current)) echo = 'text'
+      }
+    }
+    // Scroll events don't bubble; capture sees the panes' inner scrollers.
+    root.addEventListener('scroll', onScroll, true)
+    return () => root.removeEventListener('scroll', onScroll, true)
+  }, [mode, syncScroll])
 
   const latest = useRef(text)
   useEffect(() => {
     latest.current = text
-    const timer = setTimeout(() => saveJsonDraft(text), DRAFT_DELAY_MS)
+    const timer = setTimeout(() => {
+      saveJsonDraft(text)
+      setSaved(true)
+    }, DRAFT_DELAY_MS)
     return () => clearTimeout(timer)
   }, [text])
   // Leaving the editor cancels the pending debounce, so save right away, including the text pane's
@@ -48,6 +87,7 @@ export function JsonEditorPage() {
   function edit(next: string) {
     if (next === latest.current) return
     setText(next)
+    setSaved(false)
     seal.clearSeal()
   }
 
@@ -133,6 +173,7 @@ export function JsonEditorPage() {
       {seal.shared && <SealModal result={seal.shared} onClose={seal.closeSeal} />}
 
       <div
+        ref={main}
         className={mode === 'split' ? 'json-main split' : 'json-main'}
         // Capture phase: the library would otherwise take a dropped file's text itself.
         onDragOverCapture={(e) => {
@@ -173,6 +214,15 @@ export function JsonEditorPage() {
           )}
         </Suspense>
       </div>
+      {mode !== 'read' && (
+        <StatusBar
+          text={text}
+          showCounts={false}
+          saved={saved}
+          syncScroll={mode === 'split' ? syncScroll : undefined}
+          onSyncScrollChange={setSyncScroll}
+        />
+      )}
     </section>
   )
 }

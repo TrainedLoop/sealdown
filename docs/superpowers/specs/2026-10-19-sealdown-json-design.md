@@ -44,6 +44,7 @@ database, passwords, seal dialog, QR code and analytics are reused unchanged.
 
 - **Modes (changed 2026-10-19, after first delivery):** **Write | Split | Read**, like Markdown, remembered separately (`sealdown.mode.json`); Split only at ≥900px. Write: the text. Split: text on the left, tree on the right, always — the panes hide the library's text | tree | table switch. Read: the tree alone, read-only.
 - **Text pane:** validation, error markers, format, compact, sort, repair, transform. **Tree pane:** the library in `tree` mode, lossless numbers, edits rewrite the text indented by 2.
+- **Scroll sync (added 2026-10-19):** in Split, scrolling one pane brings the other to the same value (JSON pointer ↔ line), with the shared "Sync scroll" toggle in a status bar. Collapsed nodes are not opened: the tree stops at the nearest rendered ancestor, or at the last item a long array shows.
 - **Sync:** every change on one side updates the other from the text. When the text does not parse, the tree shows the library's parse-error state (with its repair button).
 - **Draft:** saved 500 ms after the last change, flushed on leaving, like Markdown.
 - **Header actions:** Open (`.json`, also by drop on the panes), Export (`.json`), password field and **Seal link**, the same controls as Markdown.

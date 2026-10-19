@@ -14,7 +14,7 @@ import { MarkdownView } from './MarkdownView.tsx'
 import { Toc, TOC_MIN_ENTRIES } from './Toc.tsx'
 import { extractToc } from '../render/toc.ts'
 import { useMode, type Mode } from './mode.ts'
-import { readPref, writePref } from './prefs.ts'
+import { useSyncScrollPref } from './syncScrollPref.ts'
 import { StatusBar } from './StatusBar.tsx'
 import { useDocumentTitle } from './docTitle.ts'
 import { SealModal } from './SealModal.tsx'
@@ -42,11 +42,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const [text, setText] = useState(loadDraft)
   const { mode, setMode, splitAvailable } = useMode()
   const previewPane = useRef<HTMLDivElement>(null)
-  const [syncScroll, setSyncScrollState] = useState(() => readPref('sealdown.syncScroll') !== 'false')
-  const setSyncScroll = (on: boolean) => {
-    writePref('sealdown.syncScroll', String(on))
-    setSyncScrollState(on)
-  }
+  const [syncScroll, setSyncScroll] = useSyncScrollPref()
   const [saved, setSaved] = useState(true)
   useDocumentTitle(text)
   const seal = useSealLink(text, 'markdown')

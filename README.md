@@ -18,8 +18,8 @@ Live at https://trainedloop.github.io/sealdown/.
   **Present** for `---`-separated slides, export to PDF or `.md`, and **Edit a copy**.
 - **JSON mode** (`#/json`, from the Markdown | JSON switch in the header), built on
   [vanilla-jsoneditor](https://github.com/josdejong/svelte-jsoneditor): text with validation on the
-  left and a synchronized tree on the right, in Write, Split and Read like Markdown, with format,
-  compact, sort, repair and transform. Open or drop a `.json` file, export `.json`, and seal it the same way;
+  left and a synchronized tree on the right, in Write, Split and Read like Markdown (Split scrolls
+  both panes together, value by value), with format, compact, sort, repair and transform. Open or drop a `.json` file, export `.json`, and seal it the same way;
   a JSON link opens as a read-only tree with **Edit a copy**. The library loads only on JSON pages.
 - Text styles (Modern, Editorial, Technical), dark and light themes, English and Portuguese, and a
   command palette (Ctrl/Cmd+K).

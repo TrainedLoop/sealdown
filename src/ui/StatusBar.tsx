@@ -8,8 +8,11 @@ export function StatusBar({
   saved,
   syncScroll,
   onSyncScrollChange,
+  showCounts = true,
 }: {
   text: string
+  /** Words, lines and reading time: for Markdown only. */
+  showCounts?: boolean
   saved: boolean
   /** Undefined hides the toggle (only meaningful in split mode). */
   syncScroll?: boolean
@@ -21,10 +24,14 @@ export function StatusBar({
     // A labeled group, not a live region: screen readers would otherwise announce every keystroke.
     <div className="status-bar" role="group" aria-label={t('status.name')}>
       <span className="status-counts">
-        <span>{t('status.words', { count: stats.words })}</span>
-        <span>{t('status.chars', { count: stats.chars })}</span>
-        <span>{t('status.lines', { count: stats.lines })}</span>
-        <span>{t('status.minutes', { count: stats.minutes })}</span>
+        {showCounts && (
+          <>
+            <span>{t('status.words', { count: stats.words })}</span>
+            <span>{t('status.chars', { count: stats.chars })}</span>
+            <span>{t('status.lines', { count: stats.lines })}</span>
+            <span>{t('status.minutes', { count: stats.minutes })}</span>
+          </>
+        )}
       </span>
       <span className="status-right">
         {syncScroll !== undefined && (
