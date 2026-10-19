@@ -1,7 +1,7 @@
 # Sealdown
 
-Share Markdown in a sealed link. Write or paste a document with Mermaid diagrams, math and code,
-then seal it: it is encrypted in your browser, optionally with a password, and only the people
+Share Markdown or JSON in a sealed link. Write or paste a document with Mermaid diagrams, math and
+code, or a JSON document, then seal it: it is encrypted in your browser, optionally with a password, and only the people
 with the link can open it. No account, and no server ever sees the document.
 Live at https://trainedloop.github.io/sealdown/.
 
@@ -16,6 +16,11 @@ Live at https://trainedloop.github.io/sealdown/.
 - Reading: a sheet with contents on the left, GitHub-style callouts, front matter, footnotes,
   emoji shortcodes, copy buttons on code, diagrams you can expand, copy or download (SVG, PNG),
   **Present** for `---`-separated slides, export to PDF or `.md`, and **Edit a copy**.
+- **JSON mode** (`#/json`, from the Markdown | JSON switch in the header), built on
+  [vanilla-jsoneditor](https://github.com/josdejong/svelte-jsoneditor): text with validation on the
+  left and a synchronized tree on the right (tabs on phones), with format, compact, sort, repair,
+  transform and a table view. Open or drop a `.json` file, export `.json`, and seal it the same way;
+  a JSON link opens as a read-only tree with **Edit a copy**. The library loads only on JSON pages.
 - Text styles (Modern, Editorial, Technical), dark and light themes, English and Portuguese, and a
   command palette (Ctrl/Cmd+K).
 
@@ -28,6 +33,9 @@ Live at https://trainedloop.github.io/sealdown/.
 | `#/p/<ciphertext>` | Password-protected, small: the ciphertext in the link, no key. |
 | `#/q/<id>` | Password-protected, large: stored in Supabase, no key in the link. |
 | `#/v/<payload>` | Legacy plaintext links from before Sealdown encrypted everything: still opened, never created. |
+
+A JSON document starts with an invisible marker (`\u0001json\n`) before it is compressed and
+encrypted, so the link doesn't reveal the type and Markdown links are exactly what they always were.
 
 Protected documents use a key derived from the password with PBKDF2-SHA256 (600 000 iterations,
 random salt) and AES-GCM; neither the password nor the key is in the link. Stored protected
@@ -55,13 +63,13 @@ Every event carries `app: sealdown` and `lang`:
 
 | Event | Properties |
 |---|---|
-| `$pageview` | `route`: editor, inline-sealed, inline (legacy), stored, protected, error |
+| `$pageview` | `route`: editor, json-editor, inline-sealed, inline (legacy), stored, protected, error |
 | `app_opened` | `route` (first page of the visit) |
-| `link_created` | `result`, `storage`, `protected`, `size_kb`, `diagram_count`, `diagram_types` |
-| `link_opened` | `storage`, `protected`, `ok`, `error` |
+| `link_created` | `result`, `storage`, `protected`, `doc_type` (markdown, json), `size_kb`, `diagram_count` and `diagram_types` (Markdown only) |
+| `link_opened` | `storage`, `protected`, `ok`, `error`, `doc_type` |
 | `password_failed` | — |
-| `export` | `format`: pdf, md, svg, png |
-| `file_opened` | `via`: picker, drop |
+| `export` | `format`: pdf, md, json, svg, png |
+| `file_opened` | `via`: picker, drop; `doc_type` for JSON |
 | `diagram_inserted` | `type` |
 | `present_started` | `slides` |
 | `qr_shown` | — |
