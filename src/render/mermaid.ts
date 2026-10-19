@@ -5,6 +5,8 @@ import type { Theme } from '../ui/theme.ts'
 import { downloadBlob, svgToPngBlob } from '../ui/download.ts'
 import { openLightbox } from './lightbox.ts'
 import { createNotice } from './notice.ts'
+import { hintMessage } from './hintMessage.ts'
+import { mermaidHint } from './mermaidHints.ts'
 
 let loading: Promise<Mermaid> | undefined
 let counter = 0
@@ -316,6 +318,13 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
       content.innerHTML = svg
     } catch (error) {
       content = createNotice(`${i18n.t('errors.diagram')} ${error instanceof Error ? error.message : String(error)}`)
+      const hint = mermaidHint(source)
+      if (hint) {
+        const tip = document.createElement('p')
+        tip.className = 'diagram-hint'
+        tip.textContent = hintMessage(hint)
+        content.append(tip)
+      }
       const pre = document.createElement('pre')
       pre.textContent = source
       content.append(pre)

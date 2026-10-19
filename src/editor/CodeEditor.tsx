@@ -2,6 +2,7 @@ import { EditorState, type TransactionSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
 import { parseDiagram } from '../render/mermaid.ts'
+import { hintMessage } from '../render/hintMessage.ts'
 import { editorExtensions, insertAtCursor } from './codemirror.ts'
 import { mermaidLinter } from './mermaidLint.ts'
 
@@ -37,7 +38,7 @@ export default function CodeEditor({ value, onChange, label, onReady, onScrollLi
       parent: parent.current!,
       state: EditorState.create({
         doc: value,
-        extensions: editorExtensions(label, (text) => onChangeRef.current(text), [mermaidLinter(parseDiagram)]),
+        extensions: editorExtensions(label, (text) => onChangeRef.current(text), [mermaidLinter(parseDiagram, hintMessage)]),
       }),
     })
     view.current = editor

@@ -1,28 +1,33 @@
-# sealdown
+# Sealdown
 
-Paste or type Markdown, preview it, and share a link to the rendered document. Mermaid diagrams
-(every type in the latest release), KaTeX math and highlighted code blocks are supported. No
-account, no server-side rendering. Live at https://trainedloop.github.io/sealdown/.
+Share Markdown in a sealed link. Write or paste a document with Mermaid diagrams, math and code,
+then seal it: it is encrypted in your browser, optionally with a password, and only the people
+with the link can open it. No account, and no server ever sees the document.
+Live at https://trainedloop.github.io/sealdown/.
 
 ## Features
 
-- Markdown editor (CodeMirror) with a Code | Preview toggle, Mermaid syntax errors underlined as
-  you type, a floating **Insert diagram** picker (searchable, with a thumbnail of every diagram type), and **Open .md**
-  (or drop a file on the editor).
-- Optional **password protection**: the key is derived from the password and never travels in the
-  link.
-- Reader with table of contents, light/dark theme, English/Portuguese, **Edit a copy**, export to
-  PDF, `.md`, SVG and PNG, and a **Present** mode that turns `---`-separated sections into slides.
-- QR code for generated links, and a link preview image for chat apps.
+- **Write, Split and Read** modes, with the preview following the editor's scroll both ways.
+- A CodeMirror editor with line numbers, a formatting toolbar (Ctrl/Cmd+B, Ctrl/Cmd+I), Mermaid
+  errors underlined as you type (with plain-language hints for the common ones), an **Insert
+  diagram** picker with a thumbnail of every diagram type, and **Open** (or drop a `.md` file).
+- **Seal link**: every link is encrypted; a password, typed next to the button, protects it
+  further. The seal dialog copies the link, says what protects it and shows a QR code.
+- Reading: a sheet with contents on the left, GitHub-style callouts, front matter, footnotes,
+  emoji shortcodes, copy buttons on code, diagrams you can expand, copy or download (SVG, PNG),
+  **Present** for `---`-separated slides, export to PDF or `.md`, and **Edit a copy**.
+- Text styles (Modern, Editorial, Technical), dark and light themes, English and Portuguese, and a
+  command palette (Ctrl/Cmd+K).
 
 ## How links work
 
 | Link | Content |
 |---|---|
-| `#/v/<payload>` | Small documents: the whole document, deflate-compressed and base64url-encoded, in the URL. Nothing is stored anywhere. |
-| `#/s/<id>.<key>` | Larger documents (over 4 KB encoded): encrypted in the browser with AES-GCM and stored in Supabase. The key exists only in the link. |
-| `#/p/<payload>` | Password-protected, small: the ciphertext in the URL. |
-| `#/q/<id>` | Password-protected, large: stored in Supabase. |
+| `#/e/<ciphertext>.<key>` | Small documents (up to 4 KB encoded): encrypted in the browser with AES-GCM, ciphertext and key both in the link. Nothing is stored. |
+| `#/s/<id>.<key>` | Larger documents: encrypted the same way and stored in Supabase; the link carries the id and the key. |
+| `#/p/<ciphertext>` | Password-protected, small: the ciphertext in the link, no key. |
+| `#/q/<id>` | Password-protected, large: stored in Supabase, no key in the link. |
+| `#/v/<payload>` | Legacy plaintext links from before Sealdown encrypted everything: still opened, never created. |
 
 Protected documents use a key derived from the password with PBKDF2-SHA256 (600 000 iterations,
 random salt) and AES-GCM; neither the password nor the key is in the link. Stored protected
@@ -30,9 +35,9 @@ documents are fetched once, and password attempts happen in the browser.
 
 Everything after `#` stays in the browser; it is never sent to a server. Supabase only ever sees
 ciphertext and cannot read stored documents. Stored documents never expire on a timer: when they
-exceed sealdown's 100 MB budget, the least recently opened ones are removed first.
+exceed Sealdown's 100 MB budget, the least recently opened ones are removed first.
 
-The Supabase project is shared with other small projects, so everything sealdown owns lives in the
+The Supabase project is shared with other small projects, so everything Sealdown owns lives in the
 `sealdown` schema. Add `sealdown` to the project's exposed schemas (Settings → API → Exposed
 schemas). Avoid `supabase config push`: it would overwrite settings other projects rely on.
 
@@ -50,7 +55,7 @@ Every event carries `app: sealdown` and `lang`:
 
 | Event | Properties |
 |---|---|
-| `$pageview` | `route`: editor, inline, stored, protected, error |
+| `$pageview` | `route`: editor, inline-sealed, inline (legacy), stored, protected, error |
 | `app_opened` | `route` (first page of the visit) |
 | `link_created` | `result`, `storage`, `protected`, `size_kb`, `diagram_count`, `diagram_types` |
 | `link_opened` | `storage`, `protected`, `ok`, `error` |
@@ -60,6 +65,13 @@ Every event carries `app: sealdown` and `lang`:
 | `diagram_inserted` | `type` |
 | `present_started` | `slides` |
 | `qr_shown` | — |
+| `mode_changed` | `mode`: write, split, read |
+| `format_applied` | `format` (toolbar button id) |
+| `code_copied` | — |
+| `diagram_expanded` | — |
+| `diagram_copied` | `ok` |
+| `typeset_changed` | `style` |
+| `command_run` | `command` (command id) |
 
 ## Development
 
@@ -132,3 +144,10 @@ so updating Playwright also changes screenshots.
 Pushes to `main` deploy to GitHub Pages once CI passes. The repository needs the variables
 `SUPABASE_URL` and `SUPABASE_ANON_KEY` (the project's publishable key, which is public by design).
 The `keepalive` workflow pings Supabase every three days so the free-tier project doesn't pause.
+
+## Formerly rendermd
+
+Sealdown was called rendermd until 2026-10-15. The repository `TrainedLoop/rendermd` only redirects
+links shared under the old address (keeping the document after `#`), browsers move their saved
+draft and settings to the new names on the first visit, and `db/one-off/2026-10-15-rename-schema.sql`
+moved the database schema.

@@ -118,6 +118,10 @@ const pt: typeof en = {
     alt: 'QR code do link',
     tooLong: 'Este link é longo demais para um QR code.',
   },
+  hints: {
+    semicolon: 'Linha {{line}}: no Mermaid, o ; encerra o comando, mesmo dentro de uma mensagem. Escreva #59; para mostrar um ponto e vírgula.',
+    braces: 'Linha {{line}}: no Mermaid, {{open}} e {{close}} abrem um estado composto, mesmo dentro de um rótulo. Use parênteses, ou #123; e #125;.',
+  },
   palette: {
     name: 'Paleta de comandos',
     search: 'Digite um comando',

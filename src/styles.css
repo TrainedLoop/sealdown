@@ -1824,3 +1824,8 @@ button:disabled {
   padding: 0.75rem;
   color: var(--muted);
 }
+
+.diagram-hint {
+  margin: 0.5rem 0 0;
+  font-weight: 500;
+}

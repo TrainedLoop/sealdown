@@ -116,6 +116,10 @@ const en = {
     alt: 'QR code for the link',
     tooLong: 'This link is too long for a QR code.',
   },
+  hints: {
+    semicolon: 'Line {{line}}: a ; ends a statement in Mermaid, even inside a message. Write #59; to show a semicolon.',
+    braces: 'Line {{line}}: {{open}} and {{close}} open a composite state in Mermaid, even inside a label. Use parentheses, or #123; and #125;.',
+  },
   palette: {
     name: 'Command palette',
     search: 'Type a command',
