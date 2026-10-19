@@ -111,7 +111,8 @@ button:disabled {
   top: 0;
   z-index: 50;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* The actions never shrink below their content, so they can't cover the centered modes. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr);
   align-items: center;
   gap: 1rem;
   height: 56px;
@@ -1761,4 +1762,14 @@ button:disabled {
 
 .typeset-technical .typeset-sample {
   font-family: var(--font-mono);
+}
+
+@media (max-width: 1200px) and (min-width: 761px) {
+  .header-button-label {
+    display: none;
+  }
+
+  .password-input {
+    width: 9rem;
+  }
 }

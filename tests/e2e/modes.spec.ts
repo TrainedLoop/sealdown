@@ -98,3 +98,13 @@ test('read mode in the editor shows the table of contents', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Three' })).toBeInViewport()
   expect(await page.evaluate(() => location.hash)).toBe(before)
 })
+
+for (const width of [1280, 1024, 800]) {
+  test(`the header controls never cover the modes at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/')
+    const tabs = (await page.getByRole('tablist', { name: 'View' }).boundingBox())!
+    const actions = (await page.locator('.header-actions').boundingBox())!
+    expect(tabs.x + tabs.width).toBeLessThanOrEqual(actions.x + 1)
+  })
+}
