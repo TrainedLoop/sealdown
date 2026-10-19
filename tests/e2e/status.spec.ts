@@ -26,3 +26,12 @@ test('the sync scroll toggle shows in split mode and is remembered', async ({ pa
   await page.reload()
   await expect(page.getByRole('button', { name: 'Sync scroll' })).toHaveAttribute('aria-pressed', 'false')
 })
+
+test('the sync scroll toggle is vertically aligned with the status text', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/')
+  await page.getByRole('tab', { name: 'Split' }).click()
+  const toggle = (await page.getByRole('button', { name: 'Sync scroll' }).boundingBox())!
+  const words = (await status(page).getByText(/\d+ words?/).boundingBox())!
+  expect(Math.abs(toggle.y + toggle.height / 2 - (words.y + words.height / 2))).toBeLessThanOrEqual(2)
+})

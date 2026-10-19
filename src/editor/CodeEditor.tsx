@@ -7,6 +7,8 @@ import { mermaidLinter } from './mermaidLint.ts'
 
 export type EditorApi = {
   insert(text: string): void
+  /** Puts a 1-based line at the top of the viewport (programmatic: not reported via onScrollLine). */
+  scrollToLine(line: number): void
   apply(build: (state: EditorState) => TransactionSpec): void
 }
 
@@ -41,12 +43,25 @@ export default function CodeEditor({ value, onChange, label, onReady, onScrollLi
     view.current = editor
     onReady?.({
       insert: (text) => insertAtCursor(editor, text),
+      scrollToLine: (line) => {
+        const doc = editor.state.doc
+        const target = editor.lineBlockAt(doc.line(Math.min(Math.max(line, 1), doc.lines)).from).top
+        if (Math.abs(editor.scrollDOM.scrollTop - target) < 1) return
+        programmatic = true
+        editor.scrollDOM.scrollTop = target
+      },
       apply: (build) => {
         editor.dispatch({ ...build(editor.state), scrollIntoView: true })
         editor.focus()
       },
     })
+    // Scrolls we cause ourselves (following the preview) must not be echoed back to it.
+    let programmatic = false
     const onScroll = () => {
+      if (programmatic) {
+        programmatic = false
+        return
+      }
       const block = editor.lineBlockAtHeight(editor.scrollDOM.scrollTop)
       onScrollLineRef.current?.(editor.state.doc.lineAt(block.from).number)
     }

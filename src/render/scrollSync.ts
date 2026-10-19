@@ -10,3 +10,14 @@ export function syncTarget(container: ParentNode, line: number): HTMLElement | n
   }
   return target
 }
+
+/** The source line of the last block whose top is at or above the container's top edge. */
+export function lineAtTop(container: HTMLElement): number | null {
+  const edge = container.getBoundingClientRect().top + 8
+  let line: number | null = null
+  for (const el of container.querySelectorAll<HTMLElement>('[data-source-line]')) {
+    if (el.getBoundingClientRect().top > edge) break
+    line = Number(el.dataset.sourceLine)
+  }
+  return line
+}

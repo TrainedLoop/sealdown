@@ -7,7 +7,7 @@ import { DiagramPicker } from '../editor/DiagramPicker.tsx'
 import { Toolbar } from '../editor/Toolbar.tsx'
 import type { DiagramTemplate } from '../editor/templates.ts'
 import { renderMarkdown } from '../render/markdown.ts'
-import { syncTarget } from '../render/scrollSync.ts'
+import { lineAtTop, syncTarget } from '../render/scrollSync.ts'
 import { createLink } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { loadDraft, saveDraft } from './draft.ts'
@@ -105,12 +105,28 @@ export function EditorPage({ theme }: { theme: Theme }) {
     editorApi.current.insert(`\n\`\`\`mermaid\n${template.source}\n\`\`\`\n`)
   }
 
+  // Scroll sync in split mode, both ways. Each side ignores the one scroll event it causes on
+  // the other, so they never chase each other.
+  const previewScrolledByUs = useRef(false)
+
   function followEditor(line: number) {
     const pane = previewPane.current
     const target = pane && syncTarget(pane, line)
     if (!pane || !target) return
     const offset = target.getBoundingClientRect().top - pane.getBoundingClientRect().top
-    pane.scrollTo({ top: pane.scrollTop + offset - 8 })
+    if (Math.abs(offset - 8) < 1) return
+    previewScrolledByUs.current = true
+    pane.scrollTop = pane.scrollTop + offset - 8
+  }
+
+  function followPreview() {
+    if (previewScrolledByUs.current) {
+      previewScrolledByUs.current = false
+      return
+    }
+    if (mode !== 'split' || !syncScroll || !previewPane.current) return
+    const line = lineAtTop(previewPane.current)
+    if (line !== null) editorApi.current?.scrollToLine(line)
   }
 
   // Stable, so the dialog's keyboard and focus effect runs once per opening.
@@ -303,7 +319,11 @@ export function EditorPage({ theme }: { theme: Theme }) {
           </div>
         )}
         {mode !== 'write' && (
-          <div className={mode === 'split' ? 'preview-pane' : 'read-view'} ref={previewPane}>
+          <div
+            className={mode === 'split' ? 'preview-pane' : 'read-view'}
+            ref={previewPane}
+            onScroll={mode === 'split' ? followPreview : undefined}
+          >
             {text.trim() === '' ? <p className="status">{t('editor.empty')}</p> : <Preview text={text} theme={theme} />}
           </div>
         )}

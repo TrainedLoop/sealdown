@@ -1540,3 +1540,10 @@ button:disabled {
     height: calc(100dvh - 98px);
   }
 }
+
+.page-app .status-toggle {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  font-size: inherit;
+}

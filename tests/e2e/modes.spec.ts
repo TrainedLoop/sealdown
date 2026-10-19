@@ -61,3 +61,26 @@ test('in split mode the preview follows the editor scroll', async ({ page }) => 
     })
     .toBeLessThan(80)
 })
+
+test('in split mode the editor follows the preview scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/')
+  await page.getByRole('tab', { name: 'Split' }).click()
+  const sections = Array.from({ length: 30 }, (_, i) => `## Section ${i}\n\n${'Some text. '.repeat(20)}`).join('\n\n')
+  await editor(page).fill(sections)
+  const pane = page.locator('.preview-pane')
+  await expect(pane.getByRole('heading', { name: 'Section 29' })).toBeAttached()
+  // Bring "Section 20" to the top of the preview.
+  await pane.evaluate((el) => {
+    const heading = Array.from(el.querySelectorAll('h2')).find((h) => h.textContent === 'Section 20')!
+    el.scrollTop += heading.getBoundingClientRect().top - el.getBoundingClientRect().top
+  })
+  await expect.poll(async () => (await page.locator('.cm-line', { hasText: '## Section 20' }).count()) > 0).toBe(true)
+  await expect
+    .poll(async () => {
+      const scroller = (await page.locator('.cm-scroller').boundingBox())!
+      const box = await page.locator('.cm-line', { hasText: '## Section 20' }).boundingBox()
+      return box ? Math.abs(box.y - scroller.y) : 9999
+    })
+    .toBeLessThan(80)
+})
