@@ -1,0 +1,113 @@
+/* vanilla-jsoneditor in the Vault identity: its variables point at the app's tokens, so both themes follow. */
+:root,
+:root[data-theme='dark'] {
+  --json-key: #79c0ff;
+  --json-string: #7ee2a8;
+  --json-number: #ffb26b;
+  --json-literal: #d2a8ff;
+}
+
+:root[data-theme='light'] {
+  --json-key: #0550ae;
+  --json-string: #0a7d4a;
+  --json-number: #b35900;
+  --json-literal: #8250df;
+}
+
+.json-editor {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.json-editor > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.jse-theme-sealdown {
+  --jse-theme: light;
+  --jse-font-family: var(--font-ui);
+  --jse-font-family-mono: var(--font-mono);
+  --jse-font-size-mono: 13.5px;
+  --jse-theme-color: var(--surface-2);
+  --jse-theme-color-highlight: var(--border-strong);
+  --jse-menu-color: var(--text);
+  --jse-background-color: var(--surface);
+  --jse-contents-background-color: var(--surface);
+  --jse-text-color: var(--text);
+  --jse-text-color-inverse: var(--muted);
+  --jse-text-readonly: var(--muted);
+  --jse-error-color: var(--error);
+  --jse-main-border: 1px solid var(--border);
+  --jse-a-color: var(--accent);
+  --jse-a-color-highlight: var(--accent-strong);
+  --jse-modal-background: var(--surface);
+  --jse-modal-code-background: var(--code-bg);
+  --jse-modal-editor-theme-color: var(--surface-2);
+  --jse-modal-editor-theme-color-highlight: var(--border-strong);
+  --jse-overlay-background: rgba(0, 0, 0, 0.5);
+  --jse-panel-background: var(--surface-2);
+  --jse-panel-border: 1px solid var(--border);
+  --jse-panel-color: var(--muted);
+  --jse-panel-color-readonly: var(--muted);
+  --jse-panel-button-color: var(--muted);
+  --jse-panel-button-color-highlight: var(--text);
+  --jse-panel-button-background-highlight: var(--border);
+  --jse-navigation-bar-background: var(--surface-2);
+  --jse-navigation-bar-background-highlight: var(--border-strong);
+  --jse-navigation-bar-dropdown-color: var(--text);
+  --jse-context-menu-background: var(--surface-2);
+  --jse-context-menu-background-highlight: var(--border-strong);
+  --jse-context-menu-separator-color: var(--border-strong);
+  --jse-context-menu-color: var(--text);
+  --jse-context-menu-pointer-background: var(--border-strong);
+  --jse-context-menu-pointer-background-highlight: var(--muted);
+  --jse-context-menu-pointer-color: var(--text);
+  --jse-button-primary-background: var(--accent);
+  --jse-button-primary-background-highlight: var(--accent-strong);
+  --jse-button-primary-color: var(--accent-text);
+  --jse-button-secondary-background: var(--surface-2);
+  --jse-button-secondary-background-highlight: var(--border-strong);
+  --jse-button-secondary-color: var(--text);
+  --jse-input-background: var(--bg);
+  --jse-input-background-readonly: var(--surface-2);
+  --jse-input-border: 1px solid var(--border-strong);
+  --jse-input-border-focus: 1px solid var(--accent);
+  --jse-input-color: var(--text);
+  --jse-key-color: var(--json-key);
+  --jse-value-color: var(--text);
+  --jse-value-color-string: var(--json-string);
+  --jse-value-color-url: var(--json-string);
+  --jse-value-color-number: var(--json-number);
+  --jse-value-color-boolean: var(--json-literal);
+  --jse-value-color-null: var(--json-literal);
+  --jse-delimiter-color: var(--muted);
+  --jse-edit-outline: 2px solid var(--accent);
+  --jse-selection-background-color: var(--selection);
+  --jse-selection-background-inactive-color: var(--accent-soft);
+  --jse-hover-background-color: var(--surface-2);
+  --jse-active-line-background-color: var(--surface-2);
+  --jse-search-match-background-color: var(--accent-soft);
+  --jse-collapsed-items-background-color: var(--surface-2);
+  --jse-collapsed-items-selected-background-color: var(--selection);
+  --jse-collapsed-items-link-color: var(--muted);
+  --jse-collapsed-items-link-color-highlight: var(--accent);
+  --jse-tag-background: var(--surface-2);
+  --jse-tag-color: var(--muted);
+  --jse-table-header-background: var(--surface-2);
+  --jse-table-header-background-highlight: var(--border-strong);
+  --jse-table-row-odd-background: var(--bg);
+  --jse-tooltip-color: var(--text);
+  --jse-tooltip-background: var(--surface-2);
+  --jse-tooltip-border: 1px solid var(--border-strong);
+  --jse-tooltip-action-button-background: var(--border-strong);
+  --jse-svelte-select-background: var(--bg);
+  --jse-svelte-select-border: 1px solid var(--border-strong);
+}
+
+:root[data-theme='dark'] .jse-theme-sealdown,
+:root:not([data-theme]) .jse-theme-sealdown {
+  --jse-theme: dark;
+}
