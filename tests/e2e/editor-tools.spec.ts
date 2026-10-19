@@ -111,3 +111,13 @@ test('binary files without a type are refused', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText("isn't a Markdown or text file")
   expect(await editorValue(page)).toBe('keep me')
 })
+
+test('fast typing in the diagram picker keeps every keystroke', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Insert diagram' }).click()
+  const search = page.getByRole('combobox', { name: 'Search diagrams' })
+  await expect(search).toBeFocused()
+  await page.keyboard.type('architecture')
+  await expect(search).toHaveValue('architecture')
+  await expect(page.getByRole('option')).toHaveCount(1)
+})

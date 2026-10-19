@@ -6,8 +6,9 @@ import { SlotsContext, type SlotName } from './headerSlotsContext.ts'
 export function HeaderSlotsProvider({ children }: { children: ReactNode }) {
   const [center, setCenter] = useState<HTMLElement | null>(null)
   const [actions, setActions] = useState<HTMLElement | null>(null)
-  const register = (name: SlotName) => (name === 'center' ? setCenter : setActions)
-  return <SlotsContext.Provider value={{ center, actions, register }}>{children}</SlotsContext.Provider>
+  const [search, setSearch] = useState<HTMLElement | null>(null)
+  const register = (name: SlotName) => ({ center: setCenter, actions: setActions, search: setSearch })[name]
+  return <SlotsContext.Provider value={{ center, actions, search, register }}>{children}</SlotsContext.Provider>
 }
 
 export function HeaderSlot({ name, children }: { name: SlotName; children: ReactNode }) {

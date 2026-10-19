@@ -5,7 +5,8 @@ import { diagramTypes, track } from '../analytics.ts'
 import type { EditorApi } from '../editor/CodeEditor.tsx'
 import { DiagramPicker } from '../editor/DiagramPicker.tsx'
 import { Toolbar } from '../editor/Toolbar.tsx'
-import type { DiagramTemplate } from '../editor/templates.ts'
+import { diagramTemplates, type DiagramTemplate } from '../editor/templates.ts'
+import { useCommands } from './commands.ts'
 import { renderMarkdown } from '../render/markdown.ts'
 import { lineAtTop, syncTarget } from '../render/scrollSync.ts'
 import { createLink } from '../share/link.ts'
@@ -30,6 +31,7 @@ import type { Theme } from './theme.ts'
 
 const DRAFT_DELAY_MS = 500
 const MODES: Mode[] = ['write', 'split', 'read']
+const TEMPLATES = diagramTemplates()
 
 const CodeEditor = lazy(() => import('../editor/CodeEditor.tsx'))
 
@@ -52,6 +54,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
   useDocumentTitle(text)
   const [shared, setShared] = useState<SealResult | null>(null)
   const sealButton = useRef<HTMLButtonElement>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
   const [password, setPassword] = useState('')
@@ -210,6 +213,27 @@ export function EditorPage({ theme }: { theme: Theme }) {
     }
   }
 
+  useCommands('editor', [
+    ...MODES.filter((name) => name !== 'split' || splitAvailable).map((name) => ({
+      id: `mode-${name}`,
+      label: t('palette.mode', { mode: t(`editor.${name}`) }),
+      run: () => setMode(name),
+    })),
+    { id: 'seal', label: t('seal.button'), run: () => text.trim() !== '' && !busy && void generate() },
+    { id: 'open', label: t('editor.openFile'), run: () => fileInput.current?.click() },
+    { id: 'export-md', label: t('export.md'), run: downloadMarkdown },
+    { id: 'export-pdf', label: t('export.pdf'), run: () => void exportPdf() },
+    ...TEMPLATES.map((template) => ({
+      id: `insert-${template.slug}`,
+      label: t('palette.insert', { name: template.name }),
+      run: () => {
+        if (mode === 'read') setMode(splitAvailable ? 'split' : 'write')
+        // The editor mounts on the next render when coming from Read mode.
+        setTimeout(() => insertDiagram(template), 0)
+      },
+    })),
+  ])
+
   return (
     <section className="editor">
       <HeaderSlot name="center">
@@ -236,6 +260,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
           <Folder />
           <span className="header-button-label">{t('editor.open')}</span>
           <input
+            ref={fileInput}
             type="file"
             aria-label={t('editor.openFile')}
             accept=".md,.markdown,.mdown,.txt,text/markdown,text/plain"

@@ -26,6 +26,7 @@ export type EventName =
   | 'qr_shown'
   | 'mode_changed'
   | 'typeset_changed'
+  | 'command_run'
   | 'format_applied'
   | 'code_copied'
   | 'diagram_expanded'

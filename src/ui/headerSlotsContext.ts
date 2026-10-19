@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type SlotName = 'center' | 'actions'
+export type SlotName = 'center' | 'actions' | 'search'
 export type Slots = Record<SlotName, HTMLElement | null> & {
   register: (name: SlotName) => (el: HTMLElement | null) => void
 }

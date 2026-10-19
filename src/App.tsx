@@ -6,6 +6,7 @@ import { EditorPage } from './ui/EditorPage.tsx'
 import { ErrorMessage } from './ui/ErrorMessage.tsx'
 import { Header } from './ui/Header.tsx'
 import { HeaderSlotsProvider } from './ui/headerSlots.tsx'
+import { CommandPalette } from './ui/CommandPalette.tsx'
 import { ReaderPage } from './ui/ReaderPage.tsx'
 import { useTheme } from './ui/theme.ts'
 
@@ -25,6 +26,7 @@ export default function App() {
   return (
     <HeaderSlotsProvider>
       <Header theme={theme} onThemeChange={setTheme} />
+      <CommandPalette />
       <main className={route.kind === 'editor' ? 'page page-app' : 'page page-reader'}>
         {route.kind === 'editor' && <EditorPage theme={theme} />}
         {(route.kind === 'inline' ||

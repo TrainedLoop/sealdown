@@ -89,3 +89,12 @@ export function SealStamp() {
     </div>
   )
 }
+
+export function Search(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" {...props}>
+      <circle cx="11" cy="11" r="6" />
+      <path d="m20 20-4.5-4.5" />
+    </svg>
+  )
+}

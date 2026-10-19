@@ -116,6 +116,15 @@ const en = {
     alt: 'QR code for the link',
     tooLong: 'This link is too long for a QR code.',
   },
+  palette: {
+    name: 'Command palette',
+    search: 'Type a command',
+    empty: 'No command matches.',
+    language: 'Switch language to {{language}}',
+    typeset: 'Text style: {{style}}',
+    mode: 'View: {{mode}}',
+    insert: 'Insert diagram: {{name}}',
+  },
   typeset: {
     button: 'Text style',
     modern: 'Modern',

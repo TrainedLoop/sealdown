@@ -61,11 +61,9 @@ function PickerPanel({
     items,
     isOpen: true,
     selectedItem: null,
-    inputValue: query,
     itemToString: (item) => item?.name ?? '',
-    onInputValueChange: ({ inputValue, type }) => {
-      if (type === useCombobox.stateChangeTypes.InputChange) setQuery(inputValue)
-    },
+    // Downshift owns the input's value (controlling it too drops fast keystrokes); we only filter.
+    onInputValueChange: ({ inputValue }) => setQuery(inputValue ?? ''),
     onSelectedItemChange: ({ selectedItem }) => {
       if (selectedItem) onPick(selectedItem)
     },

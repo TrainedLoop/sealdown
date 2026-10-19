@@ -17,6 +17,7 @@ import { PasswordPrompt } from './PasswordPrompt.tsx'
 import { Presentation } from './Presentation.tsx'
 import type { Theme } from './theme.ts'
 import { Toc } from './Toc.tsx'
+import { useCommands } from './commands.ts'
 import { ExportMenu } from './ExportMenu.tsx'
 import { HeaderSlot } from './headerSlots.tsx'
 import { Lock, Play } from './icons.tsx'
@@ -128,30 +129,35 @@ function Document({ text, theme, sealed }: { text: string; theme: Theme; sealed:
     }
   }
 
+  const present = () => {
+    const split = splitSlides(html)
+    track('present_started', { slides: split.length })
+    setSlides(split)
+  }
+  const downloadMd = () => {
+    track('export', { format: 'md' })
+    downloadBlob(new Blob([text], { type: 'text/markdown' }), 'document.md')
+  }
+  useCommands('reader', [
+    { id: 'present', label: t('present.button'), run: present },
+    { id: 'edit-copy', label: t('reader.editCopy'), run: editCopy },
+    { id: 'export-md', label: t('export.md'), run: downloadMd },
+    { id: 'export-pdf', label: t('export.pdf'), run: () => void exportPdf() },
+  ])
+
   return (
     <div className="reader" ref={wrapper}>
       <HeaderSlot name="actions">
         <ExportMenu
           items={[
-            {
-              id: 'md',
-              label: t('export.md'),
-              run: () => {
-                track('export', { format: 'md' })
-                downloadBlob(new Blob([text], { type: 'text/markdown' }), 'document.md')
-              },
-            },
+            { id: 'md', label: t('export.md'), run: downloadMd },
             { id: 'pdf', label: t('export.pdf'), run: () => void exportPdf() },
           ]}
         />
         <button
           type="button"
           className="header-button"
-          onClick={() => {
-            const split = splitSlides(html)
-            track('present_started', { slides: split.length })
-            setSlides(split)
-          }}
+          onClick={present}
         >
           <Play />
           <span className="header-button-label">{t('present.button')}</span>

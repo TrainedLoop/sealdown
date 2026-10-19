@@ -118,6 +118,15 @@ const pt: typeof en = {
     alt: 'QR code do link',
     tooLong: 'Este link é longo demais para um QR code.',
   },
+  palette: {
+    name: 'Paleta de comandos',
+    search: 'Digite um comando',
+    empty: 'Nenhum comando encontrado.',
+    language: 'Mudar idioma para {{language}}',
+    typeset: 'Estilo do texto: {{style}}',
+    mode: 'Visualização: {{mode}}',
+    insert: 'Inserir diagrama: {{name}}',
+  },
   typeset: {
     button: 'Estilo do texto',
     modern: 'Moderno',
