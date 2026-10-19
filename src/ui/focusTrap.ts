@@ -1,10 +1,11 @@
-import { useEffect, type RefObject } from 'react'
+import { useLayoutEffect, type RefObject } from 'react'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
 
 /** Keeps Tab and Shift+Tab inside `ref` while it is mounted (for aria-modal dialogs). */
 export function useFocusTrap(ref: RefObject<HTMLElement | null>): void {
-  useEffect(() => {
+  // Before paint: a Tab pressed as soon as the dialog shows must already be trapped.
+  useLayoutEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const root = ref.current
       if (event.key !== 'Tab' || !root) return

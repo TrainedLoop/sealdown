@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { QrCode } from './QrCode.tsx'
@@ -18,7 +18,8 @@ export function SealModal({ result, onClose }: { result: SealResult; onClose: ()
   const ok = result.kind === 'link'
   useFocusTrap(dialog)
 
-  useEffect(() => {
+  // Before paint, like the focus trap: the dialog never shows without focus inside it.
+  useLayoutEffect(() => {
     dialog.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !event.defaultPrevented) {
