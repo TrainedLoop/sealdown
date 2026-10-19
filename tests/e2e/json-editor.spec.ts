@@ -115,3 +115,14 @@ test('switching to Markdown right after typing keeps the JSON draft', async ({ p
   await page.getByRole('link', { name: 'JSON' }).click()
   await expect.poll(() => jsonText(page)).toBe('{"quick":1}')
 })
+
+test('a tree edit keeps big numbers exact and the text indented', async ({ page }) => {
+  await page.goto('/#/json')
+  await setJsonText(page, '{\n  "id": 12345678901234567890,\n  "f": 1.10,\n  "n": "x"\n}')
+  await expect(tree(page).getByText('12345678901234567890')).toBeVisible()
+  await tree(page).getByText('x', { exact: true }).dblclick()
+  await page.keyboard.press('ControlOrMeta+A')
+  await page.keyboard.insertText('y')
+  await page.keyboard.press('Enter')
+  await expect.poll(() => jsonText(page)).toBe('{\n  "id": 12345678901234567890,\n  "f": 1.10,\n  "n": "y"\n}')
+})

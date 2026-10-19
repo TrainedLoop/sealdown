@@ -157,6 +157,9 @@ importers:
       katex:
         specifier: ^0.19.0
         version: 0.19.0
+      lossless-json:
+        specifier: ^4.3.2
+        version: 4.3.2
       markdown-it:
         specifier: ^15.0.2
         version: 15.0.2
@@ -1877,6 +1880,9 @@ packages:
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
+
+  lossless-json@4.3.2:
+    resolution: {integrity: sha512-TWT1oIGJKaHkme0nDFoW9Tsv0/IZxy6P8rzD03hZpk7de04PWGfl/uMj/WcENrJLNF4P+QGGByPjap6qx++bDQ==}
 
   lru-cache@11.5.3:
     resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
@@ -3819,6 +3825,8 @@ snapshots:
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
+
+  lossless-json@4.3.2: {}
 
   lru-cache@11.5.3: {}
 

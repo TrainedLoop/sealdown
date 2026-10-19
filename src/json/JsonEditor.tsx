@@ -1,5 +1,6 @@
+import { parse, stringify } from 'lossless-json'
 import { useEffect, useRef } from 'react'
-import { createJSONEditor, Mode, toTextContent, type Content, type JsonEditor as Instance } from 'vanilla-jsoneditor'
+import { createJSONEditor, Mode, toTextContent, type Content, type JSONParser, type JsonEditor as Instance } from 'vanilla-jsoneditor'
 import './json.css'
 
 export type JsonEditorProps = {
@@ -14,8 +15,13 @@ export type JsonEditorProps = {
 
 export type JsonEditorApi = { getText: () => string }
 
+// Lossless: numbers keep their exact digits (64-bit ids, 1.10) when the tree reads and writes them.
+const PARSER = { parse, stringify } as JSONParser
+// Tree edits rewrite the text from the parsed document; keep it readable instead of one long line.
+const INDENTATION = 2
+
 function currentText(editor: Instance): string {
-  return toTextContent(editor.get()).text
+  return toTextContent(editor.get(), INDENTATION, PARSER).text
 }
 
 /** vanilla-jsoneditor in a React component, themed with the Vault tokens (json.css). */
@@ -36,7 +42,9 @@ export default function JsonEditor({ text, mode, readOnly = false, label, onChan
         readOnly,
         ariaLabel: label,
         askToFormat: false,
-        onChange: (content: Content) => onChangeRef.current?.(toTextContent(content).text),
+        parser: PARSER,
+        indentation: INDENTATION,
+        onChange: (content: Content) => onChangeRef.current?.(toTextContent(content, INDENTATION, PARSER).text),
       },
     })
     editor.current = instance
