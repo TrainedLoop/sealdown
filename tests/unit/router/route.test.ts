@@ -64,3 +64,9 @@ test('sealed inline route carries payload and key', () => {
   const r = { kind: 'inline-sealed', payload: 'abc', key: 'k' } as const
   expect(parseRoute(buildHash(r))).toEqual(r)
 })
+
+test('json editor route', () => {
+  for (const h of ['#/json', '#/json/', '#/json.']) expect(parseRoute(h)).toEqual({ kind: 'json-editor' })
+  expect(parseRoute('#/jsonx')).toEqual({ kind: 'unknown-format' })
+  expect(buildHash({ kind: 'json-editor' })).toBe('#/json')
+})

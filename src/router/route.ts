@@ -1,5 +1,6 @@
 export type Route =
   | { kind: 'editor' }
+  | { kind: 'json-editor' }
   /** Legacy: plaintext (compressed) document in the link. Opened, never generated. */
   | { kind: 'inline'; payload: string }
   /** Encrypted document in the link, with its key after the dot. */
@@ -27,6 +28,7 @@ export function parseRoute(hash: string): Route {
   }
   path = path.trim().replace(TRAILING_JUNK, '').replace(/^#/, '')
   if (path === '' || path === '/') return { kind: 'editor' }
+  if (path === '/json' || path === '/json/') return { kind: 'json-editor' }
 
   const match = /^\/([^/]+)\/(.*)$/.exec(path)
   if (!match) return { kind: 'unknown-format' }
@@ -62,6 +64,8 @@ export function buildHash(route: ShareableRoute): string {
   switch (route.kind) {
     case 'editor':
       return '#/'
+    case 'json-editor':
+      return '#/json'
     case 'inline':
       return `#/v/${route.payload}`
     case 'stored':
