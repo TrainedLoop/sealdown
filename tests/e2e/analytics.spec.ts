@@ -72,3 +72,45 @@ test('the document title is never sent, even when analytics loads after it is se
   expect(sent).not.toContain(title)
   expect(sent).not.toContain('"title"')
 })
+
+type SentEvent = { event: string; properties: Record<string, unknown> }
+
+function events(requests: Captured[]): SentEvent[] {
+  return requests.flatMap((r) => {
+    try {
+      const parsed = JSON.parse(decode(r.body)) as SentEvent | SentEvent[] | { batch: SentEvent[] }
+      const list = Array.isArray(parsed) ? parsed : 'batch' in parsed ? parsed.batch : [parsed]
+      return list.filter((e) => e && typeof e.event === 'string' && e.properties)
+    } catch {
+      return []
+    }
+  })
+}
+
+const sentWith = (requests: Captured[], name: string, props: Record<string, unknown>) =>
+  events(requests).some((e) => e.event === name && Object.entries(props).every(([k, v]) => e.properties[k] === v))
+
+test('events on a document page carry its type', async ({ page }) => {
+  const requests = await capture(page)
+  await page.goto('/#/')
+  await page.getByRole('tab', { name: 'Write' }).click()
+  await page.getByLabel('Open .md').setInputFiles({ name: 'a.md', mimeType: 'text/markdown', buffer: Buffer.from('# A') })
+  await page.getByRole('link', { name: 'JSON' }).click()
+  await page.getByRole('tab', { name: 'Read' }).click()
+  await page.getByLabel('Open .json').setInputFiles({ name: 'a.json', mimeType: 'application/json', buffer: Buffer.from(`{"s":"${secret}"}`) })
+  await page.keyboard.press('ControlOrMeta+k')
+  await page.keyboard.type('Download .json')
+  await page.keyboard.press('Enter')
+  await page.goto('/' + inlineHash('\u0001json\n{"r":1}'))
+  await page.getByRole('button', { name: 'Export' }).click()
+  await page.getByRole('menuitem', { name: 'Download .json' }).click()
+
+  await expect.poll(() => sentWith(requests, 'export', { format: 'json', doc_type: 'json', route: 'inline' }), { timeout: 15_000 }).toBe(true)
+  expect(sentWith(requests, 'mode_changed', { mode: 'write', doc_type: 'markdown' })).toBe(true)
+  expect(sentWith(requests, 'file_opened', { via: 'picker', doc_type: 'markdown' })).toBe(true)
+  expect(sentWith(requests, 'mode_changed', { mode: 'read', doc_type: 'json' })).toBe(true)
+  expect(sentWith(requests, 'file_opened', { via: 'picker', doc_type: 'json' })).toBe(true)
+  expect(sentWith(requests, 'command_run', { command: 'export-json', doc_type: 'json', route: 'json-editor' })).toBe(true)
+  expect(sentWith(requests, 'export', { format: 'json', doc_type: 'json', route: 'json-editor' })).toBe(true)
+  expect(requests.map((r) => decode(r.body)).join('\n')).not.toContain(secret)
+})

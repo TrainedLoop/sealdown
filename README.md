@@ -59,17 +59,19 @@ of page with a `route` property, so every document counts as the same page. Noth
 Privacy Control on, or when `VITE_POSTHOG_KEY` is missing. PostHog also drops events from
 automated browsers.
 
-Every event carries `app: sealdown` and `lang`:
+Every event carries `app: sealdown`, `lang` and `route` (the kind of page it happened on: editor,
+json-editor, inline-sealed, …). Events on a page showing a document also carry `doc_type` (markdown,
+json); on a shared link that is known once the document is unsealed.
 
 | Event | Properties |
 |---|---|
 | `$pageview` | `route`: editor, json-editor, inline-sealed, inline (legacy), stored, protected, error |
 | `app_opened` | `route` (first page of the visit) |
-| `link_created` | `result`, `storage`, `protected`, `doc_type` (markdown, json), `size_kb`, `diagram_count` and `diagram_types` (Markdown only) |
-| `link_opened` | `storage`, `protected`, `ok`, `error`, `doc_type` |
+| `link_created` | `result`, `storage`, `protected`, `size_kb`, `diagram_count` and `diagram_types` (Markdown only) |
+| `link_opened` | `storage`, `protected`, `ok`, `error` |
 | `password_failed` | — |
 | `export` | `format`: pdf, md, json, svg, png |
-| `file_opened` | `via`: picker, drop; `doc_type` for JSON |
+| `file_opened` | `via`: picker, drop |
 | `diagram_inserted` | `type` |
 | `present_started` | `slides` |
 | `qr_shown` | — |

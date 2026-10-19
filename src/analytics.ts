@@ -90,10 +90,23 @@ export function diagramTypes(text: string): string[] {
   )
 }
 
+function pick(ctx: Context): Props {
+  return Object.fromEntries(Object.entries(ctx).filter(([, v]) => v !== undefined)) as Props
+}
+
 function optedOut(): boolean {
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean }
   const win = window as Window & { doNotTrack?: string }
   return nav.doNotTrack === '1' || win.doNotTrack === '1' || nav.globalPrivacyControl === true
+}
+
+// Where the event happened: the kind of page (`route`) and, on a page showing a document, its type.
+// Both are set by the app shell and the pages, so every event carries them without each call site.
+type Context = { route?: string; doc_type?: string }
+const context: Context = {}
+
+export function setAnalyticsContext(next: Context): void {
+  Object.assign(context, next)
 }
 
 const enabled = Boolean(KEY) && !optedOut()
@@ -102,7 +115,7 @@ const queue: [EventName, Props][] = []
 
 export function track(event: EventName, props?: Props): void {
   if (!enabled) return
-  const withLang = { lang: i18n.language, ...props }
+  const withLang = { lang: i18n.language, ...pick(context), ...props }
   if (client) client.capture(event, withLang)
   else queue.push([event, withLang])
 }

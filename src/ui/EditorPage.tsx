@@ -20,6 +20,7 @@ import { useDocumentTitle } from './docTitle.ts'
 import { SealModal } from './SealModal.tsx'
 import { SealControls } from './SealControls.tsx'
 import { useSealLink } from './useSealLink.ts'
+import { useDocType } from './useDocType.ts'
 import { readTextFile, type FileProblem } from './readTextFile.ts'
 import { ExportMenu } from './ExportMenu.tsx'
 import { HeaderSlot } from './headerSlots.tsx'
@@ -49,6 +50,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const [saved, setSaved] = useState(true)
   useDocumentTitle(text)
   const seal = useSealLink(text, 'markdown')
+  useDocType('markdown')
   const fileInput = useRef<HTMLInputElement>(null)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
   const editorApi = useRef<EditorApi | null>(null)

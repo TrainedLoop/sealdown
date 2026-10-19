@@ -8,6 +8,7 @@ import { ExportMenu } from './ExportMenu.tsx'
 import { HeaderSlot } from './headerSlots.tsx'
 import { Lock } from './icons.tsx'
 import { loadJsonDraft, saveJsonDraft } from './jsonDraft.ts'
+import { useDocType } from './useDocType.ts'
 
 const JsonEditor = lazy(() => import('../json/JsonEditor.tsx'))
 
@@ -25,6 +26,7 @@ export function JsonDocument({ text, sealed }: { text: string; sealed: boolean }
   const { t } = useTranslation()
   const valid = useMemo(() => parses(text), [text])
   useDocumentTitle(null)
+  useDocType('json')
 
   function editCopy() {
     const draft = loadJsonDraft()

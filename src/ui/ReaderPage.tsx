@@ -24,6 +24,7 @@ import { HeaderSlot } from './headerSlots.tsx'
 import { Lock, Play } from './icons.tsx'
 import { useDocumentTitle } from './docTitle.ts'
 import { JsonDocument } from './JsonDocument.tsx'
+import { useDocType } from './useDocType.ts'
 
 type ReadableRoute = Extract<Route, { kind: 'inline' | 'inline-sealed' | 'stored' | 'inline-protected' | 'stored-protected' }>
 
@@ -105,6 +106,7 @@ function Document({ text, theme, sealed }: { text: string; theme: Theme; sealed:
   const [slides, setSlides] = useState<string[] | null>(null)
   const html = useMemo(() => renderMarkdown(text), [text])
   useDocumentTitle(text)
+  useDocType('markdown')
   // DOMParser documents don't fetch images, unlike a detached element.
   const toc = useMemo(() => extractToc(new DOMParser().parseFromString(html, 'text/html').body), [html])
 

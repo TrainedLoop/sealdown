@@ -13,6 +13,7 @@ import { readTextFile, type FileProblem } from './readTextFile.ts'
 import { SealControls } from './SealControls.tsx'
 import { SealModal } from './SealModal.tsx'
 import { useSealLink } from './useSealLink.ts'
+import { useDocType } from './useDocType.ts'
 
 import type { JsonEditorApi } from '../json/JsonEditor.tsx'
 
@@ -28,6 +29,7 @@ export function JsonEditorPage() {
   const [text, setText] = useState(loadJsonDraft)
   const { mode, setMode, splitAvailable } = useMode('sealdown.mode.json')
   const seal = useSealLink(text, 'json')
+  useDocType('json')
   const fileInput = useRef<HTMLInputElement>(null)
   const textPane = useRef<JsonEditorApi | null>(null)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
@@ -57,7 +59,7 @@ export function JsonEditorPage() {
       return
     }
     if (text.trim() !== '' && text.trim() !== '{}' && text !== read.text && !window.confirm(t('json.replaceText'))) return
-    track('file_opened', { via, doc_type: 'json' })
+    track('file_opened', { via })
     edit(read.text)
   }
 
@@ -94,7 +96,7 @@ export function JsonEditorPage() {
               aria-selected={mode === name}
               className={mode === name ? 'tab active' : 'tab'}
               onClick={() => {
-                if (mode !== name) track('mode_changed', { mode: name, doc_type: 'json' })
+                if (mode !== name) track('mode_changed', { mode: name })
                 setMode(name)
               }}
             >

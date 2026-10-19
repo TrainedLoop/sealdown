@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { track, trackPageview } from './analytics.ts'
+import { setAnalyticsContext, track, trackPageview } from './analytics.ts'
 import type { Route } from './router/route.ts'
 import { useHashRoute } from './router/useHashRoute.ts'
 import { EditorPage } from './ui/EditorPage.tsx'
@@ -23,7 +23,10 @@ export default function App() {
   const [openedOn] = useState(() => routeName(route))
   useEffect(() => track('app_opened', { route: openedOn }), [openedOn]) // once per visit
   const current = routeName(route)
-  useEffect(() => trackPageview(current), [current]) // per kind of page, not per URL
+  useEffect(() => {
+    setAnalyticsContext({ route: current })
+    trackPageview(current) // per kind of page, not per URL
+  }, [current])
   return (
     <HeaderSlotsProvider>
       <Header route={route} theme={theme} onThemeChange={setTheme} />
