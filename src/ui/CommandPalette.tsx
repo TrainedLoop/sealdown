@@ -1,10 +1,11 @@
 import { useCombobox } from 'downshift'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { track } from '../analytics.ts'
 import { useAllCommands, type Command } from './commands.ts'
 import { HeaderSlot } from './headerSlots.tsx'
 import { Search } from './icons.tsx'
+import { overlayOpen, useFocusTrap } from './focusTrap.ts'
 
 /** Ctrl/Cmd+K (or the search button) lists every action available on the current page. */
 export function CommandPalette() {
@@ -15,6 +16,8 @@ export function CommandPalette() {
     // Capture phase, so the editor never swallows the shortcut.
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+        // Another dialog or a presentation owns the keyboard; the palette would open behind it.
+        if (overlayOpen()) return
         event.preventDefault()
         event.stopPropagation()
         setOpen(true)
@@ -45,6 +48,8 @@ export function CommandPalette() {
 function Palette({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const commands = useAllCommands()
+  const dialog = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialog)
   const [query, setQuery] = useState('')
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   const items = commands.filter((c) => words.every((w) => c.label.toLowerCase().includes(w)))
@@ -71,7 +76,7 @@ function Palette({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-backdrop palette-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label={t('palette.name')}>
+      <div ref={dialog} className="palette" role="dialog" aria-modal="true" aria-label={t('palette.name')}>
         <label className="visually-hidden" {...getLabelProps()}>
           {t('palette.search')}
         </label>
@@ -83,6 +88,7 @@ function Palette({ onClose }: { onClose: () => void }) {
             onKeyDown: (event) => {
               if (event.key === 'Escape') {
                 event.preventDefault()
+                event.stopPropagation()
                 onClose()
               }
             },

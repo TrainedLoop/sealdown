@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MarkdownView } from './MarkdownView.tsx'
+import { useFocusTrap } from './focusTrap.ts'
 import type { Theme } from './theme.ts'
 
 const SWIPE_PX = 50
@@ -11,6 +12,7 @@ export function Presentation({ slides, theme, onClose }: { slides: string[]; the
   const [index, setIndex] = useState(0)
   const root = useRef<HTMLDivElement>(null)
   const swipeStart = useRef<number | null>(null)
+  useFocusTrap(root)
   const last = slides.length - 1
   const go = (next: number) => setIndex(Math.max(0, Math.min(last, next)))
 
@@ -26,6 +28,7 @@ export function Presentation({ slides, theme, onClose }: { slides: string[]; the
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      if (event.defaultPrevented) return
       if (event.key === 'Escape') onClose()
       else if (['ArrowRight', ' ', 'PageDown'].includes(event.key)) setIndex((i) => Math.min(last, i + 1))
       else if (['ArrowLeft', 'PageUp'].includes(event.key)) setIndex((i) => Math.max(0, i - 1))

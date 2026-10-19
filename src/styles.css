@@ -39,8 +39,8 @@
   --muted: #566672;
   --border: #dbe3e9;
   --border-strong: #c6d1d9;
-  --accent: #0b8f6e;
-  --accent-strong: #087a5e;
+  --accent: #067358;
+  --accent-strong: #055a45;
   --accent-text: #ffffff;
   --accent-soft: #dcf5ec;
   --code-bg: #eef2f5;
@@ -1828,4 +1828,94 @@ button:disabled {
 .diagram-hint {
   margin: 0.5rem 0 0;
   font-weight: 500;
+}
+
+/* The editor fills whatever height the header leaves: no hardcoded header heights. */
+#root:has(.page-app) {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root:has(.page-app) .app-header {
+  flex: none;
+}
+
+.page-app,
+.page-app {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+@media (max-width: 760px) {
+  .page-app {
+    height: auto;
+  }
+
+  /* Two rows on phones: brand + tools, then modes + seal. Language lives in the palette. */
+  .lang-button,
+  .wordmark {
+    display: none;
+  }
+
+  .tab {
+    padding: 0.25rem 0.6rem;
+  }
+
+  .password-input {
+    width: 5.5rem;
+  }
+
+  .seal-button {
+    padding: 0 0.6rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .password-input {
+    width: 4.25rem;
+  }
+
+  .header-button {
+    padding: 0 0.4rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .seal-controls {
+    margin-left: auto;
+    padding: 2px;
+  }
+
+  .password-input {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .tab {
+    padding: 0.25rem 0.45rem;
+  }
+
+  .password-input {
+    width: 4.5rem;
+    padding: 0 0.4rem;
+  }
+
+  .seal-button {
+    padding: 0 0.5rem;
+    gap: 0.3rem;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Whatever the page puts in the header, its tools sit to the right of the brand. */
+  .header-title {
+    margin-right: auto;
+  }
+
+  .file-button {
+    margin-left: 0;
+  }
 }

@@ -27,3 +27,18 @@ test('storage failures are ignored', () => {
   expect(() => migratePrefs()).not.toThrow()
   vi.restoreAllMocks()
 })
+
+test('a draft too big to exist twice still migrates', () => {
+  localStorage.setItem('rendermd.draft', 'big draft')
+  localStorage.setItem('rendermd.theme', 'light')
+  const realSet = Storage.prototype.setItem
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+    // Simulate the quota: the new copy fits only once the old one is gone.
+    if (key === 'sealdown.draft' && this.getItem('rendermd.draft') !== null) throw new DOMException('full', 'QuotaExceededError')
+    realSet.call(this, key, value)
+  })
+  migratePrefs()
+  vi.restoreAllMocks()
+  expect(localStorage.getItem('sealdown.draft')).toBe('big draft')
+  expect(localStorage.getItem('sealdown.theme')).toBe('light')
+})

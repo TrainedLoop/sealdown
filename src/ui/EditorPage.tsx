@@ -59,6 +59,8 @@ export function EditorPage({ theme }: { theme: Theme }) {
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
   const [password, setPassword] = useState('')
   const editorApi = useRef<EditorApi | null>(null)
+  // A diagram asked for while the editor isn't mounted yet (e.g. from Read mode via the palette).
+  const pendingInsert = useRef<DiagramTemplate | null>(null)
 
   // The latest text, for work that outlives a render: the unmount flush and in-flight generation.
   const latest = useRef(text)
@@ -105,7 +107,10 @@ export function EditorPage({ theme }: { theme: Theme }) {
   }
 
   function insertDiagram(template: DiagramTemplate) {
-    if (!editorApi.current) return
+    if (!editorApi.current) {
+      pendingInsert.current = template
+      return
+    }
     track('diagram_inserted', { type: template.name })
     editorApi.current.insert(`\n\`\`\`mermaid\n${template.source}\n\`\`\`\n`)
   }
@@ -228,8 +233,7 @@ export function EditorPage({ theme }: { theme: Theme }) {
       label: t('palette.insert', { name: template.name }),
       run: () => {
         if (mode === 'read') setMode(splitAvailable ? 'split' : 'write')
-        // The editor mounts on the next render when coming from Read mode.
-        setTimeout(() => insertDiagram(template), 0)
+        insertDiagram(template)
       },
     })),
   ])
@@ -339,7 +343,15 @@ export function EditorPage({ theme }: { theme: Theme }) {
                 value={text}
                 onChange={edit}
                 label={t('editor.placeholder')}
-                onReady={(api) => (editorApi.current = api)}
+                onReady={(api) => {
+                editorApi.current = api
+                const pending = pendingInsert.current
+                if (api && pending) {
+                  pendingInsert.current = null
+                  // After the mount commit: the new editor first syncs to the current text.
+                  requestAnimationFrame(() => insertDiagram(pending))
+                }
+              }}
                 onScrollLine={mode === 'split' && syncScroll ? followEditor : undefined}
               />
             </Suspense>

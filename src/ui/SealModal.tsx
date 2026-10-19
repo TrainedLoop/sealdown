@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { QrCode } from './QrCode.tsx'
+import { useFocusTrap } from './focusTrap.ts'
 import { Key, Lock, SealStamp } from './icons.tsx'
 
 export type SealResult =
@@ -15,11 +16,12 @@ export function SealModal({ result, onClose }: { result: SealResult; onClose: ()
   const dialog = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(result.kind === 'link' && result.copied)
   const ok = result.kind === 'link'
+  useFocusTrap(dialog)
 
   useEffect(() => {
     dialog.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
         event.preventDefault()
         onClose()
       }

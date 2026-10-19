@@ -17,7 +17,8 @@ type Props = {
   value: string
   onChange: (text: string) => void
   label: string
-  onReady?: (api: EditorApi) => void
+  /** Called with the API once the editor exists, and with null when it is destroyed. */
+  onReady?: (api: EditorApi | null) => void
   /** Called with the 1-based line at the top of the editor's viewport while it scrolls. */
   onScrollLine?: (line: number) => void
 }
@@ -69,6 +70,7 @@ export default function CodeEditor({ value, onChange, label, onReady, onScrollLi
     editor.scrollDOM.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       editor.scrollDOM.removeEventListener('scroll', onScroll)
+      onReady?.(null)
       editor.destroy()
       view.current = null
     }

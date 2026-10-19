@@ -10,7 +10,12 @@ export function TypesetMenu({ value, onChange }: { value: Typeset; onChange: (ty
   useEffect(() => {
     if (!open) return
     const onDown = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
+        e.preventDefault()
+        setOpen(false)
+      }
+    }
     document.addEventListener('pointerdown', onDown)
     document.addEventListener('keydown', onKey)
     return () => {

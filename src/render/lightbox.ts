@@ -20,7 +20,7 @@ export function openLightbox(svg: SVGSVGElement, opener: HTMLElement): void {
     opener.focus()
   }
   const onKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
+    if (event.key === 'Escape' && !event.defaultPrevented) {
       event.preventDefault()
       event.stopPropagation()
       close()
