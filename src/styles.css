@@ -1706,3 +1706,59 @@ button:disabled {
 .read-view .reader-sheet .markdown-body {
   max-width: none;
 }
+
+/* Typeset styles: how documents read (preview, reader, slides). */
+:root {
+  --font-serif: Charter, 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+}
+
+:root[data-typeset='editorial'] .markdown-body {
+  font-family: var(--font-serif);
+  font-size: 1.08rem;
+  line-height: 1.8;
+}
+
+:root[data-typeset='editorial'] .markdown-body :is(h1, h2, h3) {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+:root[data-typeset='technical'] .markdown-body {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+:root[data-typeset='technical'] .markdown-body :is(h1, h2, h3) {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.typeset-button {
+  font: 600 0.85rem/1 var(--font-ui);
+}
+
+.typeset-option {
+  display: flex !important;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.typeset-option[aria-checked='true'] {
+  color: var(--accent);
+}
+
+.typeset-sample {
+  width: 1.6rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.typeset-editorial .typeset-sample {
+  font-family: var(--font-serif);
+}
+
+.typeset-technical .typeset-sample {
+  font-family: var(--font-mono);
+}

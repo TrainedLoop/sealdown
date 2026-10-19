@@ -116,6 +116,12 @@ const en = {
     alt: 'QR code for the link',
     tooLong: 'This link is too long for a QR code.',
   },
+  typeset: {
+    button: 'Text style',
+    modern: 'Modern',
+    editorial: 'Editorial',
+    technical: 'Technical',
+  },
   theme: { dark: 'Dark theme', light: 'Light theme' },
   lang: { switchTo: 'Português' },
   errors: {

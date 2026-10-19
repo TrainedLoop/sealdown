@@ -118,6 +118,12 @@ const pt: typeof en = {
     alt: 'QR code do link',
     tooLong: 'Este link é longo demais para um QR code.',
   },
+  typeset: {
+    button: 'Estilo do texto',
+    modern: 'Moderno',
+    editorial: 'Editorial',
+    technical: 'Técnico',
+  },
   theme: { dark: 'Tema escuro', light: 'Tema claro' },
   lang: { switchTo: 'English' },
   errors: {

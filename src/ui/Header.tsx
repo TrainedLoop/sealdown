@@ -4,6 +4,8 @@ import { useCurrentTitle } from './docTitle.ts'
 import { useSlotRef } from './headerSlotsContext.ts'
 import { Moon, SealMark, Sun } from './icons.tsx'
 import type { Theme } from './theme.ts'
+import { TypesetMenu } from './TypesetMenu.tsx'
+import { useTypeset } from './typeset.ts'
 
 export function Header({ theme, onThemeChange }: { theme: Theme; onThemeChange: (theme: Theme) => void }) {
   const { t, i18n } = useTranslation()
@@ -11,6 +13,7 @@ export function Header({ theme, onThemeChange }: { theme: Theme; onThemeChange: 
   const title = useCurrentTitle()
   const centerRef = useSlotRef('center')
   const actionsRef = useSlotRef('actions')
+  const [typeset, setTypeset] = useTypeset()
   return (
     <header className="app-header">
       <div className="header-title">
@@ -27,6 +30,7 @@ export function Header({ theme, onThemeChange }: { theme: Theme; onThemeChange: 
       <div className="header-center" ref={centerRef} />
       <div className="header-actions">
         <div className="header-slot" ref={actionsRef} />
+        <TypesetMenu value={typeset} onChange={setTypeset} />
         <button
           type="button"
           className="header-button icon-only"
