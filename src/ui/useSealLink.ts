@@ -25,9 +25,10 @@ export function useSealLink(text: string, docType: DocType) {
   // A link for a previous text would be misleading.
   const clearSeal = useCallback(() => setShared(null), [])
 
-  async function generate() {
+  /** Seals `text`, or `current` when the page knows a newer text than its last render. */
+  async function generate(current?: string) {
     setBusy(true)
-    const source = text
+    const source = current ?? text
     try {
       const result = await createLink(encodeDoc({ type: docType, text: source }), {
         storage: defaultStorage,

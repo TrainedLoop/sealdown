@@ -28,3 +28,8 @@ export async function setJsonText(page: Page, text: string): Promise<void> {
 export async function jsonText(page: Page): Promise<string> {
   return (await page.locator('.json-text .cm-content .cm-line').allTextContents()).join('\n')
 }
+
+/** A legacy `#/v/…` hash for a JSON document (type marker included). */
+export function jsonInlineHash(json: string): string {
+  return inlineHash('\u0001json\n' + json)
+}

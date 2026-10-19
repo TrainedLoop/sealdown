@@ -6,6 +6,7 @@ import { renderMarkdown } from '../render/markdown.ts'
 import { splitSlides } from '../render/slides.ts'
 import { extractToc } from '../render/toc.ts'
 import type { Route } from '../router/route.ts'
+import { decodeDoc, type Doc } from '../share/docType.ts'
 import { LinkError, type LinkErrorKind } from '../share/errors.ts'
 import { fetchProtected, openProtected, openRoute } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
@@ -22,13 +23,14 @@ import { ExportMenu } from './ExportMenu.tsx'
 import { HeaderSlot } from './headerSlots.tsx'
 import { Lock, Play } from './icons.tsx'
 import { useDocumentTitle } from './docTitle.ts'
+import { JsonDocument } from './JsonDocument.tsx'
 
 type ReadableRoute = Extract<Route, { kind: 'inline' | 'inline-sealed' | 'stored' | 'inline-protected' | 'stored-protected' }>
 
 type State =
   | { kind: 'loading' }
   | { kind: 'locked'; bytes: Uint8Array }
-  | { kind: 'ready'; text: string }
+  | { kind: 'ready'; doc: Doc }
   | { kind: 'error'; error: LinkErrorKind }
 
 export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Theme }) {
@@ -54,8 +56,9 @@ export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Them
     } else {
       openRoute(opened, defaultStorage).then((text) => {
         if (cancelled) return
-        track('link_opened', { storage, protected: false, ok: true })
-        setState({ kind: 'ready', text })
+        const doc = decodeDoc(text)
+        track('link_opened', { storage, protected: false, ok: true, doc_type: doc.type })
+        setState({ kind: 'ready', doc })
       }, fail)
     }
     return () => {
@@ -65,9 +68,9 @@ export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Them
 
   async function unlock(bytes: Uint8Array, password: string): Promise<boolean> {
     try {
-      const text = await openProtected(bytes, password)
-      track('link_opened', { storage, protected: true, ok: true })
-      setState({ kind: 'ready', text })
+      const doc = decodeDoc(await openProtected(bytes, password))
+      track('link_opened', { storage, protected: true, ok: true, doc_type: doc.type })
+      setState({ kind: 'ready', doc })
       return true
     } catch (error) {
       if (error instanceof LinkError && error.kind === 'wrong-password') {
@@ -91,7 +94,9 @@ export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Them
         : undefined
     return <ErrorMessage kind={state.error} onRetry={retry} />
   }
-  return <Document text={state.text} theme={theme} sealed={route.kind !== 'inline'} />
+  const sealed = route.kind !== 'inline'
+  if (state.doc.type === 'json') return <JsonDocument text={state.doc.text} sealed={sealed} />
+  return <Document text={state.doc.text} theme={theme} sealed={sealed} />
 }
 
 function Document({ text, theme, sealed }: { text: string; theme: Theme; sealed: boolean }) {

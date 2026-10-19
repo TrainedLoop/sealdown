@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue } from './helpers.ts'
+import { editorValue, setJsonText } from './helpers.ts'
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
 
@@ -128,4 +128,16 @@ test('protection settings are locked while a link is being generated', async ({ 
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/s\//)
   await page.keyboard.press('Escape')
   await expect(page.getByLabel('Password', { exact: true })).toBeEnabled()
+})
+
+test('large JSON is stored and opens as JSON', async ({ page, context }) => {
+  const items = Array.from({ length: 1500 }, (_, i) => ({ id: i, word: Math.random().toString(36).slice(2, 9) }))
+  await page.goto('/#/json')
+  await setJsonText(page, JSON.stringify({ title: 'Stored JSON', items }))
+  await page.getByRole('button', { name: 'Seal link' }).click()
+  const url = await page.getByTestId('share-url').inputValue()
+  expect(url).toMatch(/#\/s\//)
+  const reader = await context.newPage()
+  await reader.goto(url)
+  await expect(reader.locator('.json-reader').getByText('Stored JSON')).toBeVisible()
 })

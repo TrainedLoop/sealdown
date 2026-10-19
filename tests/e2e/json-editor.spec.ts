@@ -97,3 +97,21 @@ test('Seal link works from the JSON editor', async ({ page }) => {
   await page.getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
 })
+
+test('sealing right after typing seals what is on screen', async ({ page, context }) => {
+  await page.goto('/#/json')
+  await setJsonText(page, '{"fresh":1}')
+  await page.getByRole('button', { name: 'Seal link' }).click()
+  const url = await page.getByTestId('share-url').inputValue()
+  const reader = await context.newPage()
+  await reader.goto(url)
+  await expect(reader.locator('.json-reader').getByText('fresh', { exact: true })).toBeVisible()
+})
+
+test('switching to Markdown right after typing keeps the JSON draft', async ({ page }) => {
+  await page.goto('/#/json')
+  await setJsonText(page, '{"quick":1}')
+  await page.getByRole('link', { name: 'Markdown' }).click()
+  await page.getByRole('link', { name: 'JSON' }).click()
+  await expect.poll(() => jsonText(page)).toBe('{"quick":1}')
+})

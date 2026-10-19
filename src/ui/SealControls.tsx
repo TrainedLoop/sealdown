@@ -3,7 +3,7 @@ import { Lock } from './icons.tsx'
 import type { SealLink } from './useSealLink.ts'
 
 /** The password field and the "Seal link" button of an editor page's header. */
-export function SealControls({ seal, empty }: { seal: SealLink; empty: boolean }) {
+export function SealControls({ seal, empty, onSeal }: { seal: SealLink; empty: boolean; onSeal?: () => void }) {
   const { t } = useTranslation()
   const { sealButton } = seal
   return (
@@ -23,7 +23,7 @@ export function SealControls({ seal, empty }: { seal: SealLink; empty: boolean }
         type="button"
         className="primary seal-button"
         disabled={seal.busy || empty}
-        onClick={seal.generate}
+        onClick={onSeal ?? (() => void seal.generate())}
       >
         <Lock />
         {t(seal.busy ? 'seal.sealing' : 'seal.button')}

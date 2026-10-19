@@ -2007,3 +2007,27 @@ button:disabled {
     font-size: 0.8rem;
   }
 }
+
+/* JSON reader: the tree on the canvas, as wide as the page allows. */
+.page-reader:has(.json-reader) {
+  padding-bottom: 32px;
+}
+
+.json-reader {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.json-reader-view {
+  /* Header, the page's top padding, the badge and a bottom margin. */
+  height: calc(100dvh - 56px - 28px - 2.5rem - 32px);
+  min-height: 320px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.json-reader-view .jse-main {
+  border: 0;
+}

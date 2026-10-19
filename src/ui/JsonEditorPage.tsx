@@ -14,6 +14,8 @@ import { SealControls } from './SealControls.tsx'
 import { SealModal } from './SealModal.tsx'
 import { useSealLink } from './useSealLink.ts'
 
+import type { JsonEditorApi } from '../json/JsonEditor.tsx'
+
 const JsonEditor = lazy(() => import('../json/JsonEditor.tsx'))
 
 const DRAFT_DELAY_MS = 500
@@ -29,6 +31,7 @@ export function JsonEditorPage() {
   const [pane, setPane] = useState<Pane>('text')
   const seal = useSealLink(text, 'json')
   const fileInput = useRef<HTMLInputElement>(null)
+  const textPane = useRef<JsonEditorApi | null>(null)
   const [fileProblem, setFileProblem] = useState<FileProblem | null>(null)
   useDocumentTitle(null)
 
@@ -38,8 +41,9 @@ export function JsonEditorPage() {
     const timer = setTimeout(() => saveJsonDraft(text), DRAFT_DELAY_MS)
     return () => clearTimeout(timer)
   }, [text])
-  // Leaving the editor cancels the pending debounce, so save right away.
-  useEffect(() => () => saveJsonDraft(latest.current), [])
+  // Leaving the editor cancels the pending debounce, so save right away, including the text pane's
+  // own pending change.
+  useEffect(() => () => saveJsonDraft(textPane.current?.getText() ?? latest.current), [])
 
   function edit(next: string) {
     if (next === latest.current) return
@@ -59,13 +63,22 @@ export function JsonEditorPage() {
     edit(read.text)
   }
 
+  // The text pane reports edits after a short pause; seal what is on screen, not the last report.
+  function sealNow() {
+    const current = textPane.current?.getText() ?? latest.current
+    if (current.trim() === '' || seal.busy) return
+    edit(current)
+    void seal.generate(current)
+  }
+
   function downloadJson() {
     track('export', { format: 'json' })
-    downloadBlob(new Blob([text], { type: 'application/json' }), 'document.json')
+    const current = textPane.current?.getText() ?? latest.current
+    downloadBlob(new Blob([current], { type: 'application/json' }), 'document.json')
   }
 
   useCommands('json-editor', [
-    { id: 'seal', label: t('seal.button'), run: () => text.trim() !== '' && !seal.busy && void seal.generate() },
+    { id: 'seal', label: t('seal.button'), run: sealNow },
     { id: 'open', label: t('json.openFile'), run: () => fileInput.current?.click() },
     { id: 'export-json', label: t('export.json'), run: downloadJson },
   ])
@@ -109,7 +122,7 @@ export function JsonEditorPage() {
           />
         </label>
         <ExportMenu items={[{ id: 'json', label: t('export.json'), run: downloadJson }]} />
-        <SealControls seal={seal} empty={text.trim() === ''} />
+        <SealControls seal={seal} empty={text.trim() === ''} onSeal={sealNow} />
       </HeaderSlot>
 
       {fileProblem && (
@@ -136,7 +149,13 @@ export function JsonEditorPage() {
         <Suspense fallback={<p className="status editor-loading">{t('json.loading')}</p>}>
           {shown('text') && (
             <div className="json-pane json-text">
-              <JsonEditor text={text} mode="text" label={t('json.textLabel')} onChange={edit} />
+              <JsonEditor
+                text={text}
+                mode="text"
+                label={t('json.textLabel')}
+                onChange={edit}
+                onReady={(api) => (textPane.current = api)}
+              />
             </div>
           )}
           {shown('tree') && (

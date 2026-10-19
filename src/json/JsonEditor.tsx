@@ -8,14 +8,18 @@ export type JsonEditorProps = {
   readOnly?: boolean
   label: string
   onChange?: (text: string) => void
+  /** The editor's current text, which can be ahead of the last `onChange` (text mode debounces it). */
+  onReady?: (api: JsonEditorApi | null) => void
 }
+
+export type JsonEditorApi = { getText: () => string }
 
 function currentText(editor: Instance): string {
   return toTextContent(editor.get()).text
 }
 
 /** vanilla-jsoneditor in a React component, themed with the Vault tokens (json.css). */
-export default function JsonEditor({ text, mode, readOnly = false, label, onChange }: JsonEditorProps) {
+export default function JsonEditor({ text, mode, readOnly = false, label, onChange, onReady }: JsonEditorProps) {
   const target = useRef<HTMLDivElement>(null)
   const editor = useRef<Instance | null>(null)
   const onChangeRef = useRef(onChange)
@@ -36,7 +40,15 @@ export default function JsonEditor({ text, mode, readOnly = false, label, onChan
       },
     })
     editor.current = instance
+    onReady?.({
+      getText: () => {
+        // validate() flushes the text mode's pending (debounced) change first.
+        instance.validate()
+        return currentText(instance)
+      },
+    })
     return () => {
+      onReady?.(null)
       editor.current = null
       void instance.destroy()
     }
