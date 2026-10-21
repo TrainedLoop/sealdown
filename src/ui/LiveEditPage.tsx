@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { track } from '../analytics.ts'
 import { loadAuthor, saveAuthor } from '../live/author.ts'
 import { readLinkOf, type LiveEditRoute } from '../live/links.ts'
+import { takeShared } from '../live/keyStore.ts'
 import { loadLocal, saveLocal, type LocalLive } from '../live/localState.ts'
+import { announceLive } from '../live/realtime.ts'
 import type { Choice } from '../live/merge.ts'
 import {
   carryOver,
@@ -28,12 +30,15 @@ import { LiveBar, type SaveStatus } from './LiveBar.tsx'
 import type { LiveEditorProps } from './liveEditorProps.ts'
 import { LiveReadPage } from './LiveReadPage.tsx'
 import { NamePrompt } from './NamePrompt.tsx'
+import { ShareLiveModal } from './ShareLiveModal.tsx'
 import type { Theme } from './theme.ts'
 import { useLivePolling } from './useLivePolling.ts'
 import { VersionsPanel } from './VersionsPanel.tsx'
 
-/** Quiet time after the editor reports an edit before a version is saved on its own. */
-const AUTOSAVE_MS = 1500
+/** Quiet time after the editor reports an edit (itself 0.5 s after typing) before saving. */
+const AUTOSAVE_MS = 300
+/** A new version that failed to load is tried again this soon (pushes don't repeat). */
+const RECEIVE_RETRY_MS = 5000
 /** Retries after a failed connection wait longer each time, up to a minute. */
 const RETRY_MIN_MS = 5000
 const RETRY_MAX_MS = 60_000
@@ -67,6 +72,9 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
   const [askName, setAskName] = useState(false)
   const [readCopied, setReadCopied] = useState(false)
   const [showVersions, setShowVersions] = useState(false)
+  // The links, right after this tab shared the document.
+  const [justShared, setJustShared] = useState(() => takeShared(route.id))
+  const closeShared = useCallback(() => setJustShared(null), [])
   // The draft this tab works on, kept in memory so another tab saving never changes the text here.
   const local = useRef<LocalLive | null>(null)
   const getText = useRef<() => string>(() => local.current?.draft ?? '')
@@ -74,6 +82,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
   const busy = useRef(false)
   const again = useRef(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const receiveRetry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // A pending conflict holds autosave and receiving until the person chooses.
   const held = useRef(false)
   const firstSave = useRef(true)
@@ -113,6 +122,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
     return () => {
       cancelled = true
       clearTimeout(timer.current)
+      clearTimeout(receiveRetry.current)
     }
   }, [id, key, token])
 
@@ -169,6 +179,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
       return false
     }
     // Merged saves, and the first of the visit: one event per autosave pause would be noise.
+    announceLive(id, outcome.version)
     if (outcome.merged || firstSave.current) track('version_saved', { merged: outcome.merged, conflicts: 0 })
     firstSave.current = false
     const saved = { base: outcome.version, baseText: outcome.text }
@@ -258,7 +269,8 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
         show(now, carried)
         setInfo((old) => old && { ...old, version: outcome.local.base, author: outcome.author, createdAt: outcome.createdAt })
       } catch {
-        // The next poll tries again.
+        clearTimeout(receiveRetry.current)
+        receiveRetry.current = setTimeout(() => void receiveRef.current(), RECEIVE_RETRY_MS)
       }
     })
   }
@@ -338,6 +350,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
         const outcome = await restoreVersion(route, version, local.current!, infoRef.current!.type, author, defaultLiveStorage)
         if (outcome.kind !== 'saved') return void settle(outcome, getText.current(), author)
         track('version_restored')
+        announceLive(id, outcome.version)
         persist({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
         show(getText.current(), outcome.text)
         succeeded()
@@ -433,7 +446,10 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
         </div>
       )}
       {info.type === 'json' ? <JsonEditorPage live={live} /> : <EditorPage theme={theme} live={live} />}
-      {askName && <NamePrompt onSubmit={submitName} onCancel={cancelName} />}
+      {justShared && (
+        <ShareLiveModal edit={justShared.edit} read={justShared.read} protected={justShared.protected} onClose={closeShared} />
+      )}
+      {askName && !justShared && <NamePrompt onSubmit={submitName} onCancel={cancelName} />}
       {conflict && showConflict && (
         <ConflictDialog conflicts={conflict.merge.conflicts} docType={info.type} onResolve={(choices) => void resolve(choices)} onCancel={closeConflict} />
       )}

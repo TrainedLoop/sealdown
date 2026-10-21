@@ -54,10 +54,11 @@ test('a failed connection keeps the draft, even after a reload', async ({ page }
 
 test('a removed document says so on both links', async ({ page }) => {
   const { edit, read } = await share(page, 'gone')
-  await page.route('**/rpc/get_live', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
   for (const url of [edit, read]) {
-    await page.goto(url)
-    await expect(page.getByRole('alert')).toContainText('This document was removed.')
+    const fresh = await page.context().newPage()
+    await fresh.route('**/rpc/get_live', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+    await fresh.goto(url)
+    await expect(fresh.getByRole('alert')).toContainText('This document was removed.')
   }
 })
 

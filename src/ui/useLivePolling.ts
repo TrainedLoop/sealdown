@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react'
+import { watchLive } from '../live/realtime.ts'
 import type { LiveRoute } from '../live/session.ts'
 import { defaultLiveStorage } from '../storage/live.ts'
 
-export const POLL_MS = 5_000
+/** Backup for the Realtime push (a dropped connection, a blocked websocket). */
+export const POLL_MS = 30_000
 
 /**
- * Asks for the latest version number every 5 s while the tab is visible, and calls `onNewer` when
- * it is past `version`. One tiny request (a number), no document, so it stays cheap.
+ * Calls `onNewer` as soon as another browser saves past `version`: pushed over Realtime, and
+ * checked every 30 s while the tab is visible in case a push was missed (one tiny request).
  */
 export function useLivePolling(route: LiveRoute | null, version: number | null, onNewer: (head: number) => void): void {
   const callback = useRef(onNewer)
@@ -14,6 +16,16 @@ export function useLivePolling(route: LiveRoute | null, version: number | null, 
     callback.current = onNewer
   })
   const id = route?.id
+  const known = useRef(version)
+  useEffect(() => {
+    known.current = version
+  }, [version])
+  useEffect(() => {
+    if (!id) return
+    return watchLive(id, (saved) => {
+      if (known.current !== null && saved > known.current) callback.current(saved)
+    })
+  }, [id])
   useEffect(() => {
     if (!id || version === null) return
     let cancelled = false

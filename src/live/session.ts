@@ -52,6 +52,7 @@ export async function createProtectedLiveDoc(doc: Doc, author: string, password:
   const token = newWriteToken()
   const id = await storage.create(await seal(doc, key), await encryptAuthor(author, key), await writeHash(token), salt)
   return {
+    key,
     edit: { kind: 'live-edit-protected', id, token } as Extract<ProtectedLiveRoute, { kind: 'live-edit-protected' }>,
     read: { kind: 'live-read-protected', id } as Extract<ProtectedLiveRoute, { kind: 'live-read-protected' }>,
   }

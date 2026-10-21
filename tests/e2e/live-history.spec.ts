@@ -36,15 +36,18 @@ async function bobOpens(browser: Browser, url: string, text: string): Promise<{ 
   return { bob: await openIn(context, url, text), close: () => context.close() }
 }
 
-/** Keeps a page from hearing about newer versions, so its next save meets them as stale. */
-async function deaf(page: Page) {
-  await page.route('**/rpc/live_head', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '1' }))
+/** Keeps a page from hearing about newer versions (no polling, no Realtime), so its next save meets them as stale. */
+async function deaf(target: Page | BrowserContext) {
+  await target.route('**/rpc/live_head', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '1' }))
+  await target.routeWebSocket(/\/realtime\//, () => {
+    // Never connected: no pushes reach this page.
+  })
 }
 
 test('overlapping changes wait for a choice, and the choice is saved', async ({ page, context, browser }) => {
   const { edit } = await share(page, 'one\ntwo\nthree')
+  await deaf(context)
   const ana = await openIn(context, edit, 'one\ntwo\nthree')
-  await deaf(ana)
   const { bob, close } = await bobOpens(browser, edit, 'one\ntwo\nthree')
   await editor(bob).fill('one\nbob\nthree')
   await expect(liveBar(bob)).toContainText('v2', ARRIVES)
@@ -75,8 +78,8 @@ test('overlapping changes wait for a choice, and the choice is saved', async ({ 
 
 test('closing the conflict dialog keeps the text and holds saving until it is resolved', async ({ page, context, browser }) => {
   const { edit } = await share(page, 'one\ntwo\nthree')
+  await deaf(context)
   const ana = await openIn(context, edit, 'one\ntwo\nthree')
-  await deaf(ana)
   const { bob, close } = await bobOpens(browser, edit, 'one\ntwo\nthree')
   await editor(bob).fill('one\nbob\nthree')
   await expect(liveBar(bob)).toContainText('v2', ARRIVES)
@@ -93,8 +96,8 @@ test('closing the conflict dialog keeps the text and holds saving until it is re
 
 test('typing on while a save merges keeps the other person change', async ({ page, context, browser }) => {
   const { edit, read } = await share(page, 'a\nb\nc\nd\ne')
+  await deaf(context)
   const ana = await openIn(context, edit, 'a\nb\nc\nd\ne')
-  await deaf(ana)
   const { bob, close } = await bobOpens(browser, edit, 'a\nb\nc\nd\ne')
   await editor(bob).fill('BOB\nb\nc\nd\ne')
   await expect(liveBar(bob)).toContainText('v2', ARRIVES)
@@ -108,9 +111,12 @@ test('typing on while a save merges keeps the other person change', async ({ pag
   await editor(ana).press('ControlOrMeta+End')
   await ana.keyboard.type('\nmore')
   await expect.poll(() => editorValue(ana), ARRIVES).toBe('BOB\nb\nc\nd\nANA\nmore')
-  const reader = await openIn(context, read)
+  // A reader in a browser of its own: this one can't hear about new versions.
+  const readerContext = await browser.newContext()
+  const reader = await openIn(readerContext, read)
   await expect(reader.getByText('more')).toBeVisible({ timeout: 20_000 })
   await expect(reader.getByText('BOB')).toBeVisible()
+  await readerContext.close()
   await close()
 })
 
@@ -177,8 +183,8 @@ test('restoring asks before replacing unsaved changes', async ({ page, context }
 
 test('typing while a conflict waits is kept when it is resolved', async ({ page, context, browser }) => {
   const { edit } = await share(page, 'one\ntwo\nthree\n\nfar away')
+  await deaf(context)
   const ana = await openIn(context, edit, 'one\ntwo\nthree\n\nfar away')
-  await deaf(ana)
   const { bob, close } = await bobOpens(browser, edit, 'one\ntwo\nthree\n\nfar away')
   await editor(bob).fill('one\nbob\nthree\n\nfar away')
   await expect(liveBar(bob)).toContainText('v2', ARRIVES)
@@ -198,8 +204,8 @@ test('typing while a conflict waits is kept when it is resolved', async ({ page,
 
 test('a waiting conflict has to be resolved before restoring', async ({ page, context, browser }) => {
   const { edit } = await share(page, 'one\ntwo')
+  await deaf(context)
   const ana = await openIn(context, edit, 'one\ntwo')
-  await deaf(ana)
   const { bob, close } = await bobOpens(browser, edit, 'one\ntwo')
   await editor(bob).fill('one\nbob')
   await expect(liveBar(bob)).toContainText('v2', ARRIVES)

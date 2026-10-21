@@ -4,7 +4,6 @@ import type { DocType } from '../share/docType.ts'
 import { liveAvailable } from '../storage/live.ts'
 import { useCommands } from './commands.ts'
 import { Chevron, Lock, People, ShareIcon } from './icons.tsx'
-import { ShareLiveModal } from './ShareLiveModal.tsx'
 import type { SealLink } from './useSealLink.ts'
 import { useShareLive } from './useShareLive.ts'
 
@@ -150,7 +149,6 @@ export function ShareMenu({
           {t('live.shareFailed')}
         </span>
       )}
-      {live.shared && <ShareLiveModal edit={live.shared.edit} read={live.shared.read} protected={live.shared.protected} onClose={live.close} />}
     </div>
   )
 }

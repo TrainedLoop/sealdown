@@ -29,8 +29,10 @@ Live at https://trainedloop.github.io/sealdown/.
   both panes together, value by value), with format, compact, sort, repair and transform. Open or drop a `.json` file, export `.json`, and seal it the same way;
   a JSON link opens as a read-only tree with **Edit a copy**. The library loads only on JSON pages.
 - **Live documents** (Share to edit): an edit link and a read link to one document that several
-  people keep up to date. Edits save on their own after a short pause (Ctrl/Cmd+S saves at once),
-  and versions others save arrive in your editor within seconds, merged with what you are typing
+  people keep up to date. Sharing moves your tab into the document. Edits save on their own after
+  a short pause (Ctrl/Cmd+S saves at once), and versions others save arrive at once (a Supabase
+  Realtime broadcast carrying only the version number, with a 30 s check as a backup), merged with
+  what you are typing
   (by line for Markdown, by path for JSON) without moving your cursor. Only changes both sides made
   to the same part wait for you to choose. The newest 50 versions can be viewed, compared and
   restored; a run of saves by the same browser within five minutes keeps only its last version.

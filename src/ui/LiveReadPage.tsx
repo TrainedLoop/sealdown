@@ -11,6 +11,8 @@ import { Document } from './ReaderPage.tsx'
 import type { Theme } from './theme.ts'
 import { useLivePolling } from './useLivePolling.ts'
 
+const REFRESH_RETRY_MS = 5000
+
 type State = { kind: 'loading' } | { kind: 'ready'; opened: Opened } | { kind: 'error'; missing: boolean }
 
 /** A live document through its read link (or an edit link whose token no longer works). */
@@ -21,25 +23,31 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
   const [showVersions, setShowVersions] = useState(false)
   const { id, key } = route
   const tracked = useRef(false)
+  // A document is on screen: later failures keep it.
+  const shown = useRef(false)
   useEffect(() => {
     let cancelled = false
+    let retry: ReturnType<typeof setTimeout> | undefined
     openLive({ kind: 'live-read', id, key }, defaultLiveStorage).then(
       (opened) => {
         if (cancelled) return
         // Once per page: Update reloads the document too.
         if (!tracked.current && !notice) track('live_opened', { access: 'read' })
         tracked.current = true
+        shown.current = true
         setState({ kind: 'ready', opened })
       },
       (error: unknown) => {
         if (cancelled) return
         const missing = error instanceof LiveError && error.kind === 'missing'
-        // A failed refresh keeps the document on screen; the next poll tries again.
-        setState((old) => (old.kind === 'ready' && !missing ? old : { kind: 'error', missing }))
+        // A failed refresh keeps the document on screen and tries again shortly (pushes don't repeat).
+        if (shown.current && !missing) retry = setTimeout(() => setAttempt((n) => n + 1), REFRESH_RETRY_MS)
+        else setState({ kind: 'error', missing })
       },
     )
     return () => {
       cancelled = true
+      clearTimeout(retry)
     }
   }, [id, key, attempt, notice])
   // A newer version replaces the one on screen on its own.
