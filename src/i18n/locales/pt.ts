@@ -34,6 +34,14 @@ const pt: typeof en = {
     replaceDraft: 'Substituir o rascunho de JSON atual por este documento?',
     loading: 'Carregando editor de JSON…',
   },
+  share: {
+    button: 'Compartilhar',
+    title: 'Compartilhar',
+    sealTitle: 'Cópia lacrada',
+    sealHint: 'Uma cópia fixa, cifrada no seu navegador. Edições depois disso não entram.',
+    liveTitle: 'Editar junto',
+    liveHint: 'Um documento vivo: quem tem o link de edição pode alterar; um link de leitura acompanha.',
+  },
   live: {
     share: 'Compartilhar para editar',
     sharing: 'Compartilhando…',

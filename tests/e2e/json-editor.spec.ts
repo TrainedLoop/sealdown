@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
-import { editorValue, jsonText, setJsonText } from './helpers.ts'
+import { editorValue, jsonText, setJsonText, openShare } from './helpers.ts'
 
 const tree = (page: import('@playwright/test').Page) => page.locator('.json-tree')
 
@@ -119,14 +119,14 @@ test('phones switch between Write and Read', async ({ page }) => {
 test('Seal link works from the JSON editor', async ({ page }) => {
   await page.goto('/#/json')
   await setJsonText(page, '{"k":"v"}')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
 })
 
 test('sealing right after typing seals what is on screen', async ({ page, context }) => {
   await page.goto('/#/json')
   await setJsonText(page, '{"fresh":1}')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
   const reader = await context.newPage()
   await reader.goto(url)

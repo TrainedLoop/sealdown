@@ -33,3 +33,10 @@ export async function jsonText(page: Page): Promise<string> {
 export function jsonInlineHash(json: string): string {
   return inlineHash('\u0001json\n' + json)
 }
+
+/** Opens the editor's Share menu (if closed) and returns its panel. */
+export async function openShare(page: Page) {
+  const panel = page.getByRole('dialog', { name: 'Share' })
+  if (!(await panel.isVisible())) await page.getByRole('button', { name: 'Share', exact: true }).click()
+  return panel
+}

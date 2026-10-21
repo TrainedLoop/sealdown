@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue, setJsonText } from './helpers.ts'
+import { editorValue, setJsonText, openShare } from './helpers.ts'
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
 
@@ -11,7 +11,7 @@ function largeDoc(title: string): string {
 async function share(page: Page, text: string): Promise<string> {
   await page.goto('/')
   await editor(page).fill(text)
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   return page.getByTestId('share-url').inputValue()
 }
 
@@ -32,7 +32,7 @@ test('editing a copy creates a new document and keeps the original', async ({ pa
   const text = await editorValue(page)
   await page.keyboard.press('Escape')
   await editor(page).fill(text.replace('# First version', '# Second version'))
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   const copy = await page.getByTestId('share-url').inputValue()
   expect(copy).not.toBe(original)
 
@@ -76,7 +76,7 @@ test('editing while a link is being generated discards the stale link', async ({
   })
   await page.goto('/')
   await editor(page).fill(largeDoc('Old version'))
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await editor(page).fill(largeDoc('New version'))
   await page.waitForTimeout(2500)
   await expect(page.getByTestId('share-url')).toHaveCount(0)
@@ -88,16 +88,16 @@ test('an unexpected failure while generating shows a message', async ({ page }) 
   )
   await page.goto('/')
   await editor(page).fill(largeDoc('Broken'))
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByRole('alert')).toContainText("Couldn't generate the link")
-  await expect(page.getByRole('button', { name: 'Seal link' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeEnabled()
 })
 
 test('a large protected document is stored and fetched once across password attempts', async ({ page, context }) => {
   await page.goto('/')
   await editor(page).fill(largeDoc('Locked'))
-  await page.getByLabel('Password', { exact: true }).fill('s3cret')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByLabel('Password', { exact: true }).fill('s3cret')
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
   expect(url).toMatch(/#\/q\/[A-Za-z0-9]{10}$/)
 
@@ -123,18 +123,19 @@ test('protection settings are locked while a link is being generated', async ({ 
   })
   await page.goto('/')
   await editor(page).fill(largeDoc('Racing'))
-  await page.getByRole('button', { name: 'Seal link' }).click()
-  await expect(page.getByLabel('Password', { exact: true })).toBeDisabled()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
+  // Share (and so the password) can't change until the link exists.
+  await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeDisabled()
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/s\//)
   await page.keyboard.press('Escape')
-  await expect(page.getByLabel('Password', { exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeEnabled()
 })
 
 test('large JSON is stored and opens as JSON', async ({ page, context }) => {
   const items = Array.from({ length: 1500 }, (_, i) => ({ id: i, word: Math.random().toString(36).slice(2, 9) }))
   await page.goto('/#/json')
   await setJsonText(page, JSON.stringify({ title: 'Stored JSON', items }))
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
   expect(url).toMatch(/#\/s\//)
   const reader = await context.newPage()

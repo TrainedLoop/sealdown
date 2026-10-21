@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
-import { editorValue } from './helpers.ts'
+import { editorValue, openShare } from './helpers.ts'
 
 // Runs against the local Supabase (scripts/e2e-stored.sh).
 
@@ -15,7 +15,7 @@ async function share(page: Page, text: string): Promise<{ edit: string; read: st
   await as(page.context(), 'Ana')
   await page.goto('/')
   await editor(page).fill(text)
-  await page.getByRole('button', { name: 'Share to edit' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Share to edit' }).click()
   return {
     edit: await page.getByTestId('live-edit-url').inputValue(),
     read: await page.getByTestId('live-read-url').inputValue(),

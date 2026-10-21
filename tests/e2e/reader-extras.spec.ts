@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue, inlineHash, withTheme } from './helpers.ts'
+import { editorValue, inlineHash, withTheme, openShare } from './helpers.ts'
 
 const filler = Array.from({ length: 60 }, (_, i) => `Paragraph ${i}.`).join('\n\n')
 const flowchart = '```mermaid\ngraph TD; A[Hello]-->B[World]\n```\n'
@@ -181,7 +181,7 @@ test('edit a copy does not ask when there is no draft', async ({ page }) => {
 test('encrypted documents say they were unsealed only in this browser', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('textbox', { name: /Paste or type Markdown/ }).fill('# Sealed note')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
   await page.goto(url)
   await expect(page.getByRole('heading', { name: 'Sealed note' })).toBeVisible()

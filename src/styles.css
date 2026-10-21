@@ -2377,3 +2377,125 @@ button:disabled {
   margin-left: auto;
   margin-right: auto;
 }
+
+/* ---- Share menu: one entry point for sealed copies and live documents ---- */
+.share-menu {
+  position: relative;
+  margin-left: 0.35rem;
+}
+
+.share-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 34px;
+  padding: 0 0.7rem 0 0.8rem;
+}
+
+.share-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.share-button .share-chevron {
+  width: 14px;
+  height: 14px;
+  opacity: 0.75;
+}
+
+.share-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 340px;
+  padding: 0.4rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.share-panel section {
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.share-panel section + section {
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+}
+
+.share-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.92rem;
+}
+
+.share-panel h3 svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.share-panel p {
+  margin: 0 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.share-seal {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.share-seal .password-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  height: 34px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--bg);
+}
+
+.share-panel section > button {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .share-menu {
+    order: 4;
+    margin-left: auto;
+  }
+
+  /* The panel spans the screen under the header on phones. */
+  .share-panel {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    margin-top: 8px;
+  }
+}
+
+.share-button[aria-busy='true'] svg:first-child {
+  animation: share-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes share-pulse {
+  to {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-button[aria-busy='true'] svg:first-child {
+    animation: none;
+  }
+}

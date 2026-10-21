@@ -10,9 +10,8 @@ import { Folder } from './icons.tsx'
 import { loadJsonDraft, saveJsonDraft } from './jsonDraft.ts'
 import { useMode, type Mode } from './mode.ts'
 import { readTextFile, type FileProblem } from './readTextFile.ts'
-import { SealControls } from './SealControls.tsx'
 import type { LiveEditorProps } from './liveEditorProps.ts'
-import { ShareLiveButton } from './ShareLiveButton.tsx'
+import { ShareMenu } from './ShareMenu.tsx'
 import { SealModal } from './SealModal.tsx'
 import { useSealLink } from './useSealLink.ts'
 import { useDocType } from './useDocType.ts'
@@ -182,10 +181,13 @@ export function JsonEditorPage({ live }: { live?: LiveEditorProps } = {}) {
         {live ? (
           live.actions(() => textPane.current?.getText() ?? latest.current)
         ) : (
-          <>
-            <ShareLiveButton docType="json" getText={() => textPane.current?.getText() ?? latest.current} />
-            <SealControls seal={seal} empty={text.trim() === ''} onSeal={sealNow} />
-          </>
+          <ShareMenu
+            seal={seal}
+            empty={text.trim() === ''}
+            onSeal={sealNow}
+            docType="json"
+            getText={() => textPane.current?.getText() ?? latest.current}
+          />
         )}
       </HeaderSlot>
 

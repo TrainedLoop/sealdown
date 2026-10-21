@@ -1,3 +1,4 @@
+import { openShare } from './helpers.ts'
 import { expect, test, type Page } from '@playwright/test'
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
@@ -5,7 +6,7 @@ const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type 
 test('shows a QR code for a short link', async ({ page }) => {
   await page.goto('/')
   await editor(page).fill('# Scan me')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await page.getByRole('button', { name: 'QR code' }).click()
   const img = page.getByRole('img', { name: 'QR code for the link' })
   await expect(img).toBeVisible()
@@ -19,7 +20,7 @@ test('explains when a link is too long for a QR code', async ({ page }) => {
   // Storage is unavailable in this build, so a large document gets a long inline link.
   const words = Array.from({ length: 3000 }, () => Math.random().toString(36).slice(2, 9)).join(' ')
   await editor(page).fill(words)
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await page.getByRole('button', { name: 'QR code' }).click()
   await expect(page.getByText('This link is too long for a QR code.')).toBeVisible()
   await expect(page.getByRole('img', { name: 'QR code for the link' })).toHaveCount(0)

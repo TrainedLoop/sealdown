@@ -18,9 +18,8 @@ import { useSyncScrollPref } from './syncScrollPref.ts'
 import { StatusBar } from './StatusBar.tsx'
 import { useDocumentTitle } from './docTitle.ts'
 import { SealModal } from './SealModal.tsx'
-import { SealControls } from './SealControls.tsx'
 import type { LiveEditorProps } from './liveEditorProps.ts'
-import { ShareLiveButton } from './ShareLiveButton.tsx'
+import { ShareMenu } from './ShareMenu.tsx'
 import { useSealLink } from './useSealLink.ts'
 import { useDocType } from './useDocType.ts'
 import { readTextFile, type FileProblem } from './readTextFile.ts'
@@ -226,10 +225,7 @@ export function EditorPage({ theme, live }: { theme: Theme; live?: LiveEditorPro
         {live ? (
           live.actions(() => latest.current)
         ) : (
-          <>
-            <ShareLiveButton docType="markdown" getText={() => latest.current} />
-            <SealControls seal={seal} empty={text.trim() === ''} />
-          </>
+          <ShareMenu seal={seal} empty={text.trim() === ''} docType="markdown" getText={() => latest.current} />
         )}
       </HeaderSlot>
 

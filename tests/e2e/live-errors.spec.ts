@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue } from './helpers.ts'
+import { editorValue, openShare } from './helpers.ts'
 
 // Runs against the local Supabase (scripts/e2e-stored.sh). Saves happen on their own after a pause.
 
@@ -11,7 +11,7 @@ async function share(page: Page, text: string): Promise<{ edit: string; read: st
   await page.addInitScript(() => localStorage.setItem('sealdown.author', 'Ana'))
   await page.goto('/')
   await editor(page).fill(text)
-  await page.getByRole('button', { name: 'Share to edit' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Share to edit' }).click()
   const result = {
     edit: await page.getByTestId('live-edit-url').inputValue(),
     read: await page.getByTestId('live-read-url').inputValue(),

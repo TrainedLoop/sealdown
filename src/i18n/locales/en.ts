@@ -32,6 +32,14 @@ const en = {
     replaceDraft: 'Replace your current JSON draft with this document?',
     loading: 'Loading JSON editor…',
   },
+  share: {
+    button: 'Share',
+    title: 'Share',
+    sealTitle: 'Sealed copy',
+    sealHint: 'A fixed copy, encrypted in your browser. Later edits are not included.',
+    liveTitle: 'Edit together',
+    liveHint: 'One live document: people with the edit link can change it; a read link follows along.',
+  },
   live: {
     share: 'Share to edit',
     sharing: 'Sharing…',

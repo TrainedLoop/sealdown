@@ -1,3 +1,4 @@
+import { openShare } from './helpers.ts'
 import { expect, test, type Page } from '@playwright/test'
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
@@ -5,19 +6,19 @@ const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type 
 async function protectedLink(page: Page, text: string, password: string): Promise<string> {
   await page.goto('/')
   await editor(page).fill(text)
-  await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByLabel('Password', { exact: true }).fill(password)
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   return page.getByTestId('share-url').inputValue()
 }
 
 test('an empty password seals without protection; a password protects', async ({ page }) => {
   await page.goto('/')
   await editor(page).fill('# Secret')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/e\//)
   await page.keyboard.press('Escape')
-  await page.getByLabel('Password', { exact: true }).fill('pw')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByLabel('Password', { exact: true }).fill('pw')
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByTestId('share-url')).toHaveValue(/#\/p\//)
 })
 

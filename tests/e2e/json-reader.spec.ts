@@ -1,14 +1,14 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue, inlineHash, jsonInlineHash, jsonText, setJsonText } from './helpers.ts'
+import { editorValue, inlineHash, jsonInlineHash, jsonText, setJsonText, openShare } from './helpers.ts'
 
 const viewer = (page: Page) => page.locator('.json-reader')
 
 async function sealJson(page: Page, json: string, password = ''): Promise<string> {
   await page.goto('/#/json')
   await setJsonText(page, json)
-  if (password) await page.getByLabel('Password', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  if (password) await (await openShare(page)).getByLabel('Password', { exact: true }).fill(password)
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   return page.getByTestId('share-url').inputValue()
 }
 

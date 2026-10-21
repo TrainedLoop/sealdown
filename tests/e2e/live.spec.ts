@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
-import { editorValue, jsonText, setJsonText } from './helpers.ts'
+import { editorValue, jsonText, setJsonText, openShare } from './helpers.ts'
 
 // Runs against the local Supabase (scripts/e2e-stored.sh): live documents need storage.
 // Edits save on their own after a pause, and others' versions arrive within a poll (5 s).
@@ -11,7 +11,7 @@ const ARRIVES = { timeout: 12_000 }
 async function share(page: Page, text: string): Promise<{ edit: string; read: string }> {
   await page.goto('/')
   await editor(page).fill(text)
-  await page.getByRole('button', { name: 'Share to edit' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Share to edit' }).click()
   const dialog = page.getByRole('dialog', { name: 'Shared for editing' })
   const edit = await dialog.getByTestId('live-edit-url').inputValue()
   const read = await dialog.getByTestId('live-read-url').inputValue()
@@ -120,7 +120,7 @@ test('Ctrl/Cmd+S saves right away', async ({ page, context }) => {
 test('JSON documents are shared for editing too', async ({ page, context }) => {
   await page.goto('/#/json')
   await setJsonText(page, '{"k": 1}')
-  await page.getByRole('button', { name: 'Share to edit' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Share to edit' }).click()
   const edit = await page.getByTestId('live-edit-url').inputValue()
   const ana = await openEdit(context, edit, 'Ana')
   await expect.poll(() => jsonText(ana)).toBe('{"k": 1}')
@@ -133,7 +133,7 @@ for (const width of [320, 375]) {
     await page.setViewportSize({ width, height: 700 })
     for (const hash of ['/', '/#/json']) {
       await page.goto(hash)
-      await expect(page.getByRole('button', { name: 'Seal link' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeVisible()
       expect((await page.locator('.app-header').boundingBox())!.height).toBeLessThanOrEqual(110)
     }
     await page.goto('/')

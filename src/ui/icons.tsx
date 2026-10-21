@@ -118,3 +118,20 @@ export function LinkIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+export function ShareIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 15V4M8 8l4-4 4 4" />
+      <path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
+    </svg>
+  )
+}
+
+export function Chevron(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m7 10 5 5 5-5" />
+    </svg>
+  )
+}

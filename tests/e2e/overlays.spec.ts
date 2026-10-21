@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
-import { editorValue } from './helpers.ts'
+import { editorValue, openShare } from './helpers.ts'
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
 
 async function openSeal(page: Page) {
   await page.goto('/')
   await editor(page).fill('# Doc')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   await expect(page.getByRole('dialog', { name: 'Document sealed' })).toBeVisible()
 }
 
@@ -20,7 +20,7 @@ test('Ctrl/Cmd+K does not open the palette over the seal dialog', async ({ page 
 test('Escape in the palette does not also end a presentation', async ({ page }) => {
   await page.goto('/#/')
   await page.getByRole('textbox', { name: /Paste or type Markdown/ }).fill('# One\n\n---\n\n# Two')
-  await page.getByRole('button', { name: 'Seal link' }).click()
+  await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
   await page.goto(url)
   await page.getByRole('button', { name: 'Command palette' }).click()
@@ -52,11 +52,11 @@ test('Tab stays inside the seal dialog', async ({ page }) => {
   expect(await page.evaluate(() => !!document.activeElement?.closest('.seal-modal'))).toBe(true)
 })
 
-test('focus moves into the seal dialog and back to Seal link', async ({ page }) => {
+test('focus moves into the seal dialog and back to Share', async ({ page }) => {
   await openSeal(page)
   expect(await page.evaluate(() => !!document.activeElement?.closest('.seal-modal'))).toBe(true)
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('button', { name: 'Seal link' })).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeFocused()
 })
 
 test('inserting a diagram from the palette works when the editor opened in Read mode', async ({ page }) => {
@@ -82,7 +82,7 @@ for (const width of [375, 320]) {
     expect(header.height).toBeLessThanOrEqual(110)
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true)
     await expect(page.getByRole('group', { name: 'Document status' })).toBeInViewport()
-    await expect(page.getByRole('button', { name: 'Seal link' })).toBeInViewport()
+    await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeInViewport()
   })
 }
 
