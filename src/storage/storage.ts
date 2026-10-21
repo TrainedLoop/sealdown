@@ -16,25 +16,44 @@ export class StorageUnavailableError extends Error {
 
 const SCHEMA = 'sealdown'
 
+export type SupabaseConfig = { url?: string; anonKey?: string }
+
+export const supabaseConfig: SupabaseConfig = {
+  url: import.meta.env.VITE_SUPABASE_URL,
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+}
+
+/**
+ * Calls one of the app's RPCs and returns the raw response, whatever its status. Throws
+ * StorageUnavailableError when Supabase isn't configured or can't be reached.
+ */
+export async function postRpc(
+  config: SupabaseConfig,
+  fetchImpl: typeof fetch,
+  name: string,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  const { url, anonKey } = config
+  if (!url || !anonKey) throw new StorageUnavailableError()
+  try {
+    // Only the apikey header: publishable keys are not JWTs, so they don't go in Authorization.
+    // Content-Profile selects the app's schema, which must be in the project's exposed schemas.
+    return await fetchImpl(`${url}/rest/v1/rpc/${name}`, {
+      method: 'POST',
+      headers: { apikey: anonKey, 'content-profile': SCHEMA, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch (cause) {
+    throw new StorageUnavailableError({ cause })
+  }
+}
+
 export function createSupabaseStorage(
-  config: { url?: string; anonKey?: string },
+  config: SupabaseConfig,
   fetchImpl: typeof fetch = (...args) => fetch(...args),
 ): DocStorage {
   async function rpc(name: string, body: Record<string, unknown>): Promise<unknown> {
-    const { url, anonKey } = config
-    if (!url || !anonKey) throw new StorageUnavailableError()
-    let response: Response
-    try {
-      // Only the apikey header: publishable keys are not JWTs, so they don't go in Authorization.
-      // Content-Profile selects the app's schema, which must be in the project's exposed schemas.
-      response = await fetchImpl(`${url}/rest/v1/rpc/${name}`, {
-        method: 'POST',
-        headers: { apikey: anonKey, 'content-profile': SCHEMA, 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-    } catch (cause) {
-      throw new StorageUnavailableError({ cause })
-    }
+    const response = await postRpc(config, fetchImpl, name, body)
     if (!response.ok) throw new StorageUnavailableError({ cause: response.status })
     return response.json()
   }
@@ -50,7 +69,4 @@ export function createSupabaseStorage(
   }
 }
 
-export const defaultStorage: DocStorage = createSupabaseStorage({
-  url: import.meta.env.VITE_SUPABASE_URL,
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-})
+export const defaultStorage: DocStorage = createSupabaseStorage(supabaseConfig)
