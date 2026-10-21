@@ -2,21 +2,18 @@ import type { SVGProps } from 'react'
 
 const base = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true } as const
 
-/** The Sealdown mark: a wax seal (scalloped disc) pressed with a keyhole. */
-export function SealMark(props: SVGProps<SVGSVGElement>) {
-  const lobes = Array.from({ length: 12 }, (_, i) => {
-    const a = (i / 12) * Math.PI * 2
-    return <circle key={i} cx={16 + Math.cos(a) * 12.2} cy={16 + Math.sin(a) * 12.2} r="3.4" />
-  })
+const LOGO_DIR = `${import.meta.env.BASE_URL}sealdown-logo/`
+
+/**
+ * The Sealdown mark (public/sealdown-logo): the colour icon on light surfaces, the white one on
+ * dark ones. Both are in the page and the theme shows one, so switching never waits for a load.
+ */
+export function SealMark({ size = 26 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true" {...props}>
-      <g className="seal-mark-wax">
-        {lobes}
-        <circle cx="16" cy="16" r="12.6" />
-      </g>
-      <circle cx="16" cy="16" r="9.4" className="seal-mark-ring" fill="none" strokeWidth="1.2" />
-      <path className="seal-mark-key" d="M16 10.6a2.9 2.9 0 0 0-1.5 5.4l-.9 4.9h4.8l-.9-4.9A2.9 2.9 0 0 0 16 10.6Z" />
-    </svg>
+    <span className="seal-mark" style={{ height: size }} aria-hidden="true">
+      <img className="seal-mark-light" src={`${LOGO_DIR}sealdown-icon-color.svg`} alt="" height={size} />
+      <img className="seal-mark-dark" src={`${LOGO_DIR}sealdown-icon-white.svg`} alt="" height={size} />
+    </span>
   )
 }
 
@@ -85,7 +82,7 @@ export function Key(props: SVGProps<SVGSVGElement>) {
 export function SealStamp() {
   return (
     <div className="seal-stamp" aria-hidden="true">
-      <SealMark width={76} height={76} />
+      <SealMark size={84} />
     </div>
   )
 }

@@ -135,17 +135,24 @@ button:disabled {
   letter-spacing: -0.02em;
 }
 
-.seal-mark-wax {
-  fill: var(--accent);
+.seal-mark {
+  display: inline-flex;
+  flex: none;
 }
 
-.seal-mark-ring {
-  stroke: var(--accent-text);
-  opacity: 0.35;
+.seal-mark img {
+  display: block;
+  width: auto;
 }
 
-.seal-mark-key {
-  fill: var(--accent-text);
+/* Dark theme (the default): the white mark; light theme: the colour one. */
+.seal-mark .seal-mark-light,
+:root[data-theme='light'] .seal-mark .seal-mark-dark {
+  display: none;
+}
+
+:root[data-theme='light'] .seal-mark .seal-mark-light {
+  display: block;
 }
 
 .header-center {
@@ -1099,7 +1106,7 @@ figure.diagram {
   display: grid;
   place-items: center;
   margin: 0 auto;
-  filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--accent) 30%, transparent));
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
   animation: seal-press 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 

@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/sealdown-logo/sealdown-logo-white.svg">
+    <img src="public/sealdown-logo/sealdown-logo-color.svg" alt="Sealdown" width="160">
+  </picture>
+</p>
+
 # Sealdown
 
 Share Markdown or JSON in a sealed link. Write or paste a document with Mermaid diagrams, math and
