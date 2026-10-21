@@ -47,8 +47,8 @@ export function ConflictDialog({
               <fieldset>
                 <legend>{label(c)}</legend>
                 <div className="conflict-sides">
-                  <pre aria-label={t('live.mine')}>{c.mine || t('live.removed')}</pre>
-                  <pre aria-label={t('live.theirs')}>{c.theirs || t('live.removed')}</pre>
+                  <pre aria-label={t('live.mineText')} data-caption={t('live.mineText')}>{c.mine || t('live.removed')}</pre>
+                  <pre aria-label={t('live.theirsText')} data-caption={t('live.theirsText')}>{c.theirs || t('live.removed')}</pre>
                 </div>
                 <div className="conflict-choices">
                   {options.map((option) => (

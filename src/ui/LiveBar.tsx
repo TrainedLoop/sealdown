@@ -13,6 +13,7 @@ export function LiveBar({
   newer,
   onUpdate,
   busy = false,
+  onVersions,
   children,
 }: {
   version: number
@@ -21,6 +22,7 @@ export function LiveBar({
   newer?: Newer | null
   onUpdate?: () => void
   busy?: boolean
+  onVersions?: () => void
   children?: ReactNode
 }) {
   const { t, i18n } = useTranslation()
@@ -39,6 +41,11 @@ export function LiveBar({
             </button>
           )}
         </span>
+      )}
+      {onVersions && (
+        <button type="button" className="live-bar-versions" onClick={onVersions}>
+          {t('live.versions')}
+        </button>
       )}
       {children && <span className="live-bar-actions">{children}</span>}
     </section>

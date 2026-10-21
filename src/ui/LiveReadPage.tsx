@@ -5,6 +5,7 @@ import type { LiveReadRoute } from '../live/links.ts'
 import { defaultLiveStorage, LiveError } from '../storage/live.ts'
 import { JsonDocument } from './JsonDocument.tsx'
 import { LiveBar } from './LiveBar.tsx'
+import { VersionsPanel } from './VersionsPanel.tsx'
 import { Document } from './ReaderPage.tsx'
 import type { Theme } from './theme.ts'
 import { useLivePolling } from './useLivePolling.ts'
@@ -16,6 +17,7 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
   const { t } = useTranslation()
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
+  const [showVersions, setShowVersions] = useState(false)
   const { id, key } = route
   useEffect(() => {
     let cancelled = false
@@ -59,7 +61,9 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
           clearNewer()
           setAttempt((n) => n + 1)
         }}
+        onVersions={() => setShowVersions(true)}
       />
+      {showVersions && <VersionsPanel route={route} onClose={() => setShowVersions(false)} />}
     </>
   )
   if (doc.type === 'json') return <JsonDocument text={doc.text} sealed banner={banner} />

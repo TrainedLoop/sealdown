@@ -4,7 +4,7 @@ import { loadAuthor, saveAuthor } from '../live/author.ts'
 import { readLinkOf, type LiveEditRoute } from '../live/links.ts'
 import { loadLocal, saveLocal, type LocalLive } from '../live/localState.ts'
 import type { Choice } from '../live/merge.ts'
-import { openLive, openVersion, saveDraft, saveResolved, updateFromLatest, type Conflicted, type Latest, type SaveOutcome } from '../live/session.ts'
+import { openLive, openVersion, restoreVersion, saveDraft, saveResolved, updateFromLatest, type Conflicted, type Latest, type SaveOutcome } from '../live/session.ts'
 import { buildHash } from '../router/route.ts'
 import type { DocType } from '../share/docType.ts'
 import { defaultLiveStorage, LiveError, type LiveErrorKind } from '../storage/live.ts'
@@ -16,6 +16,7 @@ import { LiveBar, type Newer } from './LiveBar.tsx'
 import type { LiveEditorProps } from './liveEditorProps.ts'
 import { LiveReadPage } from './LiveReadPage.tsx'
 import { NamePrompt } from './NamePrompt.tsx'
+import { VersionsPanel } from './VersionsPanel.tsx'
 import type { Theme } from './theme.ts'
 import { useLivePolling } from './useLivePolling.ts'
 
@@ -45,6 +46,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   const [conflict, setConflict] = useState<PendingConflict | null>(null)
   const [askName, setAskName] = useState<((name: string | null) => void) | null>(null)
   const [readCopied, setReadCopied] = useState(false)
+  const [showVersions, setShowVersions] = useState(false)
   // The draft this tab works on. Kept in memory so another tab saving never changes the text here.
   const local = useRef<LocalLive | null>(null)
   const getText = useRef<() => string>(() => local.current?.draft ?? '')
@@ -175,6 +177,25 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     }
   }
 
+  async function restore(version: number) {
+    if (busy || !local.current || !info) return
+    setShowVersions(false)
+    const author = loadAuthor() ?? (await askForName())
+    if (author === null) return
+    setBusy(true)
+    setProblem(null)
+    try {
+      const outcome = await restoreVersion(route, version, local.current, info.type, author, defaultLiveStorage)
+      // The restored text replaces what is on screen.
+      if (outcome.kind === 'saved') replaceText({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
+      settle(outcome, getText.current(), author)
+    } catch (error) {
+      fail(error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function resolve(choices: Record<number, Choice>) {
     if (!conflict || !info) return
     const text = conflict.merge.resolve(choices)
@@ -263,7 +284,8 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
 
   return (
     <div className="live-page">
-      <LiveBar version={info.version} author={info.author} createdAt={info.createdAt} newer={newer} onUpdate={() => void update()} busy={busy} />
+      <LiveBar version={info.version} author={info.author} createdAt={info.createdAt} newer={newer} onUpdate={() => void update()} busy={busy} onVersions={() => setShowVersions(true)} />
+      {showVersions && <VersionsPanel route={route} onRestore={(n) => void restore(n)} onClose={() => setShowVersions(false)} />}
       {problem && ERROR_COPY[problem] && (
         <div className="notice" role="alert">
           <p>{t(ERROR_COPY[problem] as 'live.errors.network')}</p>
