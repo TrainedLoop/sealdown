@@ -33,6 +33,9 @@ function memoryStorage(): LiveStorage & { saves: number; writers: (string | unde
     async latest(id: string) {
       return doc(id).versions.at(-1)!
     },
+    async salt() {
+      return null
+    },
     async head(id: string) {
       return doc(id).versions.at(-1)!.version
     },
@@ -210,3 +213,26 @@ test('restores and conflict resolutions never collapse into the previous version
   expect(storage.writers[0]).toMatch(/^[A-Za-z0-9_-]+$/)
   expect(storage.writers.slice(1)).toEqual([undefined, undefined])
 })
+
+test('a password-protected document opens with the key derived from its password', async () => {
+  const { createProtectedLiveDoc, unlockLive } = await import('../../../src/live/session.ts')
+  const storage = memoryStorage()
+  const salts = new Map<string, Uint8Array>()
+  const create = storage.create.bind(storage)
+  Object.assign(storage, {
+    create: async (c: Uint8Array, a: Uint8Array, h: string, salt?: Uint8Array) => {
+      const id = await create(c, a, h)
+      if (salt) salts.set(id, salt)
+      return id
+    },
+    salt: async (id: string) => salts.get(id) ?? null,
+  })
+  const { edit, read } = await createProtectedLiveDoc({ type: 'markdown', text: 'secret' }, 'Ana', 'pw', storage)
+  expect(edit.kind).toBe('live-edit-protected')
+  expect(read).toEqual({ kind: 'live-read-protected', id: edit.id })
+  await expect(unlockLive(read, 'wrong', storage)).resolves.toBeNull()
+  const unlocked = await unlockLive(read, 'pw', storage)
+  expect(unlocked!.opened.doc.text).toBe('secret')
+  const again = await openLive({ kind: 'live-read', id: edit.id, key: unlocked!.key }, storage)
+  expect(again.doc.text).toBe('secret')
+}, 30_000)

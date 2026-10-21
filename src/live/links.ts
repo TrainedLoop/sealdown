@@ -3,6 +3,7 @@ import { base64urlDecode, base64urlEncode, toBase64 } from '../share/base64url.t
 
 export type LiveEditRoute = Extract<Route, { kind: 'live-edit' }>
 export type LiveReadRoute = Extract<Route, { kind: 'live-read' }>
+export type ProtectedLiveRoute = Extract<Route, { kind: 'live-read-protected' | 'live-edit-protected' }>
 
 /** The secret that lets an edit link save: 32 random bytes, base64url. */
 export function newWriteToken(): string {

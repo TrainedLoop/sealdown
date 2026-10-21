@@ -1,3 +1,4 @@
+import { base64urlEncode } from './base64url.ts'
 import { LinkError } from './errors.ts'
 
 /** OWASP's 2023 recommendation for PBKDF2-HMAC-SHA256. */
@@ -16,6 +17,25 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
     false,
     ['encrypt', 'decrypt'],
   )
+}
+
+/** Random salt for a key derived from a password (stored with the document, public). */
+export function newSalt(): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(SALT_BYTES))
+}
+
+/**
+ * The AES-256 key for `password` and `salt`, raw in base64url (the form a live document's key
+ * takes). Derived once per opening: PBKDF2 at 600 000 iterations is deliberately slow.
+ */
+export async function deriveRawKey(password: string, salt: Uint8Array): Promise<string> {
+  const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(password.normalize('NFC')), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS },
+    material,
+    256,
+  )
+  return base64urlEncode(new Uint8Array(bits))
 }
 
 /** Encrypts with a key derived from the password. Returns salt || IV || ciphertext. */

@@ -12,6 +12,9 @@ export type Route =
   | { kind: 'live-read'; id: string; key: string }
   /** A live document's edit link: the read link plus the write token. */
   | { kind: 'live-edit'; id: string; key: string; token: string }
+  /** A password-protected live document: the key comes from the password, not the link. */
+  | { kind: 'live-read-protected'; id: string }
+  | { kind: 'live-edit-protected'; id: string; token: string }
   | { kind: 'unknown-format' }
   | { kind: 'malformed' }
 
@@ -61,6 +64,11 @@ export function parseRoute(hash: string): Route {
   if (prefix === 'q') {
     return ID.test(rest) ? { kind: 'stored-protected', id: rest } : { kind: 'malformed' }
   }
+  if (prefix === 'm') return ID.test(rest) ? { kind: 'live-read-protected', id: rest } : { kind: 'malformed' }
+  if (prefix === 'n') {
+    const [id, token, ...extra] = rest.split('.')
+    return extra.length === 0 && ID.test(id) && TOKEN.test(token ?? '') ? { kind: 'live-edit-protected', id, token } : { kind: 'malformed' }
+  }
   if (prefix === 'l' || prefix === 'w') {
     const [id, key, token, ...extra] = rest.split('.')
     if (extra.length > 0 || !ID.test(id) || !TOKEN.test(key ?? '')) return { kind: 'malformed' }
@@ -90,5 +98,9 @@ export function buildHash(route: ShareableRoute): string {
       return `#/l/${route.id}.${route.key}`
     case 'live-edit':
       return `#/w/${route.id}.${route.key}.${route.token}`
+    case 'live-read-protected':
+      return `#/m/${route.id}`
+    case 'live-edit-protected':
+      return `#/n/${route.id}.${route.token}`
   }
 }

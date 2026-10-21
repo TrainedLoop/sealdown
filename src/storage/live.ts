@@ -21,7 +21,10 @@ export type VersionInfo = { version: number; author: Uint8Array; sizeBytes: numb
 
 /** Live documents in Supabase. Like DocStorage, it only ever handles encrypted bytes. */
 export interface LiveStorage {
-  create(content: Uint8Array, author: Uint8Array, writeHash: string): Promise<string>
+  /** `salt` only for a password-protected document. */
+  create(content: Uint8Array, author: Uint8Array, writeHash: string, salt?: Uint8Array): Promise<string>
+  /** The salt of a password-protected document; null without a password. */
+  salt(id: string): Promise<Uint8Array | null>
   latest(id: string): Promise<LiveVersion>
   head(id: string): Promise<number>
   version(id: string, version: number): Promise<LiveVersion>
@@ -65,8 +68,17 @@ export function createLiveStorage(config: SupabaseConfig, fetchImpl: typeof fetc
   })
 
   return {
-    async create(content, author, writeHash) {
-      return (await rpc('create_live', { content: toBase64(content), author: toBase64(author), write_hash: writeHash })) as string
+    async create(content, author, writeHash, salt) {
+      return (await rpc('create_live', {
+        content: toBase64(content),
+        author: toBase64(author),
+        write_hash: writeHash,
+        ...(salt && { salt: toBase64(salt) }),
+      })) as string
+    },
+    async salt(id) {
+      const salt = (await rpc('live_salt', { doc_id: id })) as string | null
+      return salt === null ? null : fromBase64(salt)
     },
     async latest(id) {
       const [row] = (await rpc('get_live', { doc_id: id })) as Row[]

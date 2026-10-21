@@ -31,6 +31,7 @@ export function ShareMenu({
   const root = useRef<HTMLDivElement>(null)
   const panel = useRef<HTMLDivElement>(null)
   const live = useShareLive(docType)
+  const [livePassword, setLivePassword] = useState('')
   const available = liveAvailable()
   const { sealButton } = seal
 
@@ -38,7 +39,7 @@ export function ShareMenu({
     const text = getText()
     if (text.trim() === '' || live.busy) return
     setOpen(false)
-    void live.share(text)
+    void live.share(text, livePassword)
   }
   useCommands('share-live', available ? [{ id: 'share-live', label: t('live.share'), run: shareLive }] : [])
 
@@ -120,9 +121,26 @@ export function ShareMenu({
                 {t('share.liveTitle')}
               </h3>
               <p>{t('share.liveHint')}</p>
-              <button type="button" disabled={empty} onClick={shareLive}>
-                {t('live.share')}
-              </button>
+              <form
+                className="share-seal"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  shareLive()
+                }}
+              >
+                <input
+                  type="password"
+                  className="password-input"
+                  aria-label={t('share.livePassword')}
+                  placeholder={t('seal.passwordPlaceholder')}
+                  autoComplete="new-password"
+                  value={livePassword}
+                  onChange={(e) => setLivePassword(e.target.value)}
+                />
+                <button type="submit" disabled={empty}>
+                  {t('live.share')}
+                </button>
+              </form>
             </section>
           )}
         </div>
@@ -132,7 +150,7 @@ export function ShareMenu({
           {t('live.shareFailed')}
         </span>
       )}
-      {live.shared && <ShareLiveModal edit={live.shared.edit} read={live.shared.read} onClose={live.close} />}
+      {live.shared && <ShareLiveModal edit={live.shared.edit} read={live.shared.read} protected={live.shared.protected} onClose={live.close} />}
     </div>
   )
 }

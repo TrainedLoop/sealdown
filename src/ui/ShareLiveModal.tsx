@@ -5,7 +5,7 @@ import { People } from './icons.tsx'
 import { QrCode } from './QrCode.tsx'
 
 /** The result of "Share to edit": the edit link (for collaborators) and the read link (for everyone else). */
-export function ShareLiveModal({ edit, read, onClose }: { edit: string; read: string; onClose: () => void }) {
+export function ShareLiveModal({ edit, read, protected: locked = false, onClose }: { edit: string; read: string; protected?: boolean; onClose: () => void }) {
   const { t } = useTranslation()
   const dialog = useRef<HTMLDivElement>(null)
   useFocusTrap(dialog)
@@ -32,6 +32,7 @@ export function ShareLiveModal({ edit, read, onClose }: { edit: string; read: st
         <p className="seal-reminder">{t('live.editNote')}</p>
         <LinkRow label={t('live.readLink')} url={read} testId="live-read-url" />
         <p className="seal-how">{t('live.readNote')}</p>
+        {locked && <p className="seal-reminder">{t('seal.reminder')}</p>}
         <button type="button" className="seal-close" aria-label={t('seal.close')} onClick={onClose}>
           ✕
         </button>

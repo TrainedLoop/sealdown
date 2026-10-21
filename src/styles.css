@@ -2677,3 +2677,11 @@ figure.diagram {
     display: none;
   }
 }
+
+/* The unseal card of a password-protected live edit link sits in the editor's full-height page. */
+.page-app .live-gate {
+  height: 100%;
+  overflow: auto;
+  padding: 28px 16px;
+  background: var(--canvas) radial-gradient(var(--canvas-dot) 1px, transparent 1px) 0 0 / 14px 14px;
+}

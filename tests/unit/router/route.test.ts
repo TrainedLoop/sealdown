@@ -83,3 +83,13 @@ test('live routes', () => {
   expect(buildHash({ kind: 'live-read', id: 'Ab3dE5gH9k', key: KEY })).toBe(`#/l/Ab3dE5gH9k.${KEY}`)
   expect(buildHash({ kind: 'live-edit', id: 'Ab3dE5gH9k', key: KEY, token: TOKEN })).toBe(`#/w/Ab3dE5gH9k.${KEY}.${TOKEN}`)
 })
+
+test('password-protected live routes carry no key', () => {
+  expect(parseRoute('#/m/Ab3dE5gH9k')).toEqual({ kind: 'live-read-protected', id: 'Ab3dE5gH9k' })
+  expect(parseRoute(`#/n/Ab3dE5gH9k.${TOKEN}`)).toEqual({ kind: 'live-edit-protected', id: 'Ab3dE5gH9k', token: TOKEN })
+  for (const h of ['#/m/short', '#/m/Ab3dE5gH9k.extra', '#/n/Ab3dE5gH9k', '#/n/Ab3dE5gH9k.bad token']) {
+    expect(parseRoute(h)).toEqual({ kind: 'malformed' })
+  }
+  expect(buildHash({ kind: 'live-read-protected', id: 'Ab3dE5gH9k' })).toBe('#/m/Ab3dE5gH9k')
+  expect(buildHash({ kind: 'live-edit-protected', id: 'Ab3dE5gH9k', token: TOKEN })).toBe(`#/n/Ab3dE5gH9k.${TOKEN}`)
+})

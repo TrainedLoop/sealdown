@@ -55,7 +55,7 @@ const ERROR_COPY: Partial<Record<LiveErrorKind, string>> = {
  * after a short pause, and versions others save are merged into the text on screen as they arrive.
  * Only changes both sides made to the same part wait for the person to choose.
  */
-export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Theme }) {
+export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute; theme: Theme; readHash?: string }) {
   const { t } = useTranslation()
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [info, setInfo] = useState<Info | null>(null)
@@ -361,7 +361,8 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   }, [])
 
   async function copyReadLink() {
-    const url = window.location.origin + import.meta.env.BASE_URL + buildHash(readLinkOf(route))
+    // A password-protected document's read link carries no key: the page passes it in.
+    const url = window.location.origin + import.meta.env.BASE_URL + (readHash ?? buildHash(readLinkOf(route)))
     try {
       await navigator.clipboard.writeText(url)
       setReadCopied(true)

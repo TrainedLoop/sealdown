@@ -51,3 +51,15 @@ test('links protected before normalization still open', async () => {
   const legacy = new Uint8Array([...salt, ...iv, ...ct])
   expect(Array.from(await decryptWithPassword(legacy, decomposed))).toEqual(Array.from(data))
 })
+
+test('a password and salt always derive the same raw key, which decrypts what it encrypted', async () => {
+  const { deriveRawKey } = await import('../../../src/share/password.ts')
+  const { decrypt, encryptWithKey } = await import('../../../src/share/crypto.ts')
+  const salt = new Uint8Array(16).fill(7)
+  const key = await deriveRawKey('café', salt)
+  expect(key).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  expect(await deriveRawKey('café', salt)).toBe(key) // NFC: the same password typed two ways
+  expect(await deriveRawKey('other', salt)).not.toBe(key)
+  const bytes = await encryptWithKey(new TextEncoder().encode('live'), key)
+  expect(new TextDecoder().decode(await decrypt(bytes, key))).toBe('live')
+}, 30_000)

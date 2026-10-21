@@ -38,7 +38,8 @@ const en = {
     sealTitle: 'Sealed copy',
     sealHint: 'A fixed copy, encrypted in your browser. Later edits are not included.',
     liveTitle: 'Edit together',
-    liveHint: 'One live document: people with the edit link can change it; a read link follows along.',
+    livePassword: 'Password for editing together',
+    liveHint: 'One live document: people with the edit link can change it; a read link follows along. With a password, both links ask for it.',
   },
   live: {
     share: 'Share to edit',

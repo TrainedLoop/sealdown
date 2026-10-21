@@ -1,9 +1,10 @@
 import { compress, decompress } from '../share/codec.ts'
 import { decrypt, encryptWithKey, newKey } from '../share/crypto.ts'
 import { decodeDoc, encodeDoc, type Doc, type DocType } from '../share/docType.ts'
+import { deriveRawKey, newSalt } from '../share/password.ts'
 import { LiveError, type LiveStorage } from '../storage/live.ts'
 import { decryptAuthor, encryptAuthor, writerId } from './author.ts'
-import { newWriteToken, readLinkOf, writeHash, type LiveEditRoute, type LiveReadRoute } from './links.ts'
+import { newWriteToken, readLinkOf, writeHash, type LiveEditRoute, type LiveReadRoute, type ProtectedLiveRoute } from './links.ts'
 import type { LocalLive } from './localState.ts'
 import { mergeJson, mergeMarkdown, type MergeResult } from './merge.ts'
 
@@ -42,6 +43,34 @@ export async function createLiveDoc(doc: Doc, author: string, storage: LiveStora
   const id = await storage.create(await seal(doc, key), await encryptAuthor(author, key), await writeHash(token))
   const edit: LiveEditRoute = { kind: 'live-edit', id, key, token }
   return { edit, read: readLinkOf(edit) }
+}
+
+/** Like createLiveDoc, but the key comes from `password`: neither link carries it. */
+export async function createProtectedLiveDoc(doc: Doc, author: string, password: string, storage: LiveStorage) {
+  const salt = newSalt()
+  const key = await deriveRawKey(password, salt)
+  const token = newWriteToken()
+  const id = await storage.create(await seal(doc, key), await encryptAuthor(author, key), await writeHash(token), salt)
+  return {
+    edit: { kind: 'live-edit-protected', id, token } as Extract<ProtectedLiveRoute, { kind: 'live-edit-protected' }>,
+    read: { kind: 'live-read-protected', id } as Extract<ProtectedLiveRoute, { kind: 'live-read-protected' }>,
+  }
+}
+
+/**
+ * Derives the key of a password-protected document and opens it; null for a wrong password.
+ * The key is what the rest of a live document's life uses, as if it had come from the link.
+ */
+export async function unlockLive(route: ProtectedLiveRoute, password: string, storage: LiveStorage): Promise<{ key: string; opened: Opened } | null> {
+  const salt = await storage.salt(route.id)
+  if (!salt) throw new LiveError('missing')
+  const key = await deriveRawKey(password, salt)
+  try {
+    return { key, opened: await openLive({ kind: 'live-read', id: route.id, key }, storage) }
+  } catch (error) {
+    if (error instanceof LiveError) throw error
+    return null // the key doesn't open it: wrong password
+  }
 }
 
 export async function openLive(route: LiveRoute, storage: LiveStorage): Promise<Opened> {

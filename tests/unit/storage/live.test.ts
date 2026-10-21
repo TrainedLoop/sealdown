@@ -104,3 +104,19 @@ test('save sends the browser writer id so autosaves collapse', async () => {
   await createLiveStorage(config, impl).save('Ab3dE5gH9k', 'AQ', 1, bytes(0), bytes(), 'w-123')
   expect(calls[0].body.writer).toBe('w-123')
 })
+
+test('a password-protected document is created with its salt, which can be read back', async () => {
+  const { impl, calls } = fakeFetch((name) => json(name === 'live_salt' ? 'Wlpa' : 'Ab3dE5gH9k'))
+  const storage = createLiveStorage(config, impl)
+  await storage.create(bytes(1), bytes(), 'aGFzaA==', bytes(90, 90, 90))
+  expect(calls[0].body).toMatchObject({ salt: 'Wlpa' })
+  expect(Array.from((await storage.salt('Ab3dE5gH9k'))!)).toEqual([90, 90, 90])
+})
+
+test('a document without a password has no salt', async () => {
+  const { impl, calls } = fakeFetch(() => json(null))
+  const storage = createLiveStorage(config, impl)
+  expect(await storage.salt('Ab3dE5gH9k')).toBeNull()
+  await createLiveStorage(config, fakeFetch(() => json('Ab3dE5gH9k')).impl).create(bytes(1), bytes(), 'aGFzaA==')
+  expect(calls[0].body).toEqual({ doc_id: 'Ab3dE5gH9k' })
+})

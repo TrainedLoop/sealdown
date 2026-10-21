@@ -41,6 +41,8 @@ Live at https://trainedloop.github.io/sealdown/.
 | `#/q/<id>` | Password-protected, large: stored in Supabase, no key in the link. |
 | `#/w/<id>.<key>.<token>` | Live document, edit link: stored versions encrypted with `key`; `token` lets the browser save. The server keeps only the token's SHA-256. |
 | `#/l/<id>.<key>` | Live document, read link: the edit link without the token. Always the latest version. |
+| `#/n/<id>.<token>` | Password-protected live document, edit link: the key is derived from the password (PBKDF2, a public per-document salt kept in Supabase), so the link has none. |
+| `#/m/<id>` | Password-protected live document, read link. After the password, the derived key is kept for that tab only (sessionStorage). |
 | `#/v/<payload>` | Legacy plaintext links from before Sealdown encrypted everything: still opened, never created. |
 
 A JSON document starts with an invisible marker (`\u0001json\n`) before it is compressed and
@@ -76,7 +78,7 @@ json); on a shared link that is known once the document is unsealed.
 
 | Event | Properties |
 |---|---|
-| `$pageview` | `route`: editor, json-editor, live-edit, live-read, inline-sealed, inline (legacy), stored, protected, error |
+| `$pageview` | `route`: editor, json-editor, live-edit, live-read, live-edit-protected, live-read-protected, inline-sealed, inline (legacy), stored, protected, error |
 | `app_opened` | `route` (first page of the visit) |
 | `link_created` | `result`, `storage`, `protected`, `size_kb`, `diagram_count` and `diagram_types` (Markdown only) |
 | `link_opened` | `storage`, `protected`, `ok`, `error` |
@@ -93,7 +95,7 @@ json); on a shared link that is known once the document is unsealed.
 | `diagram_copied` | `ok` |
 | `typeset_changed` | `style` |
 | `command_run` | `command` (command id) |
-| `live_created` | — |
+| `live_created` | `protected` |
 | `live_opened` | `access`: edit, read |
 | `version_saved` | `merged`, `conflicts` (count); sent for merged saves and the first save of a visit, not every autosave |
 | `conflict_resolved` | `conflicts` (count) |
