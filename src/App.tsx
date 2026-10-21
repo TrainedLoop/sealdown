@@ -4,6 +4,8 @@ import type { Route } from './router/route.ts'
 import { useHashRoute } from './router/useHashRoute.ts'
 import { EditorPage } from './ui/EditorPage.tsx'
 import { JsonEditorPage } from './ui/JsonEditorPage.tsx'
+import { LiveEditPage } from './ui/LiveEditPage.tsx'
+import { LiveReadPage } from './ui/LiveReadPage.tsx'
 import { ErrorMessage } from './ui/ErrorMessage.tsx'
 import { Header } from './ui/Header.tsx'
 import { HeaderSlotsProvider } from './ui/headerSlots.tsx'
@@ -31,9 +33,11 @@ export default function App() {
     <HeaderSlotsProvider>
       <Header route={route} theme={theme} onThemeChange={setTheme} />
       <CommandPalette />
-      <main className={route.kind === 'editor' || route.kind === 'json-editor' ? 'page page-app' : 'page page-reader'}>
+      <main className={route.kind === 'editor' || route.kind === 'json-editor' || route.kind === 'live-edit' ? 'page page-app' : 'page page-reader'}>
         {route.kind === 'editor' && <EditorPage theme={theme} />}
         {route.kind === 'json-editor' && <JsonEditorPage />}
+        {route.kind === 'live-edit' && <LiveEditPage key={route.id} route={route} theme={theme} />}
+        {route.kind === 'live-read' && <LiveReadPage key={route.id} route={route} theme={theme} />}
         {(route.kind === 'inline' ||
           route.kind === 'inline-sealed' ||
           route.kind === 'stored' ||

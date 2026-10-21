@@ -122,6 +122,7 @@ test('updating merges the latest version into an unsaved draft', async () => {
     kind: 'updated',
     local: { base: 2, baseText: base.replace('one', 'ONE'), draft: '# Notes\n\nONE\ntwo\nTHREE\n' },
     author: 'Ana',
+    createdAt: 't2',
   })
 })
 

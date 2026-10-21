@@ -64,8 +64,8 @@ test('head, version and list', async () => {
 
 test('save returns the new version number', async () => {
   const { impl, calls } = fakeFetch(() => json(4))
-  expect(await createLiveStorage(config, impl).save('Ab3dE5gH9k', 'tok', 3, bytes(0), bytes())).toBe(4)
-  expect(calls[0]).toMatchObject({ name: 'save_version', body: { doc_id: 'Ab3dE5gH9k', write_token: 'tok', base_version: 3, content: 'AA==', author: '' } })
+  expect(await createLiveStorage(config, impl).save('Ab3dE5gH9k', 'AQ', 3, bytes(0), bytes())).toBe(4)
+  expect(calls[0]).toMatchObject({ name: 'save_version', body: { doc_id: 'Ab3dE5gH9k', write_token: 'AQ==', base_version: 3, content: 'AA==', author: '' } })
 })
 
 test('database errors map to live error kinds', async () => {
@@ -79,7 +79,7 @@ test('database errors map to live error kinds', async () => {
   ]
   for (const [response, kind, latest] of cases) {
     const { impl } = fakeFetch(() => response.clone())
-    const error = await createLiveStorage(config, impl).save('Ab3dE5gH9k', 'tok', 1, bytes(0), bytes()).catch((e: unknown) => e)
+    const error = await createLiveStorage(config, impl).save('Ab3dE5gH9k', 'AQ', 1, bytes(0), bytes()).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(LiveError)
     expect(error).toMatchObject({ kind, ...(latest !== undefined && { latest }) })
   }
@@ -91,4 +91,10 @@ test('no configuration or no connection is a network error', async () => {
     throw new TypeError('offline')
   }) as typeof fetch
   await expect(createLiveStorage(config, failing).head('Ab3dE5gH9k')).rejects.toMatchObject({ kind: 'network' })
+})
+
+test('the write token travels as standard base64, as the database decodes it', async () => {
+  const { impl, calls } = fakeFetch(() => json(2))
+  await createLiveStorage(config, impl).save('Ab3dE5gH9k', '-_8', 1, bytes(0), bytes())
+  expect(calls[0].body.write_token).toBe('+/8=')
 })

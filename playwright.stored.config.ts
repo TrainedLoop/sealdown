@@ -4,7 +4,7 @@ import base from './playwright.config.ts'
 // Run through scripts/e2e-stored.sh, which provides the local Supabase variables.
 export default defineConfig({
   ...base,
-  projects: [{ name: 'stored', testDir: 'tests/e2e', testMatch: 'stored.spec.ts', use: base.projects?.[0]?.use }],
+  projects: [{ name: 'stored', testDir: 'tests/e2e', testMatch: ['stored.spec.ts', 'live*.spec.ts'], use: base.projects?.[0]?.use }],
   use: { ...base.use, baseURL: 'http://localhost:4318/' },
   webServer: {
     command: 'node_modules/.bin/vite build --outDir dist-stored && node_modules/.bin/vite preview --outDir dist-stored --port 4318 --strictPort',

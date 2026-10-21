@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from 'react'
+import { lazy, Suspense, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { track } from '../analytics.ts'
 import { useCommands } from './commands.ts'
@@ -22,7 +22,7 @@ function parses(text: string): boolean {
 }
 
 /** A shared JSON document: read-only tree (text when it doesn't parse), export and Edit a copy. */
-export function JsonDocument({ text, sealed }: { text: string; sealed: boolean }) {
+export function JsonDocument({ text, sealed, banner }: { text: string; sealed: boolean; banner?: ReactNode }) {
   const { t } = useTranslation()
   const valid = useMemo(() => parses(text), [text])
   useDocumentTitle(null)
@@ -53,6 +53,7 @@ export function JsonDocument({ text, sealed }: { text: string; sealed: boolean }
           {t('reader.editCopy')}
         </button>
       </HeaderSlot>
+      {banner}
       {sealed && (
         <p className="unsealed-badge">
           <Lock />

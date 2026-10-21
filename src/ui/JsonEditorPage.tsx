@@ -11,6 +11,8 @@ import { loadJsonDraft, saveJsonDraft } from './jsonDraft.ts'
 import { useMode, type Mode } from './mode.ts'
 import { readTextFile, type FileProblem } from './readTextFile.ts'
 import { SealControls } from './SealControls.tsx'
+import type { LiveEditorProps } from './liveEditorProps.ts'
+import { ShareLiveButton } from './ShareLiveButton.tsx'
 import { SealModal } from './SealModal.tsx'
 import { useSealLink } from './useSealLink.ts'
 import { useDocType } from './useDocType.ts'
@@ -28,9 +30,12 @@ const JSON_FILE = /\.json$/i
 const MODES: Mode[] = ['write', 'split', 'read']
 
 /** Write (text), Split (text left, tree right, in sync through the text) and Read (the tree). */
-export function JsonEditorPage() {
+const JSON_DRAFT = { load: loadJsonDraft, save: saveJsonDraft }
+
+export function JsonEditorPage({ live }: { live?: LiveEditorProps } = {}) {
+  const draft = live?.draft ?? JSON_DRAFT
   const { t } = useTranslation()
-  const [text, setText] = useState(loadJsonDraft)
+  const [text, setText] = useState(draft.load)
   const { mode, setMode, splitAvailable } = useMode('sealdown.mode.json')
   const seal = useSealLink(text, 'json')
   useDocType('json')
@@ -75,14 +80,15 @@ export function JsonEditorPage() {
   useEffect(() => {
     latest.current = text
     const timer = setTimeout(() => {
-      saveJsonDraft(text)
+      draft.save(text)
       setSaved(true)
     }, DRAFT_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [text])
+  }, [text, draft])
   // Leaving the editor cancels the pending debounce, so save right away, including the text pane's
   // own pending change.
-  useEffect(() => () => saveJsonDraft(textPane.current?.getText() ?? latest.current), [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => draft.save(textPane.current?.getText() ?? latest.current), [])
 
   function edit(next: string) {
     if (next === latest.current) return
@@ -162,7 +168,14 @@ export function JsonEditorPage() {
           />
         </label>
         <ExportMenu items={[{ id: 'json', label: t('export.json'), run: downloadJson }]} />
-        <SealControls seal={seal} empty={text.trim() === ''} onSeal={sealNow} />
+        {live ? (
+          live.actions(() => textPane.current?.getText() ?? latest.current)
+        ) : (
+          <>
+            <ShareLiveButton docType="json" getText={() => textPane.current?.getText() ?? latest.current} />
+            <SealControls seal={seal} empty={text.trim() === ''} onSeal={sealNow} />
+          </>
+        )}
       </HeaderSlot>
 
       {fileProblem && (

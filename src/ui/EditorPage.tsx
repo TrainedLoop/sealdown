@@ -19,6 +19,8 @@ import { StatusBar } from './StatusBar.tsx'
 import { useDocumentTitle } from './docTitle.ts'
 import { SealModal } from './SealModal.tsx'
 import { SealControls } from './SealControls.tsx'
+import type { LiveEditorProps } from './liveEditorProps.ts'
+import { ShareLiveButton } from './ShareLiveButton.tsx'
 import { useSealLink } from './useSealLink.ts'
 import { useDocType } from './useDocType.ts'
 import { readTextFile, type FileProblem } from './readTextFile.ts'
@@ -37,9 +39,12 @@ const CodeEditor = lazy(() => import('../editor/CodeEditor.tsx'))
 
 const TEXT_FILE = /\.(md|markdown|mdown|txt)$/i
 
-export function EditorPage({ theme }: { theme: Theme }) {
+const MARKDOWN_DRAFT = { load: loadDraft, save: saveDraft }
+
+export function EditorPage({ theme, live }: { theme: Theme; live?: LiveEditorProps }) {
+  const draft = live?.draft ?? MARKDOWN_DRAFT
   const { t } = useTranslation()
-  const [text, setText] = useState(loadDraft)
+  const [text, setText] = useState(draft.load)
   const { mode, setMode, splitAvailable } = useMode()
   const previewPane = useRef<HTMLDivElement>(null)
   const [syncScroll, setSyncScroll] = useSyncScrollPref()
@@ -58,13 +63,14 @@ export function EditorPage({ theme }: { theme: Theme }) {
   useEffect(() => {
     latest.current = text
     const timer = setTimeout(() => {
-      saveDraft(text)
+      draft.save(text)
       setSaved(true)
     }, DRAFT_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [text])
+  }, [text, draft])
   // Leaving the editor (e.g. opening a link) cancels the pending debounce, so save right away.
-  useEffect(() => () => saveDraft(latest.current), [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => draft.save(latest.current), [])
 
   function edit(next: string) {
     setText(next)
@@ -206,7 +212,14 @@ export function EditorPage({ theme }: { theme: Theme }) {
             { id: 'pdf', label: t('export.pdf'), run: () => void exportPdf() },
           ]}
         />
-        <SealControls seal={seal} empty={text.trim() === ''} />
+        {live ? (
+          live.actions(() => latest.current)
+        ) : (
+          <>
+            <ShareLiveButton docType="markdown" getText={() => latest.current} />
+            <SealControls seal={seal} empty={text.trim() === ''} />
+          </>
+        )}
       </HeaderSlot>
 
       {fileProblem && (

@@ -18,7 +18,7 @@ export type SaveOutcome =
   | { kind: 'saved'; version: number; text: string; merged: boolean }
   | { kind: 'conflicts'; latest: Latest; merge: Conflicted }
 export type UpdateOutcome =
-  | { kind: 'updated'; local: LocalLive; author: string }
+  | { kind: 'updated'; local: LocalLive; author: string; createdAt: string }
   | { kind: 'conflicts'; latest: Latest; author: string; merge: Conflicted }
 
 // A few retries cover saves that keep landing right after someone else's.
@@ -92,7 +92,7 @@ export async function updateFromLatest(route: LiveRoute, local: LocalLive, type:
   const text = latest.doc.text
   const result = local.draft === local.baseText ? { text } : merge(type, local.baseText, local.draft, text)
   if (!('text' in result)) return { kind: 'conflicts', latest: { version: latest.version, text }, author: latest.author, merge: result }
-  return { kind: 'updated', local: { base: latest.version, baseText: text, draft: result.text }, author: latest.author }
+  return { kind: 'updated', local: { base: latest.version, baseText: text, draft: result.text }, author: latest.author, createdAt: latest.createdAt }
 }
 
 /** Saves version `version`'s text as the newest version (nothing is deleted). */

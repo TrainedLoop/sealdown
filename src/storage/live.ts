@@ -1,4 +1,4 @@
-import { fromBase64, toBase64 } from '../share/base64url.ts'
+import { base64urlDecode, fromBase64, toBase64 } from '../share/base64url.ts'
 import { postRpc, StorageUnavailableError, supabaseConfig, type SupabaseConfig } from './storage.ts'
 
 export type LiveErrorKind = 'forbidden' | 'missing' | 'stale' | 'full' | 'network' | 'too-large'
@@ -88,7 +88,8 @@ export function createLiveStorage(config: SupabaseConfig, fetchImpl: typeof fetc
     async save(id, token, base, content, author) {
       return (await rpc('save_version', {
         doc_id: id,
-        write_token: token,
+        // Links carry base64url; the database decodes standard base64.
+        write_token: toBase64(base64urlDecode(token)),
         base_version: base,
         content: toBase64(content),
         author: toBase64(author),

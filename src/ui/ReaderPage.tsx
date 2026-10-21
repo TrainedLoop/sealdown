@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { track } from '../analytics.ts'
 import { hydrate } from '../render/hydrate.ts'
@@ -100,7 +100,8 @@ export function ReaderPage({ route, theme }: { route: ReadableRoute; theme: Them
   return <Document text={state.doc.text} theme={theme} sealed={sealed} />
 }
 
-function Document({ text, theme, sealed }: { text: string; theme: Theme; sealed: boolean }) {
+/** A shared Markdown document; `banner` sits above it (the live document's bar). */
+export function Document({ text, theme, sealed, banner }: { text: string; theme: Theme; sealed: boolean; banner?: ReactNode }) {
   const { t } = useTranslation()
   const wrapper = useRef<HTMLDivElement>(null)
   const [slides, setSlides] = useState<string[] | null>(null)
@@ -174,6 +175,7 @@ function Document({ text, theme, sealed }: { text: string; theme: Theme; sealed:
         </button>
       </HeaderSlot>
       {slides && <Presentation slides={slides} theme={theme} onClose={closePresentation} />}
+      {banner}
       <div className={toc.length >= 3 ? 'reader-body with-toc' : 'reader-body'}>
         <Toc entries={toc} />
         <div className="reader-sheet">

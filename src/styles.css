@@ -2031,3 +2031,170 @@ button:disabled {
 .json-reader-view .jse-main {
   border: 0;
 }
+
+/* ---- Live documents ---- */
+.page-app .live-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.live-page > .editor,
+.live-page > .json-page {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+.live-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.4rem 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.live-bar > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.live-bar-version {
+  font: 500 0.85rem/1 var(--font-mono);
+  color: var(--accent);
+}
+
+.live-bar-by {
+  color: var(--muted);
+}
+
+.live-bar-newer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.live-bar-newer button {
+  padding: 0.15rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.page-reader .live-bar {
+  max-width: 1180px;
+  margin: 0 auto 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.live-share h3 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.live-share-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+}
+
+.name-prompt input {
+  width: 100%;
+  height: 36px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.name-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.conflict-dialog {
+  max-width: min(760px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+}
+
+.conflict-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.conflict-list fieldset {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem 0.75rem;
+}
+
+.conflict-list legend {
+  font: 500 0.82rem/1 var(--font-mono);
+  color: var(--muted);
+  padding: 0 0.3rem;
+}
+
+.conflict-sides {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.conflict-sides pre {
+  margin: 0;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: var(--code-bg);
+  font: 0.82rem/1.45 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.conflict-choices {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 560px) {
+  .conflict-sides {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The editor header is full: Share to edit shows its icon only until there is room for the label. */
+@media (max-width: 1440px) {
+  .share-live-button .header-button-label {
+    display: none;
+  }
+}
+
+.live-actions .live-copy-read {
+  border: 0;
+  background: transparent;
+}
+
+/* Phones: the header's two rows are full; Share to edit lives in the command palette. */
+@media (max-width: 760px) {
+  .share-live-button {
+    display: none;
+  }
+}
