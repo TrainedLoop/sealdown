@@ -72,7 +72,7 @@ test('database errors map to live error kinds', async () => {
   const cases: [Response, string, number?][] = [
     [pgError('42501', null, 403), 'forbidden'],
     [pgError('P0002', null, 404), 'missing'],
-    [pgError('40001', '7', 409), 'stale', 7],
+    [pgError('PT409', '7', 409), 'stale', 7],
     [pgError('53100', null, 500), 'full'],
     [pgError('23514', null, 400), 'too-large'],
     [new Response('bad gateway', { status: 502 }), 'network'],

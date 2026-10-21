@@ -34,7 +34,8 @@ export interface LiveStorage {
 const KINDS: Record<string, LiveErrorKind> = {
   '42501': 'forbidden',
   P0002: 'missing',
-  '40001': 'stale',
+  // PostgREST's code for an HTTP 409 (a plain 40001 would make the hosted API retry forever).
+  PT409: 'stale',
   '53100': 'full',
   '23514': 'too-large',
 }

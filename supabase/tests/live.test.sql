@@ -31,7 +31,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select sealdown.save_version((select id from ids where name = 'a'), (select value from t where name = 'token'), 0, encode('x', 'base64'), '')$$,
-  '40001', null, 'a stale base is refused'
+  'PT409', null, 'a stale base is refused (PT409: HTTP 409, never retried by the API layer)'
 );
 select is(
   sealdown.save_version((select id from ids where name = 'a'), (select value from t where name = 'token'), 1, encode('v2', 'base64'), encode('bob', 'base64')),
@@ -63,7 +63,7 @@ declare d text;
 begin
   perform sealdown.save_version((select id from ids where name = 'a'), (select value from t where name = 'token'), 1, encode('x', 'base64'), '');
   return null;
-exception when serialization_failure then
+exception when sqlstate 'PT409' then
   get stacked diagnostics d = pg_exception_detail;
   return d;
 end $$;
