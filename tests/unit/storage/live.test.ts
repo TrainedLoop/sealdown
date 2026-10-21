@@ -98,3 +98,9 @@ test('the write token travels as standard base64, as the database decodes it', a
   await createLiveStorage(config, impl).save('Ab3dE5gH9k', '-_8', 1, bytes(0), bytes())
   expect(calls[0].body.write_token).toBe('+/8=')
 })
+
+test('save sends the browser writer id so autosaves collapse', async () => {
+  const { impl, calls } = fakeFetch(() => json(2))
+  await createLiveStorage(config, impl).save('Ab3dE5gH9k', 'AQ', 1, bytes(0), bytes(), 'w-123')
+  expect(calls[0].body.writer).toBe('w-123')
+})

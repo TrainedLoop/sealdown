@@ -22,10 +22,12 @@ Live at https://trainedloop.github.io/sealdown/.
   both panes together, value by value), with format, compact, sort, repair and transform. Open or drop a `.json` file, export `.json`, and seal it the same way;
   a JSON link opens as a read-only tree with **Edit a copy**. The library loads only on JSON pages.
 - **Live documents** (Share to edit): an edit link and a read link to one document that several
-  people keep up to date, each in their own time. Save version publishes what you typed; when
-  someone saved meanwhile, changes are merged (by line for Markdown, by path for JSON) and only
-  overlapping changes are shown for you to choose. The newest 50 versions can be viewed, compared
-  and restored. Still encrypted in the browser, with no accounts.
+  people keep up to date. Edits save on their own after a short pause (Ctrl/Cmd+S saves at once),
+  and versions others save arrive in your editor within seconds, merged with what you are typing
+  (by line for Markdown, by path for JSON) without moving your cursor. Only changes both sides made
+  to the same part wait for you to choose. The newest 50 versions can be viewed, compared and
+  restored; a run of saves by the same browser within five minutes keeps only its last version.
+  Still encrypted in the browser, with no accounts.
 - Text styles (Modern, Editorial, Technical), dark and light themes, English and Portuguese, and a
   command palette (Ctrl/Cmd+K).
 
@@ -93,7 +95,7 @@ json); on a shared link that is known once the document is unsealed.
 | `command_run` | `command` (command id) |
 | `live_created` | — |
 | `live_opened` | `access`: edit, read |
-| `version_saved` | `merged`, `conflicts` (count) |
+| `version_saved` | `merged`, `conflicts` (count); sent for merged saves and the first save of a visit, not every autosave |
 | `conflict_resolved` | `conflicts` (count) |
 | `version_restored` | — |
 | `versions_viewed` | — |

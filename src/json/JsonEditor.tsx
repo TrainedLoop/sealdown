@@ -1,5 +1,8 @@
 import { parse, stringify } from 'lossless-json'
+import { Transaction } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
+import { minimalChange } from '../editor/minimalChange.ts'
 import { createJSONEditor, Mode, toTextContent, type Content, type JSONParser, type MenuItem, type JsonEditor as Instance } from 'vanilla-jsoneditor'
 import './json.css'
 
@@ -79,8 +82,16 @@ export default function JsonEditor({ text, mode, readOnly = false, lockMode = fa
 
   useEffect(() => {
     // Our own edits echo back as the same text: leave the editor (and its cursor) alone then.
-    if (editor.current && currentText(editor.current) !== text) void editor.current.update({ text })
-  }, [text])
+    if (!editor.current || currentText(editor.current) === text) return
+    // In text mode, edit the CodeMirror document directly with the smallest change, so text arriving
+    // from elsewhere (a live document) keeps the cursor; the library's update() replaces it all.
+    const content = target.current?.querySelector<HTMLElement>('.cm-content')
+    const view = mode === 'text' && content ? EditorView.findFromDOM(content) : null
+    const change = view && minimalChange(view.state.doc.toString(), text)
+    // Someone else's change: out of this person's undo history.
+    if (view && change) view.dispatch({ changes: change, annotations: Transaction.addToHistory.of(false) })
+    else void editor.current.update({ text })
+  }, [text, mode])
 
   useEffect(() => {
     void editor.current?.updateProps({ mode: mode as Mode, readOnly, ariaLabel: label })

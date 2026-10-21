@@ -1,6 +1,7 @@
-import { EditorState, type TransactionSpec } from '@codemirror/state'
+import { EditorState, Transaction, type TransactionSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
+import { minimalChange } from './minimalChange.ts'
 import { parseDiagram } from '../render/mermaid.ts'
 import { hintMessage } from '../render/hintMessage.ts'
 import { editorExtensions, insertAtCursor } from './codemirror.ts'
@@ -23,7 +24,7 @@ type Props = {
   onScrollLine?: (line: number) => void
 }
 
-/** CodeMirror, loaded as its own chunk (see EditorPage). Controlled: external value changes replace the document. */
+/** CodeMirror, loaded as its own chunk (see EditorPage). Controlled: external value changes are applied as the smallest edit. */
 export default function CodeEditor({ value, onChange, label, onReady, onScrollLine }: Props) {
   const parent = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
@@ -80,9 +81,9 @@ export default function CodeEditor({ value, onChange, label, onReady, onScrollLi
 
   useEffect(() => {
     const editor = view.current
-    if (editor && editor.state.doc.toString() !== value) {
-      editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } })
-    }
+    // Only the part that changed: text arriving from elsewhere (a live document) keeps the cursor.
+    const change = editor && minimalChange(editor.state.doc.toString(), value)
+    if (editor && change) editor.dispatch({ changes: change, annotations: Transaction.addToHistory.of(false) })
   }, [value])
 
   return <div ref={parent} className="code-editor" />

@@ -77,6 +77,11 @@ export function JsonEditorPage({ live }: { live?: LiveEditorProps } = {}) {
   }, [mode, syncScroll])
 
   const latest = useRef(text)
+  // A live document's incoming text (merged from others) replaces what is on screen.
+  const incoming = live?.incoming
+  useEffect(() => {
+    if (incoming) setText(incoming.text)
+  }, [incoming])
   useEffect(() => {
     latest.current = text
     const timer = setTimeout(() => {

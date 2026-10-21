@@ -191,3 +191,10 @@ test('a tab reload finds its own draft even when another tab saved meanwhile', (
   localStorage.setItem('sealdown.live.tabs000000', JSON.stringify({ base: 2, baseText: 'x', draft: 'x' }))
   expect(loadLocal('tabs000000')).toEqual({ base: 1, baseText: 'b', draft: 'tab B draft' })
 })
+
+test('the writer id is random, stable per browser', async () => {
+  const { writerId } = await import('../../../src/live/author.ts')
+  const id = writerId()
+  expect(id).toMatch(/^[A-Za-z0-9_-]{16,}$/)
+  expect(writerId()).toBe(id)
+})

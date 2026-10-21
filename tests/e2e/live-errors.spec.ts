@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 import { editorValue } from './helpers.ts'
 
-// Runs against the local Supabase (scripts/e2e-stored.sh).
+// Runs against the local Supabase (scripts/e2e-stored.sh). Saves happen on their own after a pause.
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
 const secret = 'LIVE SECRET NOTES 7c1e'
+const ARRIVES = { timeout: 12_000 }
 
 async function share(page: Page, text: string): Promise<{ edit: string; read: string }> {
   await page.addInitScript(() => localStorage.setItem('sealdown.author', 'Ana'))
@@ -29,8 +30,7 @@ test('a version over 1 MB is explained', async ({ page }) => {
   await page.goto(edit)
   await failSave(page, '23514')
   await editor(page).fill('bigger')
-  await page.getByRole('button', { name: 'Save version' }).click()
-  await expect(page.getByRole('alert')).toHaveText('This version is larger than 1 MB.')
+  await expect(page.getByRole('alert')).toHaveText('This version is larger than 1 MB.', ARRIVES)
 })
 
 test('a full database keeps the draft', async ({ page }) => {
@@ -38,8 +38,7 @@ test('a full database keeps the draft', async ({ page }) => {
   await page.goto(edit)
   await failSave(page, '53100')
   await editor(page).fill('kept')
-  await page.getByRole('button', { name: 'Save version' }).click()
-  await expect(page.getByRole('alert')).toHaveText("Can't save right now. Your changes are kept in this browser.")
+  await expect(page.getByRole('alert')).toHaveText("Can't save right now. Your changes are kept in this browser.", ARRIVES)
 })
 
 test('a failed connection keeps the draft, even after a reload', async ({ page }) => {
@@ -47,8 +46,7 @@ test('a failed connection keeps the draft, even after a reload', async ({ page }
   await page.goto(edit)
   await page.route('**/rpc/save_version', (route) => route.abort())
   await editor(page).fill('kept offline')
-  await page.getByRole('button', { name: 'Save version' }).click()
-  await expect(page.getByRole('alert')).toHaveText("Couldn't save. Your changes are kept in this browser.")
+  await expect(page.getByRole('alert')).toHaveText("Couldn't save. Your changes are kept in this browser.", ARRIVES)
   await page.unroute('**/rpc/save_version')
   await page.reload()
   await expect.poll(() => editorValue(page)).toBe('kept offline')
@@ -76,8 +74,7 @@ test('analytics see live events but never the token or the text', async ({ page 
   const { edit } = await share(page, `# ${secret}`)
   await page.goto(edit)
   await editor(page).fill(`# ${secret}\n\nmore`)
-  await page.getByRole('button', { name: 'Save version' }).click()
-  await expect(page.getByRole('region', { name: 'Live document' })).toContainText('v2')
+  await expect(page.getByRole('region', { name: 'Live document' })).toContainText('v2', ARRIVES)
   await expect.poll(() => bodies.join('\n'), { timeout: 15_000 }).toContain('version_saved')
   const sent = bodies.join('\n')
   const token = edit.split('.').at(-1)!

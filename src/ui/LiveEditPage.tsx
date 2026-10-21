@@ -5,21 +5,34 @@ import { loadAuthor, saveAuthor } from '../live/author.ts'
 import { readLinkOf, type LiveEditRoute } from '../live/links.ts'
 import { loadLocal, saveLocal, type LocalLive } from '../live/localState.ts'
 import type { Choice } from '../live/merge.ts'
-import { carryOver, openLive, openVersion, restoreVersion, saveDraft, saveResolved, updateFromLatest, type Conflicted, type Latest, type SaveOutcome } from '../live/session.ts'
+import {
+  carryOver,
+  openLive,
+  restoreVersion,
+  saveDraft,
+  saveResolved,
+  updateFromLatest,
+  type Conflicted,
+  type Latest,
+  type SaveOutcome,
+} from '../live/session.ts'
 import { buildHash } from '../router/route.ts'
 import type { DocType } from '../share/docType.ts'
 import { defaultLiveStorage, LiveError, type LiveErrorKind } from '../storage/live.ts'
 import { ConflictDialog } from './ConflictDialog.tsx'
 import { EditorPage } from './EditorPage.tsx'
-import { JsonEditorPage } from './JsonEditorPage.tsx'
 import { LinkIcon } from './icons.tsx'
-import { LiveBar, type Newer } from './LiveBar.tsx'
+import { JsonEditorPage } from './JsonEditorPage.tsx'
+import { LiveBar, type SaveStatus } from './LiveBar.tsx'
 import type { LiveEditorProps } from './liveEditorProps.ts'
 import { LiveReadPage } from './LiveReadPage.tsx'
 import { NamePrompt } from './NamePrompt.tsx'
-import { VersionsPanel } from './VersionsPanel.tsx'
 import type { Theme } from './theme.ts'
 import { useLivePolling } from './useLivePolling.ts'
+import { VersionsPanel } from './VersionsPanel.tsx'
+
+/** Quiet time after the editor reports an edit before a version is saved on its own. */
+const AUTOSAVE_MS = 1500
 
 type Info = { type: DocType; version: number; author: string; createdAt: string }
 type State = { kind: 'loading' } | { kind: 'ready' } | { kind: 'forbidden' } | { kind: 'error'; error: LiveErrorKind }
@@ -33,88 +46,75 @@ const ERROR_COPY: Partial<Record<LiveErrorKind, string>> = {
 }
 
 /**
- * A live document through its edit link: the usual editor for its type, a draft kept in this
- * browser, and "Save version", which merges with whatever others saved meanwhile.
+ * A live document through its edit link: the usual editor for its type. Edits save on their own
+ * after a short pause, and versions others save are merged into the text on screen as they arrive.
+ * Only changes both sides made to the same part wait for the person to choose.
  */
 export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Theme }) {
   const { t } = useTranslation()
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [info, setInfo] = useState<Info | null>(null)
-  const [behind, setBehind] = useState<Newer | null>(null)
-  const [editorKey, setEditorKey] = useState(0)
-  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState<SaveStatus>('saved')
+  const [incoming, setIncoming] = useState<{ text: string; seq: number } | undefined>(undefined)
   const [problem, setProblem] = useState<LiveErrorKind | null>(null)
   const [conflict, setConflict] = useState<PendingConflict | null>(null)
-  const [askName, setAskName] = useState<((name: string | null) => void) | null>(null)
+  const [showConflict, setShowConflict] = useState(false)
+  const [askName, setAskName] = useState(false)
   const [readCopied, setReadCopied] = useState(false)
   const [showVersions, setShowVersions] = useState(false)
-  // The draft this tab works on. Kept in memory so another tab saving never changes the text here.
+  // The draft this tab works on, kept in memory so another tab saving never changes the text here.
   const local = useRef<LocalLive | null>(null)
   const getText = useRef<() => string>(() => local.current?.draft ?? '')
-  // While a new text replaces the editor, the old editor's unmount flush must not write over it.
-  const replacing = useRef(false)
+  const infoRef = useRef<Info | null>(null)
+  const busy = useRef(false)
+  const again = useRef(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // A pending conflict holds autosave and receiving until the person chooses.
+  const held = useRef(false)
+  const firstSave = useRef(true)
   const { id, key, token } = route
+
+  useEffect(() => {
+    infoRef.current = info
+  }, [info])
+  useEffect(() => {
+    held.current = conflict !== null
+  }, [conflict])
 
   useEffect(() => {
     let cancelled = false
     const edit: LiveEditRoute = { kind: 'live-edit', id, key, token }
     ;(async () => {
       const opened = await openLive(edit, defaultLiveStorage)
+      if (cancelled) return
       const stored = loadLocal(id)
       const unsaved = stored !== null && stored.draft !== stored.baseText && stored.base <= opened.version
-      if (unsaved && stored.base < opened.version) {
-        // Unsaved changes on an older version: keep them, and offer the newer one through Update.
-        const base = await openVersion(edit, stored.base, defaultLiveStorage).catch(() => null)
-        if (cancelled) return
-        local.current = stored
-        setInfo({ type: opened.doc.type, version: stored.base, author: base?.author ?? '', createdAt: base?.createdAt ?? opened.createdAt })
-        setBehind({ version: opened.version, author: opened.author })
-      } else {
-        if (cancelled) return
-        local.current = unsaved ? stored : { base: opened.version, baseText: opened.doc.text, draft: opened.doc.text }
-        setInfo({ type: opened.doc.type, version: opened.version, author: opened.author, createdAt: opened.createdAt })
-      }
-      saveLocal(id, local.current!)
+      // Unsaved changes from an earlier visit are kept; their first save merges whatever came since.
+      local.current = unsaved ? stored : { base: opened.version, baseText: opened.doc.text, draft: opened.doc.text }
+      saveLocal(id, local.current)
+      setInfo({ type: opened.doc.type, version: opened.version, author: opened.author, createdAt: opened.createdAt })
+      setStatus(unsaved ? 'unsaved' : 'saved')
       track('live_opened', { access: 'edit' })
       setState({ kind: 'ready' })
+      if (loadAuthor() === null) setAskName(true)
     })().catch((error: unknown) => {
       if (!cancelled) setState({ kind: 'error', error: error instanceof LiveError ? error.kind : 'network' })
     })
     return () => {
       cancelled = true
+      clearTimeout(timer.current)
     }
   }, [id, key, token])
 
-  const [polled, clearPolled] = useLivePolling(route, info?.version ?? null)
-  const newer = polled ?? behind
-
-  useEffect(() => {
-    replacing.current = false
-  }, [editorKey])
-
-  const draft = useMemo<LiveEditorProps['draft']>(
-    () => ({
-      load: () => local.current?.draft ?? '',
-      save: (text) => {
-        if (replacing.current || !local.current) return
-        local.current = { ...local.current, draft: text }
-        saveLocal(id, local.current)
-      },
-    }),
-    [id],
-  )
-
-  function replaceText(next: LocalLive) {
+  function persist(next: LocalLive) {
     local.current = next
     saveLocal(id, next)
-    replacing.current = true
-    setEditorKey((k) => k + 1)
   }
 
-  const askForName = useCallback(
-    () => new Promise<string | null>((resolve) => setAskName(() => resolve)),
-    [],
-  )
+  /** Puts text that came from others on screen, as the smallest edit (the cursor stays). */
+  function show(text: string) {
+    setIncoming((old) => ({ text, seq: (old?.seq ?? 0) + 1 }))
+  }
 
   function fail(error: unknown) {
     const kind = error instanceof LiveError ? error.kind : 'network'
@@ -122,141 +122,190 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     else setProblem(kind)
   }
 
-  function persist(next: LocalLive) {
-    local.current = next
-    saveLocal(id, next)
+  const unsavedNow = () => local.current !== null && getText.current() !== local.current.baseText
+
+  function schedule() {
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => void saveRef.current(), AUTOSAVE_MS)
   }
 
-  function settle(outcome: SaveOutcome, typed: string, author: string, conflicts = 0, restored = false) {
+  /** Applies a save's result; returns false when it ended in a conflict. */
+  function settle(outcome: SaveOutcome, typed: string, author: string): boolean {
     if (outcome.kind === 'conflicts') {
+      persist({ ...local.current!, draft: getText.current() })
+      held.current = true
       setConflict({ during: 'save', latest: outcome.latest, author: '', createdAt: '', merge: outcome.merge })
-      return
+      return false
     }
-    track(restored ? 'version_restored' : 'version_saved', { merged: outcome.merged || conflicts > 0, conflicts })
+    // Merged saves, and the first of the visit: one event per autosave pause would be noise.
+    if (outcome.merged || firstSave.current) track('version_saved', { merged: outcome.merged, conflicts: 0 })
+    firstSave.current = false
     const saved = { base: outcome.version, baseText: outcome.text }
     const current = getText.current()
     if (current === typed) {
-      // A merged save brought others' changes in: show them.
-      if (outcome.merged) replaceText({ ...saved, draft: outcome.text })
-      else persist({ ...saved, draft: outcome.text })
+      persist({ ...saved, draft: outcome.text })
+      if (outcome.merged) show(outcome.text)
     } else if (!outcome.merged) {
-      // Typed on while saving: the saved text is the new base, the rest stays unsaved.
       persist({ ...saved, draft: current })
     } else {
       // Typed on while a merged save ran: carry the late typing onto the merged text. If it
       // overlaps, keep the old base so the next save merges the others' changes in again.
-      const carried = info ? carryOver(info.type, typed, current, outcome.text) : null
-      if (carried !== null) replaceText({ ...saved, draft: carried })
-      else persist({ ...local.current!, draft: current })
+      const carried = carryOver(infoRef.current!.type, typed, current, outcome.text)
+      if (carried !== null) {
+        persist({ ...saved, draft: carried })
+        show(carried)
+      } else {
+        persist({ ...local.current!, draft: current })
+      }
     }
     setInfo((old) => old && { ...old, version: outcome.version, author, createdAt: new Date().toISOString() })
-    setBehind(null)
-    clearPolled()
+    setProblem(null)
+    return true
+  }
+
+  /** Runs `work` alone (saves, receives and restores never overlap), then settles the status. */
+  async function exclusive(work: () => Promise<void>) {
+    busy.current = true
+    try {
+      await work()
+    } finally {
+      busy.current = false
+    }
+    if (held.current) {
+      setStatus('conflict')
+    } else if (again.current || unsavedNow()) {
+      again.current = false
+      setStatus('unsaved')
+      schedule()
+    } else {
+      setStatus('saved')
+    }
   }
 
   async function save() {
-    if (busy || !local.current || !info) return
-    const typed = getText.current()
-    local.current = { ...local.current, draft: typed }
-    // Kept in the browser before anything can fail, so the text survives a failed save and a reload.
-    saveLocal(id, local.current)
-    const author = loadAuthor() ?? (await askForName())
-    if (author === null) return
-    setBusy(true)
-    setProblem(null)
-    try {
-      settle(await saveDraft(route, local.current, info.type, author, defaultLiveStorage), typed, author)
-    } catch (error) {
-      fail(error)
-    } finally {
-      setBusy(false)
+    clearTimeout(timer.current)
+    if (!local.current || !infoRef.current || held.current) return
+    if (busy.current) {
+      again.current = true
+      return
     }
+    const typed = getText.current()
+    persist({ ...local.current, draft: typed })
+    if (typed === local.current.baseText) {
+      setStatus('saved')
+      return
+    }
+    setStatus('saving')
+    const author = loadAuthor() ?? ''
+    await exclusive(async () => {
+      try {
+        settle(await saveDraft(route, local.current!, infoRef.current!.type, author, defaultLiveStorage), typed, author)
+      } catch (error) {
+        fail(error)
+      }
+    })
   }
 
-  async function update() {
-    if (busy || !local.current || !info) return
+  // Someone else saved: merge their version into the text on screen right away.
+  async function receive() {
+    if (!local.current || !infoRef.current || busy.current || held.current) return
     const before = getText.current()
-    local.current = { ...local.current, draft: before }
-    saveLocal(id, local.current)
-    setBusy(true)
-    setProblem(null)
-    try {
-      const outcome = await updateFromLatest(route, local.current, info.type, defaultLiveStorage)
-      if (outcome.kind === 'conflicts') {
-        setConflict({ during: 'update', latest: outcome.latest, author: outcome.author, createdAt: outcome.createdAt, merge: outcome.merge })
-      } else {
-        // Keep what was typed while the update was on its way.
-        const carried = carryOver(info.type, before, getText.current(), outcome.local.draft)
-        if (carried === null) {
-          persist({ ...local.current, draft: getText.current() })
+    persist({ ...local.current, draft: before })
+    await exclusive(async () => {
+      try {
+        const outcome = await updateFromLatest(route, local.current!, infoRef.current!.type, defaultLiveStorage)
+        if (outcome.kind === 'conflicts') {
+          held.current = true
+          setConflict({ during: 'update', latest: outcome.latest, author: outcome.author, createdAt: outcome.createdAt, merge: outcome.merge })
           return
         }
-        replaceText({ ...outcome.local, draft: carried })
+        const carried = carryOver(infoRef.current!.type, before, getText.current(), outcome.local.draft)
+        if (carried === null) return // typed over the incoming change meanwhile: the next save merges it
+        persist({ ...outcome.local, draft: carried })
+        show(carried)
         setInfo((old) => old && { ...old, version: outcome.local.base, author: outcome.author, createdAt: outcome.createdAt })
-        setBehind(null)
-        clearPolled()
+      } catch {
+        // The next poll tries again.
       }
-    } catch (error) {
-      fail(error)
-    } finally {
-      setBusy(false)
+    })
+  }
+
+  const saveRef = useRef(save)
+  const receiveRef = useRef(receive)
+  useEffect(() => {
+    saveRef.current = save
+    receiveRef.current = receive
+  })
+
+  useLivePolling(route, state.kind === 'ready' ? (info?.version ?? null) : null, () => void receiveRef.current())
+
+  const draft = useMemo<LiveEditorProps['draft']>(
+    () => ({
+      load: () => local.current?.draft ?? '',
+      save: (text) => {
+        if (!local.current) return
+        local.current = { ...local.current, draft: text }
+        saveLocal(id, local.current)
+        if (text === local.current.baseText || held.current) return
+        if (!busy.current) setStatus('unsaved')
+        clearTimeout(timer.current)
+        timer.current = setTimeout(() => void saveRef.current(), AUTOSAVE_MS)
+      },
+    }),
+    [id],
+  )
+
+  async function resolve(choices: Record<number, Choice>) {
+    if (!conflict || !infoRef.current) return
+    const pending = conflict
+    const text = pending.merge.resolve(choices)
+    track('conflict_resolved', { conflicts: pending.merge.conflicts.length })
+    held.current = false
+    setConflict(null)
+    setShowConflict(false)
+    show(text)
+    if (pending.during === 'update') {
+      persist({ base: pending.latest.version, baseText: pending.latest.text, draft: text })
+      setInfo((old) => old && { ...old, version: pending.latest.version, author: pending.author, createdAt: pending.createdAt || old.createdAt })
+      setStatus(text === pending.latest.text ? 'saved' : 'unsaved')
+      if (text !== pending.latest.text) schedule()
+      return
     }
+    // Save the resolution on top of the version it was resolved against.
+    setStatus('saving')
+    const author = loadAuthor() ?? ''
+    await exclusive(async () => {
+      try {
+        settle(await saveResolved(route, pending.latest, text, infoRef.current!.type, author, defaultLiveStorage), text, author)
+      } catch (error) {
+        fail(error)
+      }
+    })
   }
 
   async function restore(version: number) {
-    if (busy || !local.current || !info) return
-    const current = getText.current()
+    if (busy.current || !local.current || !infoRef.current) return
     // Restoring replaces the text on screen: unsaved changes would be lost.
-    if (current !== local.current.baseText && !window.confirm(t('live.restoreConfirm'))) return
+    if (unsavedNow() && !window.confirm(t('live.restoreConfirm'))) return
+    clearTimeout(timer.current)
     setShowVersions(false)
-    const author = loadAuthor() ?? (await askForName())
-    if (author === null) return
-    setBusy(true)
-    setProblem(null)
-    try {
-      const outcome = await restoreVersion(route, version, local.current, info.type, author, defaultLiveStorage)
-      // The restored text replaces what is on screen.
-      if (outcome.kind === 'saved') replaceText({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
-      settle(outcome, getText.current(), author, 0, true)
-    } catch (error) {
-      fail(error)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function resolve(choices: Record<number, Choice>) {
-    if (!conflict || !info) return
-    const text = conflict.merge.resolve(choices)
-    const conflicts = conflict.merge.conflicts.length
-    track('conflict_resolved', { conflicts })
-    setConflict(null)
-    if (conflict.during === 'update') {
-      replaceText({ base: conflict.latest.version, baseText: conflict.latest.text, draft: text })
-      setInfo((old) => old && { ...old, version: conflict.latest.version, author: conflict.author, createdAt: conflict.createdAt || old.createdAt })
-      setBehind(null)
-      clearPolled()
-      return
-    }
+    setStatus('saving')
     const author = loadAuthor() ?? ''
-    setBusy(true)
-    try {
-      const outcome = await saveResolved(route, conflict.latest, text, info.type, author, defaultLiveStorage)
-      // The resolved text is what the person chose: show it.
-      if (outcome.kind === 'saved') replaceText({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
-      settle(outcome, getText.current(), author, conflicts)
-    } catch (error) {
-      fail(error)
-    } finally {
-      setBusy(false)
-    }
+    await exclusive(async () => {
+      try {
+        const outcome = await restoreVersion(route, version, local.current!, infoRef.current!.type, author, defaultLiveStorage)
+        if (outcome.kind !== 'saved') return void settle(outcome, getText.current(), author)
+        track('version_restored')
+        persist({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
+        show(outcome.text)
+        setInfo((old) => old && { ...old, version: outcome.version, author, createdAt: new Date().toISOString() })
+      } catch (error) {
+        fail(error)
+      }
+    })
   }
 
-  // Ctrl/Cmd+S saves a version (instead of the browser's "save page").
-  const saveRef = useRef(save)
-  useEffect(() => {
-    saveRef.current = save
-  })
+  // Ctrl/Cmd+S saves right away (instead of the browser's "save page").
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's') {
@@ -278,8 +327,17 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     }
   }
 
+  const submitName = useCallback((name: string) => {
+    saveAuthor(name)
+    setAskName(false)
+  }, [])
+  const cancelName = useCallback(() => setAskName(false), [])
+  const closeConflict = useCallback(() => setShowConflict(false), [])
+  const closeVersions = useCallback(() => setShowVersions(false), [])
+
   const live: LiveEditorProps = {
     draft,
+    incoming,
     actions: (current) => {
       getText.current = current
       return (
@@ -293,9 +351,6 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
           >
             <LinkIcon />
             <span className="header-button-label">{t(readCopied ? 'live.readCopied' : 'live.copyRead')}</span>
-          </button>
-          <button type="button" className="primary seal-button" disabled={busy} onClick={() => void save()}>
-            {t(busy ? 'live.saving' : 'live.save')}
           </button>
         </div>
       )
@@ -319,40 +374,24 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
         version={info.version}
         author={info.author}
         createdAt={info.createdAt}
-        newer={newer}
-        onUpdate={() => void update()}
-        busy={busy}
+        status={status}
+        conflicts={conflict?.merge.conflicts.length ?? 0}
+        onResolve={() => setShowConflict(true)}
         onVersions={() => {
           track('versions_viewed')
           setShowVersions(true)
         }}
       />
-      {showVersions && <VersionsPanel route={route} onRestore={(n) => void restore(n)} onClose={() => setShowVersions(false)} />}
+      {showVersions && <VersionsPanel route={route} onRestore={(n) => void restore(n)} onClose={closeVersions} />}
       {problem && ERROR_COPY[problem] && (
         <div className="notice" role="alert">
           <p>{t(ERROR_COPY[problem] as 'live.errors.network')}</p>
         </div>
       )}
-      {info.type === 'json' ? (
-        <JsonEditorPage key={editorKey} live={live} />
-      ) : (
-        <EditorPage key={editorKey} theme={theme} live={live} />
-      )}
-      {askName && (
-        <NamePrompt
-          onSubmit={(name) => {
-            saveAuthor(name)
-            askName(name)
-            setAskName(null)
-          }}
-          onCancel={() => {
-            askName(null)
-            setAskName(null)
-          }}
-        />
-      )}
-      {conflict && (
-        <ConflictDialog conflicts={conflict.merge.conflicts} docType={info.type} onResolve={(choices) => void resolve(choices)} onCancel={() => setConflict(null)} />
+      {info.type === 'json' ? <JsonEditorPage live={live} /> : <EditorPage theme={theme} live={live} />}
+      {askName && <NamePrompt onSubmit={submitName} onCancel={cancelName} />}
+      {conflict && showConflict && (
+        <ConflictDialog conflicts={conflict.merge.conflicts} docType={info.type} onResolve={(choices) => void resolve(choices)} onCancel={closeConflict} />
       )}
     </div>
   )

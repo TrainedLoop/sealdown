@@ -3,25 +3,26 @@ import { useTranslation } from 'react-i18next'
 import { People } from './icons.tsx'
 import { relativeTime } from './relativeTime.ts'
 
-export type Newer = { version: number; author: string }
+export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'conflict'
 
-/** The strip above a live document: version, who saved it and when, and news of a newer version. */
+/** The strip above a live document: version, who saved it and when, and (when editing) the save state. */
 export function LiveBar({
   version,
   author,
   createdAt,
-  newer,
-  onUpdate,
-  busy = false,
+  status,
+  conflicts = 0,
+  onResolve,
   onVersions,
   children,
 }: {
   version: number
   author: string
   createdAt: string
-  newer?: Newer | null
-  onUpdate?: () => void
-  busy?: boolean
+  /** Absent on the read link. */
+  status?: SaveStatus
+  conflicts?: number
+  onResolve?: () => void
   onVersions?: () => void
   children?: ReactNode
 }) {
@@ -32,13 +33,19 @@ export function LiveBar({
       <People />
       <span className="live-bar-version">{t('live.version', { version })}</span>
       <span className="live-bar-by">{author ? t('live.by', { author, time }) : time}</span>
-      {newer && (
-        <span className="live-bar-newer" role="status">
-          {t('live.newer', { author: newer.author || t('live.someone'), version: newer.version })}
-          {onUpdate && (
-            <button type="button" disabled={busy} onClick={onUpdate}>
-              {t('live.update')}
-            </button>
+      {status && (
+        <span className={`live-bar-status live-bar-${status}`} role="status">
+          {status === 'conflict' ? (
+            <>
+              {t('live.conflicts', { count: conflicts })}
+              {onResolve && (
+                <button type="button" onClick={onResolve}>
+                  {t('live.resolve')}
+                </button>
+              )}
+            </>
+          ) : (
+            t(`live.${status}`)
           )}
         </span>
       )}

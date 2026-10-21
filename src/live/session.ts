@@ -2,7 +2,7 @@ import { compress, decompress } from '../share/codec.ts'
 import { decrypt, encryptWithKey, newKey } from '../share/crypto.ts'
 import { decodeDoc, encodeDoc, type Doc, type DocType } from '../share/docType.ts'
 import { LiveError, type LiveStorage } from '../storage/live.ts'
-import { decryptAuthor, encryptAuthor } from './author.ts'
+import { decryptAuthor, encryptAuthor, writerId } from './author.ts'
 import { newWriteToken, readLinkOf, writeHash, type LiveEditRoute, type LiveReadRoute } from './links.ts'
 import type { LocalLive } from './localState.ts'
 import { mergeJson, mergeMarkdown, type MergeResult } from './merge.ts'
@@ -66,7 +66,7 @@ export async function saveDraft(route: LiveEditRoute, local: LocalLive, type: Do
   const card = await encryptAuthor(author, route.key)
   for (let attempt = 1; ; attempt++) {
     try {
-      const version = await storage.save(route.id, route.token, base, await seal({ type, text }, route.key), card)
+      const version = await storage.save(route.id, route.token, base, await seal({ type, text }, route.key), card, writerId())
       return { kind: 'saved', version, text, merged }
     } catch (error) {
       if (!(error instanceof LiveError) || error.kind !== 'stale' || attempt >= MAX_ATTEMPTS) throw error

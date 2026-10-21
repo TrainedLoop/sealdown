@@ -2,9 +2,11 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import { editorValue, jsonText, setJsonText } from './helpers.ts'
 
 // Runs against the local Supabase (scripts/e2e-stored.sh): live documents need storage.
+// Edits save on their own after a pause, and others' versions arrive within a poll (5 s).
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
 const liveBar = (page: Page) => page.getByRole('region', { name: 'Live document' })
+const ARRIVES = { timeout: 12_000 }
 
 async function share(page: Page, text: string): Promise<{ edit: string; read: string }> {
   await page.goto('/')
@@ -16,13 +18,16 @@ async function share(page: Page, text: string): Promise<{ edit: string; read: st
   return { edit, read }
 }
 
-async function saveAs(page: Page, name?: string) {
-  await page.getByRole('button', { name: 'Save version' }).click()
+/** Opens the edit link as `name` (asked once per browser). */
+async function openEdit(context: BrowserContext, url: string, name?: string): Promise<Page> {
+  const page = await context.newPage()
+  await page.goto(url)
   if (name) {
     const prompt = page.getByRole('dialog', { name: 'Your name' })
     await prompt.getByRole('textbox').fill(name)
     await prompt.getByRole('button', { name: 'Save' }).click()
   }
+  return page
 }
 
 async function openIn(context: BrowserContext, url: string): Promise<Page> {
@@ -31,71 +36,85 @@ async function openIn(context: BrowserContext, url: string): Promise<Page> {
   return page
 }
 
-test('Share to edit gives an edit link and a read link', async ({ page, context }) => {
+test('Share to edit gives an edit link and a read link; edits save on their own', async ({ page, context }) => {
   const { edit, read } = await share(page, '# Plan\n\nfirst')
   expect(edit).toMatch(/#\/w\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/)
   expect(read).toBe(edit.replace('#/w/', '#/l/').replace(/\.[A-Za-z0-9_-]{43}$/, ''))
 
-  const editor1 = await openIn(context, edit)
-  await expect(liveBar(editor1)).toContainText('v1')
-  await expect.poll(() => editorValue(editor1)).toBe('# Plan\n\nfirst')
-  await editor(editor1).fill('# Plan\n\nsecond')
-  await saveAs(editor1, 'Ana')
-  await expect(liveBar(editor1)).toContainText('v2')
-  await expect(liveBar(editor1)).toContainText('Ana')
+  const ana = await openEdit(context, edit, 'Ana')
+  await expect(liveBar(ana)).toContainText('v1')
+  await expect.poll(() => editorValue(ana)).toBe('# Plan\n\nfirst')
+  await expect(ana.getByRole('button', { name: 'Save version' })).toHaveCount(0)
+  await editor(ana).fill('# Plan\n\nsecond')
+  await expect(liveBar(ana)).toContainText('Unsaved changes')
+  await expect(liveBar(ana)).toContainText('v2', ARRIVES)
+  await expect(liveBar(ana)).toContainText('Ana')
+  await expect(liveBar(ana)).toContainText('Saved')
 
   const reader = await openIn(context, read)
   await expect(reader.getByText('second')).toBeVisible()
   await expect(liveBar(reader)).toContainText('v2')
-  await expect(reader.getByRole('button', { name: 'Save version' })).toHaveCount(0)
 })
 
-test('the page shows when someone else saves, and Update brings it in', async ({ page, context }) => {
-  const { edit } = await share(page, 'one\ntwo\nthree')
-  const ana = await context.newPage()
-  await ana.clock.install()
-  await ana.goto(edit)
-  await expect(liveBar(ana)).toContainText('v1')
-
-  const bob = await openIn(context, edit)
-  await expect.poll(() => editorValue(bob)).toBe('one\ntwo\nthree')
-  await editor(bob).fill('one\ntwo\nTHREE')
-  await saveAs(bob, 'Bob')
-  await expect(liveBar(bob)).toContainText('v2')
-
-  await ana.clock.fastForward('00:35')
-  await expect(liveBar(ana)).toContainText('Bob saved v2')
-  await liveBar(ana).getByRole('button', { name: 'Update' }).click()
-  await expect.poll(() => editorValue(ana)).toBe('one\ntwo\nTHREE')
-  await expect(liveBar(ana)).toContainText('v2')
-})
-
-test('saving after someone else merges both changes', async ({ page, context }) => {
-  const { edit } = await share(page, 'one\ntwo\nthree')
-  const ana = await openIn(context, edit)
-  const bob = await openIn(context, edit)
+test("others' versions arrive on their own, in the editor and on the read link", async ({ page, context, browser }) => {
+  const { edit, read } = await share(page, 'one\ntwo\nthree')
+  const ana = await openEdit(context, edit, 'Ana')
   await expect.poll(() => editorValue(ana)).toBe('one\ntwo\nthree')
+  const reader = await openIn(context, read)
+
+  const other = await browser.newContext()
+  const bob = await openEdit(other, edit, 'Bob')
   await expect.poll(() => editorValue(bob)).toBe('one\ntwo\nthree')
-  await editor(ana).fill('ONE\ntwo\nthree')
   await editor(bob).fill('one\ntwo\nTHREE')
-  await saveAs(bob, 'Bob')
-  await expect(liveBar(bob)).toContainText('v2')
-  // Ana's typed text stays on her screen while Bob saves.
-  await expect.poll(() => editorValue(ana)).toBe('ONE\ntwo\nthree')
-  // Same browser as Bob's tab, so the name is already known.
-  await saveAs(ana)
-  await expect(liveBar(ana)).toContainText('v3')
-  await expect.poll(() => editorValue(ana)).toBe('ONE\ntwo\nTHREE')
+  await expect(liveBar(bob)).toContainText('v2', ARRIVES)
+
+  await expect.poll(() => editorValue(ana), ARRIVES).toBe('one\ntwo\nTHREE')
+  await expect(liveBar(ana)).toContainText('v2')
+  await expect(reader.getByText('THREE')).toBeVisible(ARRIVES)
+  await other.close()
 })
 
-test('Ctrl/Cmd+S saves a version', async ({ page, context }) => {
+test('two people typing in different places both keep their changes', async ({ page, context, browser }) => {
+  const { edit } = await share(page, 'one\ntwo\nthree\nfour\nfive')
+  const ana = await openEdit(context, edit, 'Ana')
+  const other = await browser.newContext()
+  const bob = await openEdit(other, edit, 'Bob')
+  await expect.poll(() => editorValue(ana)).toBe('one\ntwo\nthree\nfour\nfive')
+  await expect.poll(() => editorValue(bob)).toBe('one\ntwo\nthree\nfour\nfive')
+  await editor(ana).fill('ONE\ntwo\nthree\nfour\nfive')
+  await editor(bob).fill('one\ntwo\nthree\nfour\nFIVE')
+  const both = 'ONE\ntwo\nthree\nfour\nFIVE'
+  await expect.poll(() => editorValue(ana), ARRIVES).toBe(both)
+  await expect.poll(() => editorValue(bob), ARRIVES).toBe(both)
+  await other.close()
+})
+
+test('the cursor stays where the person types when others change another part', async ({ page, context, browser }) => {
+  const { edit } = await share(page, 'top\n\nmiddle\n\nbottom')
+  const ana = await openEdit(context, edit, 'Ana')
+  await expect.poll(() => editorValue(ana)).toBe('top\n\nmiddle\n\nbottom')
+  const other = await browser.newContext()
+  const bob = await openEdit(other, edit, 'Bob')
+  await expect.poll(() => editorValue(bob)).toBe('top\n\nmiddle\n\nbottom')
+  await editor(bob).fill('TOP FROM BOB\n\nmiddle\n\nbottom')
+  await expect(liveBar(bob)).toContainText('v2', ARRIVES)
+
+  // Ana's cursor at the end of "bottom" before Bob's version arrives.
+  await editor(ana).click()
+  await ana.keyboard.press('ControlOrMeta+End')
+  await expect.poll(() => editorValue(ana), ARRIVES).toContain('TOP FROM BOB')
+  await ana.keyboard.type('!')
+  await expect.poll(() => editorValue(ana)).toBe('TOP FROM BOB\n\nmiddle\n\nbottom!')
+  await other.close()
+})
+
+test('Ctrl/Cmd+S saves right away', async ({ page, context }) => {
   const { edit } = await share(page, 'draft')
-  const ana = await openIn(context, edit)
+  const ana = await openEdit(context, edit, 'Ana')
+  await expect.poll(() => editorValue(ana)).toBe('draft')
   await editor(ana).fill('draft 2')
   await ana.keyboard.press('ControlOrMeta+s')
-  await ana.getByRole('dialog', { name: 'Your name' }).getByRole('textbox').fill('Ana')
-  await ana.getByRole('dialog', { name: 'Your name' }).getByRole('button', { name: 'Save' }).click()
-  await expect(liveBar(ana)).toContainText('v2')
+  await expect(liveBar(ana)).toContainText('v2', { timeout: 1000 })
 })
 
 test('JSON documents are shared for editing too', async ({ page, context }) => {
@@ -103,11 +122,10 @@ test('JSON documents are shared for editing too', async ({ page, context }) => {
   await setJsonText(page, '{"k": 1}')
   await page.getByRole('button', { name: 'Share to edit' }).click()
   const edit = await page.getByTestId('live-edit-url').inputValue()
-  const ana = await openIn(context, edit)
+  const ana = await openEdit(context, edit, 'Ana')
   await expect.poll(() => jsonText(ana)).toBe('{"k": 1}')
   await setJsonText(ana, '{"k": 2}')
-  await saveAs(ana, 'Ana')
-  await expect(liveBar(ana)).toContainText('v2')
+  await expect(liveBar(ana)).toContainText('v2', ARRIVES)
 })
 
 for (const width of [320, 375]) {

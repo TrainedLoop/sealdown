@@ -6,7 +6,7 @@ select has_schema('sealdown', 'sealdown has its own schema');
 select hasnt_table('public', 'docs', 'nothing is left in public');
 -- Each project in the shared database keeps its migration history in its own schema (dbmate).
 select has_table('sealdown', 'schema_migrations', 'migration history lives in the sealdown schema');
-select results_eq('select version::text from sealdown.schema_migrations order by version', $$values ('20261014000000'), ('20261021000000')$$, 'applied migrations are recorded');
+select results_eq('select version::text from sealdown.schema_migrations order by version', $$values ('20261014000000'), ('20261021000000'), ('20261022000000')$$, 'applied migrations are recorded');
 set local role anon;
 select throws_ok('select * from sealdown.docs', '42501', null, 'anon cannot read the table directly');
 select throws_ok($$insert into sealdown.docs (id, content) values ('x', '\x00')$$, '42501', null, 'anon cannot write the table directly');

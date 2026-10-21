@@ -26,7 +26,8 @@ export interface LiveStorage {
   head(id: string): Promise<number>
   version(id: string, version: number): Promise<LiveVersion>
   list(id: string): Promise<VersionInfo[]>
-  save(id: string, token: string, base: number, content: Uint8Array, author: Uint8Array): Promise<number>
+  /** `writer` is a random id per browser; the server collapses a run of saves by the same writer. */
+  save(id: string, token: string, base: number, content: Uint8Array, author: Uint8Array, writer?: string): Promise<number>
 }
 
 // SQLSTATEs raised by the live RPCs (db/migrations/20261021000000_live.sql).
@@ -85,7 +86,7 @@ export function createLiveStorage(config: SupabaseConfig, fetchImpl: typeof fetc
       const rows = (await rpc('list_versions', { doc_id: id })) as { version: number; author: string; size_bytes: number; created_at: string }[]
       return rows.map((r) => ({ version: r.version, author: fromBase64(r.author), sizeBytes: r.size_bytes, createdAt: r.created_at }))
     },
-    async save(id, token, base, content, author) {
+    async save(id, token, base, content, author, writer) {
       return (await rpc('save_version', {
         doc_id: id,
         // Links carry base64url; the database decodes standard base64.
@@ -93,6 +94,7 @@ export function createLiveStorage(config: SupabaseConfig, fetchImpl: typeof fetc
         base_version: base,
         content: toBase64(content),
         author: toBase64(author),
+        ...(writer && { writer }),
       })) as number
     },
   }

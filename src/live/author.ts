@@ -1,3 +1,4 @@
+import { base64urlEncode } from '../share/base64url.ts'
 import { decrypt, encryptWithKey } from '../share/crypto.ts'
 import { readPref, writePref } from '../ui/prefs.ts'
 
@@ -5,6 +6,16 @@ import { readPref, writePref } from '../ui/prefs.ts'
 // version they save, so only people with the link see who edited.
 
 const KEY = 'sealdown.author'
+const WRITER_KEY = 'sealdown.writer'
+
+/** A random id for this browser (not a name), sent with saves so a run of autosaves collapses. */
+export function writerId(): string {
+  const saved = readPref(WRITER_KEY)
+  if (saved) return saved
+  const id = base64urlEncode(crypto.getRandomValues(new Uint8Array(12)))
+  writePref(WRITER_KEY, id)
+  return id
+}
 
 export function loadAuthor(): string | null {
   return readPref(KEY)

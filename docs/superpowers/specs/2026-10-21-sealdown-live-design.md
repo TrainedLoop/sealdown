@@ -107,10 +107,19 @@ New events, no content, names, links or keys (`route` and `doc_type` come from t
 - **Database (pgTAP):** save needs the right token; stale base refused with the latest number; history capped at 50; inline pruning over the budget; `prune_docs` ranks both kinds and deletes live documents whole; database guard.
 - **E2E (local Supabase):** create and open both links (Markdown and JSON); two pages editing — clean merge and the conflict screen; update notice; view and restore a version; read link can't save; pruned document message.
 
-## 10. Out of scope
+## 10. Autosave (added 2026-10-22, replaces Save version and Update)
+
+- Edits save on their own about 2 s after the last change (Ctrl/Cmd+S saves at once). The live bar shows Saving…, Saved, Unsaved changes, or the conflict count with **Resolve**.
+- The edit and read pages ask `live_head` every 5 s while visible; a newer version is merged into the text on screen (edit link) or replaces the document (read link) without a click.
+- Incoming text is applied as the smallest CodeMirror change, outside the undo history, so the cursor stays where the person types.
+- A conflict no longer opens a dialog by itself: the bar shows it and autosave and receiving wait until it is resolved.
+- `save_version` takes a `writer` (random id per browser, not a name). A save by the same writer within five minutes of their previous version replaces it, so autosave keeps the 50-version history useful. Clients merge against the base text they keep, so a removed version never breaks a merge.
+- The name is asked once when the edit link opens.
+
+## 11. Out of scope
 
 Real-time co-editing, presence, comments, per-person permissions, password-protected live documents, notifications outside the open tab.
 
-## 11. Delivery
+## 12. Delivery
 
 New branch, tested batches, merged to `main` when every suite is green, then deployed. The new migration is applied in production with `pnpm db:migrate` before the deploy.
