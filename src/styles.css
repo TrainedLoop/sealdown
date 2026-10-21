@@ -2155,24 +2155,7 @@ button:disabled {
   gap: 0.5rem;
 }
 
-.conflict-sides pre {
-  margin: 0;
-  padding: 0.5rem;
-  border-radius: 6px;
-  background: var(--code-bg);
-  font: 0.82rem/1.45 var(--font-mono);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  max-height: 12rem;
-  overflow: auto;
-}
 
-.conflict-choices {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-  font-size: 0.88rem;
-}
 
 @media (max-width: 560px) {
   .conflict-sides {
@@ -2254,7 +2237,7 @@ button:disabled {
   font-size: 0.8rem;
 }
 
-.versions-diff {
+.diff-view {
   margin: 0 0 0.75rem;
   padding: 0.5rem;
   border-radius: 6px;
@@ -2266,25 +2249,25 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.versions-diff span {
+.diff-view span {
   display: block;
   padding: 0 0.4rem;
 }
 
-.versions-diff .diff-added {
+.diff-view .diff-added {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-.versions-diff .diff-added::before {
+.diff-view .diff-added::before {
   content: '+ ';
 }
 
-.versions-diff .diff-removed {
+.diff-view .diff-removed {
   background: color-mix(in srgb, var(--error) 18%, transparent);
   text-decoration: line-through;
 }
 
-.versions-diff .diff-removed::before {
+.diff-view .diff-removed::before {
   content: '− ';
 }
 
@@ -2294,14 +2277,103 @@ button:disabled {
   }
 }
 
-.conflict-sides pre::before {
-  content: attr(data-caption);
-  display: block;
-  margin-bottom: 0.25rem;
-  color: var(--muted);
-  font: 0.72rem/1.2 var(--font-ui);
+
+.diff-view span {
+  min-height: 1.5em;
 }
 
-.versions-diff span {
-  min-height: 1.5em;
+.diff-view .diff-same::before {
+  content: '  ';
+}
+
+.diff-view .diff-context {
+  color: var(--muted);
+}
+
+.conflict-sides section,
+.conflict-result {
+  min-width: 0;
+}
+
+.conflict-sides h3,
+.conflict-result h3 {
+  margin: 0 0 0.3rem;
+  color: var(--muted);
+  font: 500 0.75rem/1.2 var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.conflict-dialog .diff-view {
+  margin: 0;
+  max-height: 14rem;
+}
+
+/* Mine | Theirs | Both as one segmented control. */
+.conflict-choices {
+  display: inline-flex;
+  margin: 0.75rem 0;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.conflict-choices label {
+  position: relative;
+  padding: 0.25rem 0.9rem;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.conflict-choices label.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.conflict-choices input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.conflict-choices label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.conflict-result {
+  padding-top: 0.25rem;
+}
+
+/* Diff lines read left to right whatever the dialog around them centers; wrapped lines hang. */
+.diff-view {
+  text-align: left;
+}
+
+.diff-view span {
+  padding-left: 1.6em;
+  text-indent: -1.2em;
+}
+
+.conflict-dialog {
+  width: min(860px, calc(100vw - 32px));
+}
+
+.conflict-list fieldset {
+  text-align: left;
+}
+
+.conflict-choices {
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }

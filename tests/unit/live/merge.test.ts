@@ -33,7 +33,9 @@ describe('Markdown', () => {
     const mine = '# Title\n\nalpha\nmine\ngamma\n'
     const theirs = '# Title\n\nalpha\ntheirs\ngamma\n'
     const result = conflicted(mergeMarkdown(base, mine, theirs))
-    expect(result.conflicts).toEqual([{ id: 0, label: 'line 4', mine: 'mine', theirs: 'theirs' }])
+    expect(result.conflicts).toEqual([
+      { id: 0, label: 'line 4', base: 'beta', mine: 'mine', theirs: 'theirs', before: ['', 'alpha'], after: ['gamma', ''] },
+    ])
     expect(result.resolve({ 0: 'mine' })).toBe(mine)
     expect(result.resolve({ 0: 'theirs' })).toBe(theirs)
     expect(result.resolve({ 0: 'both' })).toBe('# Title\n\nalpha\nmine\ntheirs\ngamma\n')
@@ -81,7 +83,7 @@ describe('JSON', () => {
 
   test('different values for one key conflict, labelled by pointer', () => {
     const result = conflicted(mergeJson(base, '{"a": 10, "b": 2, "list": [1, 2, 3]}', '{"a": 11, "b": 2, "list": [1, 2, 3]}'))
-    expect(result.conflicts).toEqual([{ id: 0, label: '/a', mine: '10', theirs: '11' }])
+    expect(result.conflicts).toEqual([{ id: 0, label: '/a', base: '1', mine: '10', theirs: '11', before: [], after: [] }])
     expect(JSON.parse(result.resolve({ 0: 'theirs' })).a).toBe(11)
     expect(JSON.parse(result.resolve({ 0: 'mine' })).a).toBe(10)
   })
@@ -94,7 +96,9 @@ describe('JSON', () => {
 
   test('invalid JSON on any side makes the whole document one conflict', () => {
     const result = conflicted(mergeJson(base, '{"a": ', base.replace('1', '5')))
-    expect(result.conflicts).toEqual([{ id: 0, label: 'document', mine: '{"a": ', theirs: base.replace('1', '5') }])
+    expect(result.conflicts).toEqual([
+      { id: 0, label: 'document', base, mine: '{"a": ', theirs: base.replace('1', '5'), before: [], after: [] },
+    ])
     expect(result.resolve({ 0: 'mine' })).toBe('{"a": ')
   })
 })
@@ -114,4 +118,11 @@ test('arrays whose length changed on both sides are one conflict, not a per-inde
 test('an item removed on one side and another edited on the other is a conflict', () => {
   const result = conflicted(mergeJson('["a","b","c"]', '["b","c"]', '["a","B","c"]'))
   expect(result.conflicts.map((c) => c.label)).toEqual(['/'])
+})
+
+test('context is at most two unchanged lines on each side, cut at the document edges', () => {
+  const result = conflicted(mergeMarkdown('a\nb\nc\nd\ne\nf', 'a\nb\nc\nD1\ne\nf', 'a\nb\nc\nD2\ne\nf'))
+  expect(result.conflicts[0]).toMatchObject({ base: 'd', before: ['b', 'c'], after: ['e', 'f'] })
+  const top = conflicted(mergeMarkdown('x\ny', 'X1\ny', 'X2\ny'))
+  expect(top.conflicts[0]).toMatchObject({ before: [], after: ['y'] })
 })

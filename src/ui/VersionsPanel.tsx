@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { listVersions, openLive, openVersion, type LiveRoute } from '../live/session.ts'
 import { defaultLiveStorage } from '../storage/live.ts'
 import { useFocusTrap } from './focusTrap.ts'
-import { lineDiff } from './lineDiff.ts'
+import { DiffView } from './DiffView.tsx'
 import { relativeTime } from './relativeTime.ts'
 
 type Item = { version: number; author: string; createdAt: string }
@@ -86,13 +86,7 @@ export function VersionsPanel({
             {selected ? (
               <>
                 <p className="seal-how">{t('live.changes')}</p>
-                <pre className="versions-diff">
-                  {lineDiff(selected.text, selected.current).map((line, i) => (
-                    <span key={i} className={`diff-${line.kind}`}>
-                      {line.text}
-                    </span>
-                  ))}
-                </pre>
+                <DiffView before={selected.text} after={selected.current} />
                 {onRestore && selected.version !== latestVersion && (
                   <button type="button" className="primary" onClick={() => onRestore(selected.version)}>
                     {t('live.restore')}

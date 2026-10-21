@@ -14,3 +14,8 @@ test('pure deletion and identical texts', () => {
   expect(lineDiff('a\nb', 'a')).toEqual([{ kind: 'same', text: 'a' }, { kind: 'removed', text: 'b' }])
   expect(lineDiff('x', 'x')).toEqual([{ kind: 'same', text: 'x' }])
 })
+
+test('an empty text has no lines', () => {
+  expect(lineDiff('', 'x')).toEqual([{ kind: 'added', text: 'x' }])
+  expect(lineDiff('x', '')).toEqual([{ kind: 'removed', text: 'x' }])
+})

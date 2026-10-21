@@ -2,7 +2,15 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Choice, Conflict } from '../live/merge.ts'
 import type { DocType } from '../share/docType.ts'
+import { DiffView } from './DiffView.tsx'
 import { useFocusTrap } from './focusTrap.ts'
+
+/** The text a choice leaves in place of the conflicting part (Both: mine, then theirs). */
+function chosen(c: Conflict, choice: Choice | undefined): string {
+  if (choice === 'theirs') return c.theirs
+  if (choice === 'both') return [c.mine, c.theirs].filter((side) => side !== '').join('\n')
+  return c.mine
+}
 
 /** Lists the parts both sides changed and lets the person pick what stays in each. */
 export function ConflictDialog({
@@ -47,12 +55,18 @@ export function ConflictDialog({
               <fieldset>
                 <legend>{label(c)}</legend>
                 <div className="conflict-sides">
-                  <pre aria-label={t('live.mineText')} data-caption={t('live.mineText')}>{c.mine || t('live.removed')}</pre>
-                  <pre aria-label={t('live.theirsText')} data-caption={t('live.theirsText')}>{c.theirs || t('live.removed')}</pre>
+                  <section aria-label={t('live.yourChange')}>
+                    <h3>{t('live.yourChange')}</h3>
+                    <DiffView before={c.base} after={c.mine} context={c} />
+                  </section>
+                  <section aria-label={t('live.theirChange')}>
+                    <h3>{t('live.theirChange')}</h3>
+                    <DiffView before={c.base} after={c.theirs} context={c} />
+                  </section>
                 </div>
-                <div className="conflict-choices">
+                <div className="conflict-choices" role="radiogroup" aria-label={label(c)}>
                   {options.map((option) => (
-                    <label key={option}>
+                    <label key={option} className={choices[c.id] === option ? 'active' : undefined}>
                       <input
                         type="radio"
                         name={`conflict-${c.id}`}
@@ -63,6 +77,10 @@ export function ConflictDialog({
                     </label>
                   ))}
                 </div>
+                <section className="conflict-result" aria-label={t('live.result')}>
+                  <h3>{t('live.result')}</h3>
+                  <DiffView before={c.base} after={chosen(c, choices[c.id])} context={c} />
+                </section>
               </fieldset>
             </li>
           ))}

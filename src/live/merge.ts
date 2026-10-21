@@ -6,25 +6,33 @@ import { diff3Merge } from 'node-diff3'
 // on both sides become conflicts the person resolves.
 
 export type Choice = 'mine' | 'theirs' | 'both'
-/** `mine`/`theirs` are the text shown for each side (empty when that side removed it). */
-export type Conflict = { id: number; label: string; mine: string; theirs: string }
+/**
+ * One part both sides changed. `base` is that part before either change, `mine`/`theirs` what each
+ * side made of it (empty when removed); `before`/`after` are up to two unchanged lines around it.
+ */
+export type Conflict = { id: number; label: string; base: string; mine: string; theirs: string; before: string[]; after: string[] }
+
+const CONTEXT_LINES = 2
 export type MergeResult = { text: string } | { conflicts: Conflict[]; resolve: (choices: Record<number, Choice>) => string }
 
 export function mergeMarkdown(base: string, mine: string, theirs: string): MergeResult {
   const regions = diff3Merge(mine.split('\n'), base.split('\n'), theirs.split('\n'), { excludeFalseConflicts: true })
   const conflicts: Conflict[] = []
-  for (const region of regions) {
-    if (!region.conflict) continue
-    const { a, aIndex, b } = region.conflict
+  regions.forEach((region, i) => {
+    if (!region.conflict) return
+    const { a, aIndex, b, o } = region.conflict
     const first = aIndex + 1
     const last = aIndex + Math.max(a.length, 1)
     conflicts.push({
       id: conflicts.length,
       label: first === last ? `line ${first}` : `lines ${first}–${last}`,
+      base: o.join('\n'),
       mine: a.join('\n'),
       theirs: b.join('\n'),
+      before: (regions[i - 1]?.ok ?? []).slice(-CONTEXT_LINES),
+      after: (regions[i + 1]?.ok ?? []).slice(0, CONTEXT_LINES),
     })
-  }
+  })
   const build = (choices: Record<number, Choice>) => {
     let next = 0
     return regions
@@ -86,14 +94,14 @@ export function mergeJson(base: string, mine: string, theirs: string): MergeResu
     values = [parse(base), parse(mine), parse(theirs)]
   } catch {
     // Not all three parse: nothing to merge by path, so the whole document is the conflict.
-    const conflicts = [{ id: 0, label: 'document', mine, theirs }]
+    const conflicts = [{ id: 0, label: 'document', base, mine, theirs, before: [], after: [] }]
     return { conflicts, resolve: (choices) => (choices[0] === 'theirs' ? theirs : mine) }
   }
 
   const conflicts: Conflict[] = []
-  function conflict(m: Json, t: Json, pointer: string): Pending {
+  function conflict(b: Json, m: Json, t: Json, pointer: string): Pending {
     const id = conflicts.length
-    conflicts.push({ id, label: pointer || '/', mine: show(m), theirs: show(t) })
+    conflicts.push({ id, label: pointer || '/', base: show(b), mine: show(m), theirs: show(t), before: [], after: [] })
     return new Pending(id, m, t)
   }
   function merge(b: Json, m: Json, t: Json, pointer: string): Json {
@@ -111,11 +119,11 @@ export function mergeJson(base: string, mine: string, theirs: string): MergeResu
     if (Array.isArray(b) && Array.isArray(m) && Array.isArray(t)) {
       // Both sides changed the array. Merging by index is only sound when no item moved: once
       // either side inserted or removed items, indexes no longer name the same items.
-      if (m.length !== b.length || t.length !== b.length) return conflict(m, t, pointer)
+      if (m.length !== b.length || t.length !== b.length) return conflict(b, m, t, pointer)
       const length = Math.max(b.length, m.length, t.length)
       return Array.from({ length }, (_, i) => merge(b[i], m[i], t[i], `${pointer}/${i}`)).filter((v) => v !== ABSENT)
     }
-    return conflict(m, t, pointer)
+    return conflict(b, m, t, pointer)
   }
   const merged = merge(...values, '')
 
