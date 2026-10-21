@@ -84,3 +84,49 @@ test('analytics see live events but never the token or the text', async ({ page 
   expect(sent).not.toContain(secret)
   expect(sent).not.toContain('Ana')
 })
+
+test('a version that is too large is not retried until the text changes', async ({ page }) => {
+  const { edit } = await share(page, 'small')
+  await page.goto(edit)
+  let attempts = 0
+  await page.route('**/rpc/save_version', (route) => {
+    attempts++
+    return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code: '23514', details: null, hint: null, message: 'x' }) })
+  })
+  await editor(page).fill('bigger')
+  await expect(page.getByRole('alert')).toBeVisible(ARRIVES)
+  await page.waitForTimeout(6000)
+  expect(attempts).toBe(1)
+})
+
+test('an edit link whose token stopped working turns read-only and stops saving', async ({ page }) => {
+  const { edit } = await share(page, 'small')
+  await page.goto(edit)
+  let attempts = 0
+  await page.route('**/rpc/save_version', (route) => {
+    attempts++
+    return route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: '42501', details: null, hint: null, message: 'x' }) })
+  })
+  await editor(page).fill('mine')
+  await expect(page.getByText("This edit link isn't valid anymore")).toBeVisible(ARRIVES)
+  await page.waitForTimeout(5000)
+  expect(attempts).toBe(1)
+})
+
+test('the read link keeps the document when a refresh fails', async ({ page, browser }) => {
+  const { edit, read } = await share(page, 'kept on screen')
+  await page.goto(read)
+  await expect(page.getByText('kept on screen')).toBeVisible()
+  await page.route('**/rpc/get_live', (route) => route.abort())
+  const other = await browser.newContext()
+  await other.addInitScript(() => localStorage.setItem('sealdown.author', 'Bob'))
+  const bob = await other.newPage()
+  await bob.goto(edit)
+  await editor(bob).fill('changed by bob')
+  await expect(bob.getByRole('region', { name: 'Live document' })).toContainText('v2', ARRIVES)
+  await page.waitForTimeout(7000)
+  await expect(page.getByText('kept on screen')).toBeVisible()
+  await page.unroute('**/rpc/get_live')
+  await expect(page.getByText('changed by bob')).toBeVisible(ARRIVES)
+  await other.close()
+})

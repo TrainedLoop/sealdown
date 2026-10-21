@@ -77,10 +77,16 @@ export function JsonEditorPage({ live }: { live?: LiveEditorProps } = {}) {
   }, [mode, syncScroll])
 
   const latest = useRef(text)
-  // A live document's incoming text (merged from others) replaces what is on screen.
+  // A live document's text from others goes to the text editor, which applies it against what it
+  // holds right then. Without a text editor on screen (Read), it lands here instead.
   const incoming = live?.incoming
+  const textEditorShown = mode !== 'read'
   useEffect(() => {
-    if (incoming) setText(incoming.text)
+    if (!incoming || textEditorShown) return
+    const next = incoming.rebase(latest.current)
+    if (next !== null) setText(next)
+    // Only on arrival; switching views doesn't re-apply it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incoming])
   useEffect(() => {
     latest.current = text
@@ -212,6 +218,7 @@ export function JsonEditorPage({ live }: { live?: LiveEditorProps } = {}) {
                 text={text}
                 mode="text"
                 lockMode
+                incoming={incoming}
                 label={t('json.textLabel')}
                 onChange={edit}
                 onReady={(api) => (textPane.current = api)}

@@ -59,14 +59,24 @@ export async function listVersions(route: LiveRoute, storage: LiveStorage) {
   return Promise.all(rows.map(async (row) => ({ ...row, author: await decryptAuthor(row.author, route.key) })))
 }
 
-/** Saves `local.draft` on `local.base`; when someone saved meanwhile, merges and saves on top. */
-export async function saveDraft(route: LiveEditRoute, local: LocalLive, type: DocType, author: string, storage: LiveStorage): Promise<SaveOutcome> {
+/**
+ * Saves `local.draft` on `local.base`; when someone saved meanwhile, merges and saves on top.
+ * `collapse: false` keeps the previous version even within an autosave run (restores, resolutions).
+ */
+export async function saveDraft(
+  route: LiveEditRoute,
+  local: LocalLive,
+  type: DocType,
+  author: string,
+  storage: LiveStorage,
+  { collapse = true }: { collapse?: boolean } = {},
+): Promise<SaveOutcome> {
   let { base, baseText, draft: text } = local
   let merged = false
   const card = await encryptAuthor(author, route.key)
   for (let attempt = 1; ; attempt++) {
     try {
-      const version = await storage.save(route.id, route.token, base, await seal({ type, text }, route.key), card, writerId())
+      const version = await storage.save(route.id, route.token, base, await seal({ type, text }, route.key), card, collapse ? writerId() : undefined)
       return { kind: 'saved', version, text, merged }
     } catch (error) {
       if (!(error instanceof LiveError) || error.kind !== 'stale' || attempt >= MAX_ATTEMPTS) throw error
@@ -83,7 +93,7 @@ export async function saveDraft(route: LiveEditRoute, local: LocalLive, type: Do
 
 /** Saves the text the person settled on after a conflict, on top of the version it was resolved against. */
 export function saveResolved(route: LiveEditRoute, latest: Latest, text: string, type: DocType, author: string, storage: LiveStorage): Promise<SaveOutcome> {
-  return saveDraft(route, { base: latest.version, baseText: latest.text, draft: text }, type, author, storage)
+  return saveDraft(route, { base: latest.version, baseText: latest.text, draft: text }, type, author, storage, { collapse: false })
 }
 
 /** Brings the latest saved version into the local draft, keeping unsaved changes. */
@@ -105,7 +115,7 @@ export function carryOver(type: DocType, before: string, now: string, incoming: 
   return 'text' in result ? result.text : null
 }
 
-/** Saves version `version`'s text as the newest version (nothing is deleted). */
+/** Saves version `version`'s text as the newest version (nothing is deleted, nothing collapses). */
 export async function restoreVersion(
   route: LiveEditRoute,
   version: number,
@@ -115,5 +125,5 @@ export async function restoreVersion(
   storage: LiveStorage,
 ): Promise<SaveOutcome> {
   const old = await openVersion(route, version, storage)
-  return saveDraft(route, { ...local, draft: old.doc.text }, type, author, storage)
+  return saveDraft(route, { ...local, draft: old.doc.text }, type, author, storage, { collapse: false })
 }

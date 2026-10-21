@@ -2,6 +2,7 @@ import { parse, stringify } from 'lossless-json'
 import { Transaction } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
+import type { Incoming } from '../editor/incoming.ts'
 import { minimalChange } from '../editor/minimalChange.ts'
 import { createJSONEditor, Mode, toTextContent, type Content, type JSONParser, type MenuItem, type JsonEditor as Instance } from 'vanilla-jsoneditor'
 import './json.css'
@@ -16,6 +17,8 @@ export type JsonEditorProps = {
   onChange?: (text: string) => void
   /** The editor's current text, which can be ahead of the last `onChange` (text mode debounces it). */
   onReady?: (api: JsonEditorApi | null) => void
+  /** A live document's text from others (text mode): applied against the text as it is right then. */
+  incoming?: Incoming
 }
 
 export type JsonEditorApi = { getText: () => string }
@@ -36,7 +39,7 @@ function withoutModeSwitch(items: MenuItem[]): MenuItem[] {
   return rest[0]?.type === 'separator' ? rest.slice(1) : rest
 }
 
-export default function JsonEditor({ text, mode, readOnly = false, lockMode = false, label, onChange, onReady }: JsonEditorProps) {
+export default function JsonEditor({ text, mode, readOnly = false, lockMode = false, label, onChange, onReady, incoming }: JsonEditorProps) {
   const target = useRef<HTMLDivElement>(null)
   const editor = useRef<Instance | null>(null)
   const onChangeRef = useRef(onChange)
@@ -88,10 +91,22 @@ export default function JsonEditor({ text, mode, readOnly = false, lockMode = fa
     const content = target.current?.querySelector<HTMLElement>('.cm-content')
     const view = mode === 'text' && content ? EditorView.findFromDOM(content) : null
     const change = view && minimalChange(view.state.doc.toString(), text)
-    // Someone else's change: out of this person's undo history.
-    if (view && change) view.dispatch({ changes: change, annotations: Transaction.addToHistory.of(false) })
+    if (view && change) view.dispatch({ changes: change })
     else void editor.current.update({ text })
   }, [text, mode])
+
+  useEffect(() => {
+    const content = target.current?.querySelector<HTMLElement>('.cm-content')
+    const view = incoming && mode === 'text' && content ? EditorView.findFromDOM(content) : null
+    if (!view || !incoming) return
+    const current = view.state.doc.toString()
+    const next = incoming.rebase(current)
+    const change = next === null ? null : minimalChange(current, next)
+    // Someone else's change: out of this person's undo history.
+    if (change) view.dispatch({ changes: change, annotations: Transaction.addToHistory.of(false) })
+    // Applied once per arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incoming])
 
   useEffect(() => {
     void editor.current?.updateProps({ mode: mode as Mode, readOnly, ariaLabel: label })

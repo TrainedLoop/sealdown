@@ -1,6 +1,7 @@
 import { EditorState, Transaction, type TransactionSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useEffect, useRef } from 'react'
+import type { Incoming } from './incoming.ts'
 import { minimalChange } from './minimalChange.ts'
 import { parseDiagram } from '../render/mermaid.ts'
 import { hintMessage } from '../render/hintMessage.ts'
@@ -22,10 +23,12 @@ type Props = {
   onReady?: (api: EditorApi | null) => void
   /** Called with the 1-based line at the top of the editor's viewport while it scrolls. */
   onScrollLine?: (line: number) => void
+  /** A live document's text from others: applied against the document as it is right then. */
+  incoming?: Incoming
 }
 
 /** CodeMirror, loaded as its own chunk (see EditorPage). Controlled: external value changes are applied as the smallest edit. */
-export default function CodeEditor({ value, onChange, label, onReady, onScrollLine }: Props) {
+export default function CodeEditor({ value, onChange, label, onReady, onScrollLine, incoming }: Props) {
   const parent = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
@@ -81,10 +84,20 @@ export default function CodeEditor({ value, onChange, label, onReady, onScrollLi
 
   useEffect(() => {
     const editor = view.current
-    // Only the part that changed: text arriving from elsewhere (a live document) keeps the cursor.
+    // Only the part that changed, so the cursor stays put; still undoable (e.g. after Open).
     const change = editor && minimalChange(editor.state.doc.toString(), value)
-    if (editor && change) editor.dispatch({ changes: change, annotations: Transaction.addToHistory.of(false) })
+    if (editor && change) editor.dispatch({ changes: change })
   }, [value])
+
+  useEffect(() => {
+    const editor = view.current
+    if (!editor || !incoming) return
+    const current = editor.state.doc.toString()
+    const next = incoming.rebase(current)
+    const change = next === null ? null : minimalChange(current, next)
+    // Someone else's change: out of this person's undo history.
+    if (change) editor.dispatch({ changes: change, annotations: Transaction.addToHistory.of(false) })
+  }, [incoming])
 
   return <div ref={parent} className="code-editor" />
 }

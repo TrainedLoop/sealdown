@@ -14,7 +14,7 @@ import {
 import { LiveError, type LiveStorage, type LiveVersion } from '../../../src/storage/live.ts'
 
 /** The server's rules (token, optimistic base, history) in memory. */
-function memoryStorage(): LiveStorage & { saves: number } {
+function memoryStorage(): LiveStorage & { saves: number; writers: (string | undefined)[] } {
   const docs = new Map<string, { hash: string; versions: LiveVersion[] }>()
   let next = 0
   const doc = (id: string) => {
@@ -24,6 +24,7 @@ function memoryStorage(): LiveStorage & { saves: number } {
   }
   const storage = {
     saves: 0,
+    writers: [] as (string | undefined)[],
     async create(content: Uint8Array, author: Uint8Array, hash: string) {
       const id = `doc${String(next++).padStart(7, '0')}`
       docs.set(id, { hash, versions: [{ version: 1, content, author, createdAt: 't1' }] })
@@ -45,7 +46,8 @@ function memoryStorage(): LiveStorage & { saves: number } {
         .versions.map((v) => ({ version: v.version, author: v.author, sizeBytes: v.content.length, createdAt: v.createdAt }))
         .reverse()
     },
-    async save(id: string, token: string, base: number, content: Uint8Array, author: Uint8Array) {
+    async save(id: string, token: string, base: number, content: Uint8Array, author: Uint8Array, writer?: string) {
+      storage.writers.push(writer)
       const d = doc(id)
       if ((await writeHash(token)) !== d.hash) throw new LiveError('forbidden')
       const latest = d.versions.at(-1)!.version
@@ -197,4 +199,14 @@ test('the writer id is random, stable per browser', async () => {
   const id = writerId()
   expect(id).toMatch(/^[A-Za-z0-9_-]{16,}$/)
   expect(writerId()).toBe(id)
+})
+
+test('restores and conflict resolutions never collapse into the previous version', async () => {
+  const storage = memoryStorage()
+  const { edit, local } = await start(storage)
+  await saveDraft(edit, { ...local, draft: 'second\n' }, 'markdown', 'Ana', storage)
+  await restoreVersion(edit, 1, { base: 2, baseText: 'second\n', draft: 'second\n' }, 'markdown', 'Ana', storage)
+  await saveResolved(edit, { version: 3, text: base }, 'resolved\n', 'markdown', 'Ana', storage)
+  expect(storage.writers[0]).toMatch(/^[A-Za-z0-9_-]+$/)
+  expect(storage.writers.slice(1)).toEqual([undefined, undefined])
 })

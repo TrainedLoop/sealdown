@@ -121,3 +121,17 @@ test('fast typing in the diagram picker keeps every keystroke', async ({ page })
   await expect(search).toHaveValue('architecture')
   await expect(page.getByRole('option')).toHaveCount(1)
 })
+
+test('opening a file can be undone with Ctrl/Cmd+Z', async ({ page }) => {
+  await page.goto('/')
+  const box = page.getByRole('textbox', { name: /Paste or type Markdown/ })
+  await box.fill('# Before')
+  // Edits closer than half a second form one undo step in CodeMirror.
+  await page.waitForTimeout(700)
+  page.once('dialog', (dialog) => void dialog.accept())
+  await page.getByLabel('Open .md').setInputFiles({ name: 'n.md', mimeType: 'text/markdown', buffer: Buffer.from('# From file') })
+  await expect(box).toContainText('From file')
+  await box.click()
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(box).toContainText('Before')
+})

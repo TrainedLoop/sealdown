@@ -18,6 +18,7 @@ import {
 } from '../live/session.ts'
 import { buildHash } from '../router/route.ts'
 import type { DocType } from '../share/docType.ts'
+import type { Incoming } from '../editor/incoming.ts'
 import { defaultLiveStorage, LiveError, type LiveErrorKind } from '../storage/live.ts'
 import { ConflictDialog } from './ConflictDialog.tsx'
 import { EditorPage } from './EditorPage.tsx'
@@ -33,10 +34,14 @@ import { VersionsPanel } from './VersionsPanel.tsx'
 
 /** Quiet time after the editor reports an edit before a version is saved on its own. */
 const AUTOSAVE_MS = 1500
+/** Retries after a failed connection wait longer each time, up to a minute. */
+const RETRY_MIN_MS = 5000
+const RETRY_MAX_MS = 60_000
 
 type Info = { type: DocType; version: number; author: string; createdAt: string }
 type State = { kind: 'loading' } | { kind: 'ready' } | { kind: 'forbidden' } | { kind: 'error'; error: LiveErrorKind }
-type PendingConflict = { during: 'save' | 'update'; latest: Latest; author: string; createdAt: string; merge: Conflicted }
+/** `mine` is the text the conflict was found with; typing since is carried onto the resolution. */
+type PendingConflict = { during: 'save' | 'update'; mine: string; latest: Latest; author: string; createdAt: string; merge: Conflicted }
 
 const ERROR_COPY: Partial<Record<LiveErrorKind, string>> = {
   network: 'live.errors.network',
@@ -55,7 +60,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [info, setInfo] = useState<Info | null>(null)
   const [status, setStatus] = useState<SaveStatus>('saved')
-  const [incoming, setIncoming] = useState<{ text: string; seq: number } | undefined>(undefined)
+  const [incoming, setIncoming] = useState<Incoming | undefined>(undefined)
   const [problem, setProblem] = useState<LiveErrorKind | null>(null)
   const [conflict, setConflict] = useState<PendingConflict | null>(null)
   const [showConflict, setShowConflict] = useState(false)
@@ -72,6 +77,11 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   // A pending conflict holds autosave and receiving until the person chooses.
   const held = useRef(false)
   const firstSave = useRef(true)
+  // After an error: `stopped` (the token stopped working) ends saving; `waitForEdit` (too large,
+  // database full) waits for the next change; `retryMs` spaces out retries after a failed connection.
+  const stopped = useRef(false)
+  const waitForEdit = useRef(false)
+  const retryMs = useRef(0)
   const { id, key, token } = route
 
   useEffect(() => {
@@ -111,22 +121,43 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     saveLocal(id, next)
   }
 
-  /** Puts text that came from others on screen, as the smallest edit (the cursor stays). */
-  function show(text: string) {
-    setIncoming((old) => ({ text, seq: (old?.seq ?? 0) + 1 }))
+  /**
+   * Puts `text` on screen, computed when the editor held `from`. The editor applies it against what
+   * it holds when it arrives, carrying over anything typed in between (as the smallest edit).
+   */
+  function show(from: string, text: string) {
+    const type = infoRef.current!.type
+    setIncoming((old) => ({
+      seq: (old?.seq ?? 0) + 1,
+      rebase: (current) => (current === from ? text : carryOver(type, from, current, text)),
+    }))
   }
 
   function fail(error: unknown) {
     const kind = error instanceof LiveError ? error.kind : 'network'
-    if (kind === 'forbidden') setState({ kind: 'forbidden' })
-    else setProblem(kind)
+    if (kind === 'forbidden') {
+      stopped.current = true
+      clearTimeout(timer.current)
+      setState({ kind: 'forbidden' })
+      return
+    }
+    setProblem(kind)
+    if (kind === 'network') retryMs.current = Math.min(Math.max(retryMs.current * 2, RETRY_MIN_MS), RETRY_MAX_MS)
+    else waitForEdit.current = true
+  }
+
+  function succeeded() {
+    retryMs.current = 0
+    waitForEdit.current = false
+    setProblem(null)
   }
 
   const unsavedNow = () => local.current !== null && getText.current() !== local.current.baseText
 
   function schedule() {
     clearTimeout(timer.current)
-    timer.current = setTimeout(() => void saveRef.current(), AUTOSAVE_MS)
+    if (stopped.current || waitForEdit.current) return
+    timer.current = setTimeout(() => void saveRef.current(), retryMs.current || AUTOSAVE_MS)
   }
 
   /** Applies a save's result; returns false when it ended in a conflict. */
@@ -134,7 +165,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     if (outcome.kind === 'conflicts') {
       persist({ ...local.current!, draft: getText.current() })
       held.current = true
-      setConflict({ during: 'save', latest: outcome.latest, author: '', createdAt: '', merge: outcome.merge })
+      setConflict({ during: 'save', mine: typed, latest: outcome.latest, author: '', createdAt: '', merge: outcome.merge })
       return false
     }
     // Merged saves, and the first of the visit: one event per autosave pause would be noise.
@@ -144,7 +175,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     const current = getText.current()
     if (current === typed) {
       persist({ ...saved, draft: outcome.text })
-      if (outcome.merged) show(outcome.text)
+      if (outcome.merged) show(typed, outcome.text)
     } else if (!outcome.merged) {
       persist({ ...saved, draft: current })
     } else {
@@ -153,13 +184,13 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
       const carried = carryOver(infoRef.current!.type, typed, current, outcome.text)
       if (carried !== null) {
         persist({ ...saved, draft: carried })
-        show(carried)
+        show(current, carried)
       } else {
         persist({ ...local.current!, draft: current })
       }
     }
     setInfo((old) => old && { ...old, version: outcome.version, author, createdAt: new Date().toISOString() })
-    setProblem(null)
+    succeeded()
     return true
   }
 
@@ -171,6 +202,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     } finally {
       busy.current = false
     }
+    if (stopped.current) return
     if (held.current) {
       setStatus('conflict')
     } else if (again.current || unsavedNow()) {
@@ -184,7 +216,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
 
   async function save() {
     clearTimeout(timer.current)
-    if (!local.current || !infoRef.current || held.current) return
+    if (!local.current || !infoRef.current || held.current || stopped.current) return
     if (busy.current) {
       again.current = true
       return
@@ -216,13 +248,14 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
         const outcome = await updateFromLatest(route, local.current!, infoRef.current!.type, defaultLiveStorage)
         if (outcome.kind === 'conflicts') {
           held.current = true
-          setConflict({ during: 'update', latest: outcome.latest, author: outcome.author, createdAt: outcome.createdAt, merge: outcome.merge })
+          setConflict({ during: 'update', mine: before, latest: outcome.latest, author: outcome.author, createdAt: outcome.createdAt, merge: outcome.merge })
           return
         }
-        const carried = carryOver(infoRef.current!.type, before, getText.current(), outcome.local.draft)
+        const now = getText.current()
+        const carried = carryOver(infoRef.current!.type, before, now, outcome.local.draft)
         if (carried === null) return // typed over the incoming change meanwhile: the next save merges it
         persist({ ...outcome.local, draft: carried })
-        show(carried)
+        show(now, carried)
         setInfo((old) => old && { ...old, version: outcome.local.base, author: outcome.author, createdAt: outcome.createdAt })
       } catch {
         // The next poll tries again.
@@ -246,7 +279,8 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
         if (!local.current) return
         local.current = { ...local.current, draft: text }
         saveLocal(id, local.current)
-        if (text === local.current.baseText || held.current) return
+        waitForEdit.current = false
+        if (text === local.current.baseText || held.current || stopped.current) return
         if (!busy.current) setStatus('unsaved')
         clearTimeout(timer.current)
         timer.current = setTimeout(() => void saveRef.current(), AUTOSAVE_MS)
@@ -256,14 +290,22 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   )
 
   async function resolve(choices: Record<number, Choice>) {
-    if (!conflict || !infoRef.current) return
+    if (!conflict || !infoRef.current || busy.current) return
     const pending = conflict
-    const text = pending.merge.resolve(choices)
+    const now = getText.current()
+    // Typing done while the conflict waited is carried onto the resolution.
+    const text = carryOver(infoRef.current.type, pending.mine, now, pending.merge.resolve(choices))
     track('conflict_resolved', { conflicts: pending.merge.conflicts.length })
     held.current = false
     setConflict(null)
     setShowConflict(false)
-    show(text)
+    if (text === null) {
+      // The later typing overlaps the resolution: save it again, which finds the conflict anew.
+      persist({ ...local.current!, draft: now })
+      schedule()
+      return
+    }
+    show(now, text)
     if (pending.during === 'update') {
       persist({ base: pending.latest.version, baseText: pending.latest.text, draft: text })
       setInfo((old) => old && { ...old, version: pending.latest.version, author: pending.author, createdAt: pending.createdAt || old.createdAt })
@@ -284,7 +326,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   }
 
   async function restore(version: number) {
-    if (busy.current || !local.current || !infoRef.current) return
+    if (busy.current || held.current || !local.current || !infoRef.current) return
     // Restoring replaces the text on screen: unsaved changes would be lost.
     if (unsavedNow() && !window.confirm(t('live.restoreConfirm'))) return
     clearTimeout(timer.current)
@@ -297,7 +339,8 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
         if (outcome.kind !== 'saved') return void settle(outcome, getText.current(), author)
         track('version_restored')
         persist({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
-        show(outcome.text)
+        show(getText.current(), outcome.text)
+        succeeded()
         setInfo((old) => old && { ...old, version: outcome.version, author, createdAt: new Date().toISOString() })
       } catch (error) {
         fail(error)
@@ -382,7 +425,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
           setShowVersions(true)
         }}
       />
-      {showVersions && <VersionsPanel route={route} onRestore={(n) => void restore(n)} onClose={closeVersions} />}
+      {showVersions && <VersionsPanel route={route} onRestore={conflict ? undefined : (n) => void restore(n)} onClose={closeVersions} />}
       {problem && ERROR_COPY[problem] && (
         <div className="notice" role="alert">
           <p>{t(ERROR_COPY[problem] as 'live.errors.network')}</p>

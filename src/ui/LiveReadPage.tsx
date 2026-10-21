@@ -31,7 +31,12 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
         tracked.current = true
         setState({ kind: 'ready', opened })
       },
-      (error: unknown) => !cancelled && setState({ kind: 'error', missing: error instanceof LiveError && error.kind === 'missing' }),
+      (error: unknown) => {
+        if (cancelled) return
+        const missing = error instanceof LiveError && error.kind === 'missing'
+        // A failed refresh keeps the document on screen; the next poll tries again.
+        setState((old) => (old.kind === 'ready' && !missing ? old : { kind: 'error', missing }))
+      },
     )
     return () => {
       cancelled = true
