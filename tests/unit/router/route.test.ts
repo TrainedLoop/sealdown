@@ -70,3 +70,16 @@ test('json editor route', () => {
   expect(parseRoute('#/jsonx')).toEqual({ kind: 'unknown-format' })
   expect(buildHash({ kind: 'json-editor' })).toBe('#/json')
 })
+
+const KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+const TOKEN = 'B' + 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'.slice(1)
+
+test('live routes', () => {
+  expect(parseRoute(`#/l/Ab3dE5gH9k.${KEY}`)).toEqual({ kind: 'live-read', id: 'Ab3dE5gH9k', key: KEY })
+  expect(parseRoute(`#/w/Ab3dE5gH9k.${KEY}.${TOKEN}.`)).toEqual({ kind: 'live-edit', id: 'Ab3dE5gH9k', key: KEY, token: TOKEN })
+  for (const h of ['#/l/short.' + KEY, '#/l/Ab3dE5gH9k', '#/w/Ab3dE5gH9k.' + KEY, '#/w/Ab3dE5gH9k.' + KEY + '.bad token']) {
+    expect(parseRoute(h)).toEqual({ kind: 'malformed' })
+  }
+  expect(buildHash({ kind: 'live-read', id: 'Ab3dE5gH9k', key: KEY })).toBe(`#/l/Ab3dE5gH9k.${KEY}`)
+  expect(buildHash({ kind: 'live-edit', id: 'Ab3dE5gH9k', key: KEY, token: TOKEN })).toBe(`#/w/Ab3dE5gH9k.${KEY}.${TOKEN}`)
+})

@@ -17,6 +17,22 @@ export async function encrypt(data: Uint8Array): Promise<{ bytes: Uint8Array; ke
   return { bytes, key: base64urlEncode(raw) }
 }
 
+/** A fresh random 256-bit key, raw in base64url (the form links carry). */
+export function newKey(): string {
+  return base64urlEncode(crypto.getRandomValues(new Uint8Array(KEY_BYTES)))
+}
+
+/** Encrypts with a given key (live documents keep one key across versions); fresh IV each time. */
+export async function encryptWithKey(data: Uint8Array, key: string): Promise<Uint8Array> {
+  const cryptoKey = await crypto.subtle.importKey('raw', base64urlDecode(key) as BufferSource, ALGORITHM, false, ['encrypt'])
+  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: ALGORITHM, iv }, cryptoKey, data as BufferSource))
+  const bytes = new Uint8Array(IV_BYTES + ciphertext.length)
+  bytes.set(iv)
+  bytes.set(ciphertext, IV_BYTES)
+  return bytes
+}
+
 /** Throws LinkError('corrupt') on a malformed key, wrong key or tampered bytes. */
 export async function decrypt(bytes: Uint8Array, key: string): Promise<Uint8Array> {
   const raw = base64urlDecode(key)
