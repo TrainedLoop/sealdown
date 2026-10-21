@@ -35,3 +35,22 @@ test('the sync scroll toggle is vertically aligned with the status text', async 
   const words = (await status(page).getByText(/\d+ words?/).boundingBox())!
   expect(Math.abs(toggle.y + toggle.height / 2 - (words.y + words.height / 2))).toBeLessThanOrEqual(2)
 })
+
+for (const width of [320, 390]) {
+  test(`at ${width}px the status bar fits the screen`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 740 })
+    await page.goto('/')
+    await page.getByRole('textbox', { name: /Paste or type Markdown/ }).fill('# Fits\n\nSome words here.')
+    await page.waitForTimeout(700)
+    const bar = page.getByRole('group', { name: 'Document status' })
+    const overflow = await bar.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      return Array.from(el.querySelectorAll('*')).some((child) => {
+        const r = child.getBoundingClientRect()
+        return r.width > 0 && (r.right > box.right + 1 || r.left < box.left - 1)
+      }) || el.scrollWidth > el.clientWidth + 1
+    })
+    expect(overflow).toBe(false)
+    await expect(bar).toContainText('words')
+  })
+}

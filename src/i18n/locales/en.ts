@@ -100,6 +100,8 @@ const en = {
     loading: 'Loading document…',
     unsealed: 'Unsealed only in this browser',
     toc: 'Contents',
+    tocCount_one: 'Contents · {{count}} section',
+    tocCount_other: 'Contents · {{count}} sections',
     replaceDraft: 'Replace your current draft in the editor with this document?',
   },
   export: {

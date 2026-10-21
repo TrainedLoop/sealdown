@@ -41,3 +41,21 @@ test('copy image explains when the browser refuses', async ({ page }) => {
   await page.locator('figure.diagram').getByRole('button', { name: 'Copy image' }).click()
   await expect(page.locator('figure.diagram').getByRole('alert')).toContainText("Couldn't copy")
 })
+
+test('diagram actions stay out of the way until the diagram is hovered or focused', async ({ page }) => {
+  await page.goto('/' + inlineHash('# Doc\n\n' + doc))
+  const figure = page.locator('figure.diagram')
+  const actions = figure.locator('.diagram-actions')
+  await expect(figure.locator('svg').first()).toBeVisible()
+  await page.mouse.move(0, 0)
+  await expect(actions).toHaveCSS('opacity', '0')
+  await figure.hover()
+  await expect(actions).toHaveCSS('opacity', '1')
+  await page.mouse.move(0, 0)
+  await figure.getByRole('button', { name: 'Expand' }).focus()
+  await expect(actions).toHaveCSS('opacity', '1')
+  // Over the diagram's corner, not in a row of its own below it.
+  const figureBox = (await figure.boundingBox())!
+  const actionsBox = (await actions.boundingBox())!
+  expect(actionsBox.y).toBeLessThan(figureBox.y + 40)
+})

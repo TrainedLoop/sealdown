@@ -144,3 +144,15 @@ for (const width of [320, 375]) {
     await expect(page.getByTestId('live-edit-url')).toHaveValue(/#\/w\//)
   })
 }
+
+for (const [width, max] of [[1280, 34], [390, 34]] as const) {
+  test(`at ${width}px the live bar is one slim line`, async ({ page, context }) => {
+    const { edit } = await share(page, '# Slim')
+    const ana = await openEdit(context, edit, 'Ana')
+    await ana.setViewportSize({ width, height: 800 })
+    await expect(liveBar(ana)).toContainText('v1')
+    const box = (await liveBar(ana).boundingBox())!
+    expect(box.height).toBeLessThanOrEqual(max)
+    await expect(liveBar(ana).getByRole('button', { name: 'Versions' })).toBeInViewport()
+  })
+}

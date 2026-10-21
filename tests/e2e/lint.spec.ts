@@ -12,6 +12,8 @@ test('broken mermaid is underlined in the editor and clears when fixed', async (
 test('documents without diagrams do not load Mermaid in the editor', async ({ page }) => {
   const requested: string[] = []
   page.on('request', (r) => requested.push(r.url()))
+  // Not a first visit: the welcome sample has a diagram.
+  await page.addInitScript(() => localStorage.setItem('sealdown.draft', '# Just text'))
   await page.goto('/')
   await page.getByRole('textbox', { name: /Paste or type Markdown/ }).fill('# Just text')
   await page.waitForTimeout(1500)

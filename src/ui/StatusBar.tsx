@@ -27,9 +27,9 @@ export function StatusBar({
         {showCounts && (
           <>
             <span>{t('status.words', { count: stats.words })}</span>
-            <span>{t('status.chars', { count: stats.chars })}</span>
+            <span className="status-extra">{t('status.chars', { count: stats.chars })}</span>
             <span>{t('status.lines', { count: stats.lines })}</span>
-            <span>{t('status.minutes', { count: stats.minutes })}</span>
+            <span className="status-extra">{t('status.minutes', { count: stats.minutes })}</span>
           </>
         )}
       </span>
@@ -39,7 +39,11 @@ export function StatusBar({
             {t('status.sync')}
           </button>
         )}
-        {saved && text !== '' && <span className="status-saved">{t('status.saved')}</span>}
+        {saved && text !== '' && (
+          <span className="status-saved" title={t('status.saved')}>
+            <span className="status-saved-label">{t('status.saved')}</span>
+          </span>
+        )}
         <span className="status-sealed">
           <Lock />
           {t('status.sealed')}

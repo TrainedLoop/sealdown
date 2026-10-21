@@ -102,6 +102,8 @@ const pt: typeof en = {
     loading: 'Carregando documento…',
     unsealed: 'Deslacrado só neste navegador',
     toc: 'Sumário',
+    tocCount_one: 'Sumário · {{count}} seção',
+    tocCount_other: 'Sumário · {{count}} seções',
     replaceDraft: 'Substituir o rascunho atual do editor por este documento?',
   },
   export: {

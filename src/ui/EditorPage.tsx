@@ -9,7 +9,7 @@ import { diagramTemplates, type DiagramTemplate } from '../editor/templates.ts'
 import { useCommands } from './commands.ts'
 import { renderMarkdown } from '../render/markdown.ts'
 import { lineAtTop, syncTarget } from '../render/scrollSync.ts'
-import { loadDraft, saveDraft } from './draft.ts'
+import { isUntouched, loadDraft, saveDraft } from './draft.ts'
 import { MarkdownView } from './MarkdownView.tsx'
 import { Toc, TOC_MIN_ENTRIES } from './Toc.tsx'
 import { extractToc } from '../render/toc.ts'
@@ -96,7 +96,7 @@ export function EditorPage({ theme, live }: { theme: Theme; live?: LiveEditorPro
       return
     }
     const content = read.text
-    if (text.trim() !== '' && text !== content && !window.confirm(t('editor.replaceText'))) return
+    if (!isUntouched(text) && text !== content && !window.confirm(t('editor.replaceText'))) return
     track('file_opened', { via })
     if (mode === 'read') setMode(splitAvailable ? 'split' : 'write')
     edit(content)

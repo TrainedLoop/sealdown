@@ -125,3 +125,13 @@ test('the editor shows line numbers', async ({ page }) => {
   await editor(page).fill('one\ntwo\nthree')
   await expect(page.locator('.cm-lineNumbers .cm-gutterElement', { hasText: /^3$/ })).toBeVisible()
 })
+
+test('a first visit opens a short sample; once cleared it stays empty', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: 'Welcome to Sealdown' })).toBeVisible()
+  await expect(page.locator('figure.diagram svg').first()).toBeVisible()
+  await editor(page).fill('')
+  await page.waitForTimeout(700)
+  await page.reload()
+  await expect.poll(() => editorValue(page)).toBe('')
+})

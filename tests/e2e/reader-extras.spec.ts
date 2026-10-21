@@ -201,3 +201,24 @@ test('reader actions live in the top bar', async ({ page }) => {
   await expect(header.getByRole('button', { name: 'Present' })).toBeVisible()
   await expect(header.getByRole('button', { name: 'Export' })).toBeVisible()
 })
+
+test('on phones the contents fold into a button and the header keeps one row', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/' + inlineHash('# One\n\n## Two\n\ntext\n\n## Three\n\nmore'))
+  const nav = page.getByRole('navigation', { name: 'Contents' })
+  await expect(nav.getByRole('link', { name: 'Three' })).toBeHidden()
+  await nav.getByRole('button', { name: /Contents/ }).click()
+  await expect(nav.getByRole('link', { name: 'Three' })).toBeVisible()
+  await nav.getByRole('link', { name: 'Three' }).click()
+  await expect(nav.getByRole('link', { name: 'Three' })).toBeHidden()
+  expect((await page.locator('.app-header').boundingBox())!.height).toBeLessThanOrEqual(64)
+  await expect(page.getByRole('button', { name: 'Edit a copy' })).toBeInViewport()
+})
+
+test('on wide screens the contents stay open beside the document', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.goto('/' + inlineHash('# One\n\n## Two\n\ntext\n\n## Three\n\nmore'))
+  const nav = page.getByRole('navigation', { name: 'Contents' })
+  await expect(nav.getByRole('link', { name: 'Three' })).toBeVisible()
+  await expect(nav.getByRole('button', { name: /Contents/ })).toBeHidden()
+})

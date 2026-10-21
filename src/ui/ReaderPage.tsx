@@ -11,7 +11,7 @@ import { LinkError, type LinkErrorKind } from '../share/errors.ts'
 import { fetchProtected, openProtected, openRoute } from '../share/link.ts'
 import { defaultStorage } from '../storage/storage.ts'
 import { downloadBlob } from './download.ts'
-import { loadDraft, saveDraft } from './draft.ts'
+import { isUntouched, loadDraft, saveDraft } from './draft.ts'
 import { ErrorMessage } from './ErrorMessage.tsx'
 import { MarkdownView } from './MarkdownView.tsx'
 import { PasswordPrompt } from './PasswordPrompt.tsx'
@@ -115,7 +115,7 @@ export function Document({ text, theme, sealed, banner }: { text: string; theme:
 
   function editCopy() {
     const draft = loadDraft()
-    if (draft.trim() !== '' && draft !== text && !window.confirm(t('reader.replaceDraft'))) return
+    if (!isUntouched(draft) && draft !== text && !window.confirm(t('reader.replaceDraft'))) return
     saveDraft(text)
     window.location.hash = '#/'
   }
