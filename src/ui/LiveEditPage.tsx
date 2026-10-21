@@ -5,7 +5,7 @@ import { loadAuthor, saveAuthor } from '../live/author.ts'
 import { readLinkOf, type LiveEditRoute } from '../live/links.ts'
 import { loadLocal, saveLocal, type LocalLive } from '../live/localState.ts'
 import type { Choice } from '../live/merge.ts'
-import { openLive, openVersion, restoreVersion, saveDraft, saveResolved, updateFromLatest, type Conflicted, type Latest, type SaveOutcome } from '../live/session.ts'
+import { carryOver, openLive, openVersion, restoreVersion, saveDraft, saveResolved, updateFromLatest, type Conflicted, type Latest, type SaveOutcome } from '../live/session.ts'
 import { buildHash } from '../router/route.ts'
 import type { DocType } from '../share/docType.ts'
 import { defaultLiveStorage, LiveError, type LiveErrorKind } from '../storage/live.ts'
@@ -122,19 +122,32 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     else setProblem(kind)
   }
 
-  function settle(outcome: SaveOutcome, typed: string, author: string, conflicts = 0) {
+  function persist(next: LocalLive) {
+    local.current = next
+    saveLocal(id, next)
+  }
+
+  function settle(outcome: SaveOutcome, typed: string, author: string, conflicts = 0, restored = false) {
     if (outcome.kind === 'conflicts') {
       setConflict({ during: 'save', latest: outcome.latest, author: '', createdAt: '', merge: outcome.merge })
       return
     }
-    track('version_saved', { merged: outcome.merged || conflicts > 0, conflicts })
+    track(restored ? 'version_restored' : 'version_saved', { merged: outcome.merged || conflicts > 0, conflicts })
+    const saved = { base: outcome.version, baseText: outcome.text }
     const current = getText.current()
-    const next = { base: outcome.version, baseText: outcome.text, draft: current === typed ? outcome.text : current }
-    // A merged save brings others' changes in: show them, unless the person kept typing meanwhile.
-    if (outcome.merged && current === typed) replaceText(next)
-    else {
-      local.current = next
-      saveLocal(id, next)
+    if (current === typed) {
+      // A merged save brought others' changes in: show them.
+      if (outcome.merged) replaceText({ ...saved, draft: outcome.text })
+      else persist({ ...saved, draft: outcome.text })
+    } else if (!outcome.merged) {
+      // Typed on while saving: the saved text is the new base, the rest stays unsaved.
+      persist({ ...saved, draft: current })
+    } else {
+      // Typed on while a merged save ran: carry the late typing onto the merged text. If it
+      // overlaps, keep the old base so the next save merges the others' changes in again.
+      const carried = info ? carryOver(info.type, typed, current, outcome.text) : null
+      if (carried !== null) replaceText({ ...saved, draft: carried })
+      else persist({ ...local.current!, draft: current })
     }
     setInfo((old) => old && { ...old, version: outcome.version, author, createdAt: new Date().toISOString() })
     setBehind(null)
@@ -162,16 +175,23 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
 
   async function update() {
     if (busy || !local.current || !info) return
-    local.current = { ...local.current, draft: getText.current() }
+    const before = getText.current()
+    local.current = { ...local.current, draft: before }
     saveLocal(id, local.current)
     setBusy(true)
     setProblem(null)
     try {
       const outcome = await updateFromLatest(route, local.current, info.type, defaultLiveStorage)
       if (outcome.kind === 'conflicts') {
-        setConflict({ during: 'update', latest: outcome.latest, author: outcome.author, createdAt: '', merge: outcome.merge })
+        setConflict({ during: 'update', latest: outcome.latest, author: outcome.author, createdAt: outcome.createdAt, merge: outcome.merge })
       } else {
-        replaceText(outcome.local)
+        // Keep what was typed while the update was on its way.
+        const carried = carryOver(info.type, before, getText.current(), outcome.local.draft)
+        if (carried === null) {
+          persist({ ...local.current, draft: getText.current() })
+          return
+        }
+        replaceText({ ...outcome.local, draft: carried })
         setInfo((old) => old && { ...old, version: outcome.local.base, author: outcome.author, createdAt: outcome.createdAt })
         setBehind(null)
         clearPolled()
@@ -185,6 +205,9 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
 
   async function restore(version: number) {
     if (busy || !local.current || !info) return
+    const current = getText.current()
+    // Restoring replaces the text on screen: unsaved changes would be lost.
+    if (current !== local.current.baseText && !window.confirm(t('live.restoreConfirm'))) return
     setShowVersions(false)
     const author = loadAuthor() ?? (await askForName())
     if (author === null) return
@@ -192,10 +215,9 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     setProblem(null)
     try {
       const outcome = await restoreVersion(route, version, local.current, info.type, author, defaultLiveStorage)
-      if (outcome.kind === 'saved') track('version_restored')
       // The restored text replaces what is on screen.
       if (outcome.kind === 'saved') replaceText({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
-      settle(outcome, getText.current(), author)
+      settle(outcome, getText.current(), author, 0, true)
     } catch (error) {
       fail(error)
     } finally {
@@ -211,7 +233,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     setConflict(null)
     if (conflict.during === 'update') {
       replaceText({ base: conflict.latest.version, baseText: conflict.latest.text, draft: text })
-      setInfo((old) => old && { ...old, version: conflict.latest.version, author: conflict.author })
+      setInfo((old) => old && { ...old, version: conflict.latest.version, author: conflict.author, createdAt: conflict.createdAt || old.createdAt })
       setBehind(null)
       clearPolled()
       return

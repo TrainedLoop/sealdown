@@ -91,6 +91,11 @@ export function mergeJson(base: string, mine: string, theirs: string): MergeResu
   }
 
   const conflicts: Conflict[] = []
+  function conflict(m: Json, t: Json, pointer: string): Pending {
+    const id = conflicts.length
+    conflicts.push({ id, label: pointer || '/', mine: show(m), theirs: show(t) })
+    return new Pending(id, m, t)
+  }
   function merge(b: Json, m: Json, t: Json, pointer: string): Json {
     if (equal(m, t)) return m
     if (equal(m, b)) return t
@@ -104,12 +109,13 @@ export function mergeJson(base: string, mine: string, theirs: string): MergeResu
       return out
     }
     if (Array.isArray(b) && Array.isArray(m) && Array.isArray(t)) {
+      // Both sides changed the array. Merging by index is only sound when no item moved: once
+      // either side inserted or removed items, indexes no longer name the same items.
+      if (m.length !== b.length || t.length !== b.length) return conflict(m, t, pointer)
       const length = Math.max(b.length, m.length, t.length)
       return Array.from({ length }, (_, i) => merge(b[i], m[i], t[i], `${pointer}/${i}`)).filter((v) => v !== ABSENT)
     }
-    const id = conflicts.length
-    conflicts.push({ id, label: pointer || '/', mine: show(m), theirs: show(t) })
-    return new Pending(id, m, t)
+    return conflict(m, t, pointer)
   }
   const merged = merge(...values, '')
 

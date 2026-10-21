@@ -69,6 +69,7 @@ const pt: typeof en = {
     versions: 'Versões',
     versionItem: 'v{{version}}',
     restore: 'Restaurar esta versão',
+    restoreConfirm: 'Restaurar substitui suas alterações não salvas. Restaurar mesmo assim?',
     changes: 'O que mudou desta versão até a atual',
     current: 'atual',
     pickVersion: 'Escolha uma versão para ver o que mudou desde então.',

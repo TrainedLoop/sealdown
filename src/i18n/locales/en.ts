@@ -67,6 +67,7 @@ const en = {
     versions: 'Versions',
     versionItem: 'v{{version}}',
     restore: 'Restore this version',
+    restoreConfirm: 'Restoring replaces your unsaved changes. Restore anyway?',
     changes: 'Changes from this version to the current one',
     current: 'current',
     pickVersion: 'Choose a version to see what changed since.',

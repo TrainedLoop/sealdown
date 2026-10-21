@@ -175,3 +175,19 @@ test('local state and author name persist in the browser', () => {
   saveAuthor('Ana')
   expect(loadAuthor()).toBe('Ana')
 })
+
+test('text typed after Save or Update is carried onto the new text', async () => {
+  const { carryOver } = await import('../../../src/live/session.ts')
+  // Clicked with "X\n", kept typing "X\nmore\n"; the merged save brought in "Y".
+  expect(carryOver('markdown', 'X\n', 'X\nmore\n', 'Y\nX\n')).toBe('Y\nX\nmore\n')
+  expect(carryOver('markdown', 'same\n', 'same\n', 'new\n')).toBe('new\n')
+  // The late typing overlaps the incoming change: nothing safe to apply.
+  expect(carryOver('markdown', 'a\n', 'b\n', 'c\n')).toBeNull()
+})
+
+test('a tab reload finds its own draft even when another tab saved meanwhile', () => {
+  saveLocal('tabs000000', { base: 1, baseText: 'b', draft: 'tab B draft' })
+  // Another tab of the same browser writes the shared copy.
+  localStorage.setItem('sealdown.live.tabs000000', JSON.stringify({ base: 2, baseText: 'x', draft: 'x' }))
+  expect(loadLocal('tabs000000')).toEqual({ base: 1, baseText: 'b', draft: 'tab B draft' })
+})

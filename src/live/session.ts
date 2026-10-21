@@ -19,7 +19,7 @@ export type SaveOutcome =
   | { kind: 'conflicts'; latest: Latest; merge: Conflicted }
 export type UpdateOutcome =
   | { kind: 'updated'; local: LocalLive; author: string; createdAt: string }
-  | { kind: 'conflicts'; latest: Latest; author: string; merge: Conflicted }
+  | { kind: 'conflicts'; latest: Latest; author: string; createdAt: string; merge: Conflicted }
 
 // A few retries cover saves that keep landing right after someone else's.
 const MAX_ATTEMPTS = 3
@@ -91,8 +91,18 @@ export async function updateFromLatest(route: LiveRoute, local: LocalLive, type:
   const latest = await openLive(route, storage)
   const text = latest.doc.text
   const result = local.draft === local.baseText ? { text } : merge(type, local.baseText, local.draft, text)
-  if (!('text' in result)) return { kind: 'conflicts', latest: { version: latest.version, text }, author: latest.author, merge: result }
+  if (!('text' in result)) return { kind: 'conflicts', latest: { version: latest.version, text }, author: latest.author, createdAt: latest.createdAt, merge: result }
   return { kind: 'updated', local: { base: latest.version, baseText: text, draft: result.text }, author: latest.author, createdAt: latest.createdAt }
+}
+
+/**
+ * What was typed after Save or Update was pressed (`before` → `now`), applied to the text that
+ * came back (`incoming`). Null when the late typing overlaps the incoming change.
+ */
+export function carryOver(type: DocType, before: string, now: string, incoming: string): string | null {
+  if (now === before) return incoming
+  const result = merge(type, before, now, incoming)
+  return 'text' in result ? result.text : null
 }
 
 /** Saves version `version`'s text as the newest version (nothing is deleted). */

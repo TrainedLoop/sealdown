@@ -104,3 +104,14 @@ test('JSON changed on one side only keeps that side text exactly', () => {
   expect(clean(mergeJson('{"a":1}', '{"a":1}', theirs))).toBe(theirs)
   expect(clean(mergeJson('{"a":1}', theirs, '{"a":1}'))).toBe(theirs)
 })
+
+test('arrays whose length changed on both sides are one conflict, not a per-index merge', () => {
+  const result = conflicted(mergeJson('{"x": ["a","b","c"]}', '{"x": ["b","c"]}', '{"x": ["a","b"]}'))
+  expect(result.conflicts.map((c) => c.label)).toEqual(['/x'])
+  expect(JSON.parse(result.resolve({ 0: 'theirs' })).x).toEqual(['a', 'b'])
+})
+
+test('an item removed on one side and another edited on the other is a conflict', () => {
+  const result = conflicted(mergeJson('["a","b","c"]', '["b","c"]', '["a","B","c"]'))
+  expect(result.conflicts.map((c) => c.label)).toEqual(['/'])
+})

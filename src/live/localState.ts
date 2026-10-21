@@ -5,8 +5,7 @@ export type LocalLive = { base: number; baseText: string; draft: string }
 
 const key = (id: string) => `sealdown.live.${id}`
 
-export function loadLocal(id: string): LocalLive | null {
-  const raw = readPref(key(id))
+function parse(raw: string | null): LocalLive | null {
   if (!raw) return null
   try {
     const value = JSON.parse(raw) as LocalLive
@@ -16,6 +15,26 @@ export function loadLocal(id: string): LocalLive | null {
   }
 }
 
+// Two tabs on the same edit link share localStorage, so the last one to write wins there. Each tab
+// also keeps its own copy in sessionStorage, which survives that tab's reloads.
+function readSession(id: string): string | null {
+  try {
+    return sessionStorage.getItem(key(id))
+  } catch {
+    return null
+  }
+}
+
+export function loadLocal(id: string): LocalLive | null {
+  return parse(readSession(id)) ?? parse(readPref(key(id)))
+}
+
 export function saveLocal(id: string, state: LocalLive): void {
-  writePref(key(id), JSON.stringify(state))
+  const raw = JSON.stringify(state)
+  writePref(key(id), raw)
+  try {
+    sessionStorage.setItem(key(id), raw)
+  } catch {
+    // Not persisting is acceptable, as with every preference.
+  }
 }
