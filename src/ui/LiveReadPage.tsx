@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { track } from '../analytics.ts'
 import { useTranslation } from 'react-i18next'
 import { openLive, type Opened } from '../live/session.ts'
 import type { LiveReadRoute } from '../live/links.ts'
@@ -19,16 +20,23 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
   const [attempt, setAttempt] = useState(0)
   const [showVersions, setShowVersions] = useState(false)
   const { id, key } = route
+  const tracked = useRef(false)
   useEffect(() => {
     let cancelled = false
     openLive({ kind: 'live-read', id, key }, defaultLiveStorage).then(
-      (opened) => !cancelled && setState({ kind: 'ready', opened }),
+      (opened) => {
+        if (cancelled) return
+        // Once per page: Update reloads the document too.
+        if (!tracked.current && !notice) track('live_opened', { access: 'read' })
+        tracked.current = true
+        setState({ kind: 'ready', opened })
+      },
       (error: unknown) => !cancelled && setState({ kind: 'error', missing: error instanceof LiveError && error.kind === 'missing' }),
     )
     return () => {
       cancelled = true
     }
-  }, [id, key, attempt])
+  }, [id, key, attempt, notice])
   const [newer, clearNewer] = useLivePolling(route, state.kind === 'ready' ? state.opened.version : null)
 
   if (state.kind === 'loading') return <p className="status">{t('live.loading')}</p>
@@ -61,7 +69,10 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
           clearNewer()
           setAttempt((n) => n + 1)
         }}
-        onVersions={() => setShowVersions(true)}
+        onVersions={() => {
+          track('versions_viewed')
+          setShowVersions(true)
+        }}
       />
       {showVersions && <VersionsPanel route={route} onClose={() => setShowVersions(false)} />}
     </>

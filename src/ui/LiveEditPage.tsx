@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { track } from '../analytics.ts'
 import { loadAuthor, saveAuthor } from '../live/author.ts'
 import { readLinkOf, type LiveEditRoute } from '../live/links.ts'
 import { loadLocal, saveLocal, type LocalLive } from '../live/localState.ts'
@@ -74,6 +75,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
         setInfo({ type: opened.doc.type, version: opened.version, author: opened.author, createdAt: opened.createdAt })
       }
       saveLocal(id, local.current!)
+      track('live_opened', { access: 'edit' })
       setState({ kind: 'ready' })
     })().catch((error: unknown) => {
       if (!cancelled) setState({ kind: 'error', error: error instanceof LiveError ? error.kind : 'network' })
@@ -120,11 +122,12 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     else setProblem(kind)
   }
 
-  function settle(outcome: SaveOutcome, typed: string, author: string) {
+  function settle(outcome: SaveOutcome, typed: string, author: string, conflicts = 0) {
     if (outcome.kind === 'conflicts') {
       setConflict({ during: 'save', latest: outcome.latest, author: '', createdAt: '', merge: outcome.merge })
       return
     }
+    track('version_saved', { merged: outcome.merged || conflicts > 0, conflicts })
     const current = getText.current()
     const next = { base: outcome.version, baseText: outcome.text, draft: current === typed ? outcome.text : current }
     // A merged save brings others' changes in: show them, unless the person kept typing meanwhile.
@@ -142,6 +145,8 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     if (busy || !local.current || !info) return
     const typed = getText.current()
     local.current = { ...local.current, draft: typed }
+    // Kept in the browser before anything can fail, so the text survives a failed save and a reload.
+    saveLocal(id, local.current)
     const author = loadAuthor() ?? (await askForName())
     if (author === null) return
     setBusy(true)
@@ -158,6 +163,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   async function update() {
     if (busy || !local.current || !info) return
     local.current = { ...local.current, draft: getText.current() }
+    saveLocal(id, local.current)
     setBusy(true)
     setProblem(null)
     try {
@@ -186,6 +192,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
     setProblem(null)
     try {
       const outcome = await restoreVersion(route, version, local.current, info.type, author, defaultLiveStorage)
+      if (outcome.kind === 'saved') track('version_restored')
       // The restored text replaces what is on screen.
       if (outcome.kind === 'saved') replaceText({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
       settle(outcome, getText.current(), author)
@@ -199,6 +206,8 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
   async function resolve(choices: Record<number, Choice>) {
     if (!conflict || !info) return
     const text = conflict.merge.resolve(choices)
+    const conflicts = conflict.merge.conflicts.length
+    track('conflict_resolved', { conflicts })
     setConflict(null)
     if (conflict.during === 'update') {
       replaceText({ base: conflict.latest.version, baseText: conflict.latest.text, draft: text })
@@ -213,7 +222,7 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
       const outcome = await saveResolved(route, conflict.latest, text, info.type, author, defaultLiveStorage)
       // The resolved text is what the person chose: show it.
       if (outcome.kind === 'saved') replaceText({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
-      settle(outcome, getText.current(), author)
+      settle(outcome, getText.current(), author, conflicts)
     } catch (error) {
       fail(error)
     } finally {
@@ -284,7 +293,18 @@ export function LiveEditPage({ route, theme }: { route: LiveEditRoute; theme: Th
 
   return (
     <div className="live-page">
-      <LiveBar version={info.version} author={info.author} createdAt={info.createdAt} newer={newer} onUpdate={() => void update()} busy={busy} onVersions={() => setShowVersions(true)} />
+      <LiveBar
+        version={info.version}
+        author={info.author}
+        createdAt={info.createdAt}
+        newer={newer}
+        onUpdate={() => void update()}
+        busy={busy}
+        onVersions={() => {
+          track('versions_viewed')
+          setShowVersions(true)
+        }}
+      />
       {showVersions && <VersionsPanel route={route} onRestore={(n) => void restore(n)} onClose={() => setShowVersions(false)} />}
       {problem && ERROR_COPY[problem] && (
         <div className="notice" role="alert">

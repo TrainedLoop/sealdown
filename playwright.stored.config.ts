@@ -13,6 +13,9 @@ export default defineConfig({
     env: {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL ?? '',
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY ?? '',
+      // As in the main config: PostHog goes to the preview server so tests can read what is sent.
+      VITE_POSTHOG_KEY: 'phc_test',
+      VITE_POSTHOG_HOST: 'http://localhost:4318/ph',
     },
   },
 })

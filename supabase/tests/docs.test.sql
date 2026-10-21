@@ -42,8 +42,10 @@ select throws_ok(
   '23514', null, 'content over 1 MB is rejected'
 );
 
--- Prune: three 10-byte docs, cap 25 bytes keeps the two most recently accessed.
+-- Prune: three 10-byte docs, cap 25 bytes keeps the two most recently accessed. Live documents
+-- share the budget, so none may be around.
 delete from sealdown.docs;
+delete from sealdown.live_docs;
 insert into sealdown.docs (id, content, last_accessed_at) values
   ('old0000000', '\x00000000000000000000', now() - interval '3 days'),
   ('mid0000000', '\x00000000000000000000', now() - interval '2 days'),

@@ -21,6 +21,11 @@ Live at https://trainedloop.github.io/sealdown/.
   left and a synchronized tree on the right, in Write, Split and Read like Markdown (Split scrolls
   both panes together, value by value), with format, compact, sort, repair and transform. Open or drop a `.json` file, export `.json`, and seal it the same way;
   a JSON link opens as a read-only tree with **Edit a copy**. The library loads only on JSON pages.
+- **Live documents** (Share to edit): an edit link and a read link to one document that several
+  people keep up to date, each in their own time. Save version publishes what you typed; when
+  someone saved meanwhile, changes are merged (by line for Markdown, by path for JSON) and only
+  overlapping changes are shown for you to choose. The newest 50 versions can be viewed, compared
+  and restored. Still encrypted in the browser, with no accounts.
 - Text styles (Modern, Editorial, Technical), dark and light themes, English and Portuguese, and a
   command palette (Ctrl/Cmd+K).
 
@@ -32,6 +37,8 @@ Live at https://trainedloop.github.io/sealdown/.
 | `#/s/<id>.<key>` | Larger documents: encrypted the same way and stored in Supabase; the link carries the id and the key. |
 | `#/p/<ciphertext>` | Password-protected, small: the ciphertext in the link, no key. |
 | `#/q/<id>` | Password-protected, large: stored in Supabase, no key in the link. |
+| `#/w/<id>.<key>.<token>` | Live document, edit link: stored versions encrypted with `key`; `token` lets the browser save. The server keeps only the token's SHA-256. |
+| `#/l/<id>.<key>` | Live document, read link: the edit link without the token. Always the latest version. |
 | `#/v/<payload>` | Legacy plaintext links from before Sealdown encrypted everything: still opened, never created. |
 
 A JSON document starts with an invisible marker (`\u0001json\n`) before it is compressed and
@@ -43,7 +50,9 @@ documents are fetched once, and password attempts happen in the browser.
 
 Everything after `#` stays in the browser; it is never sent to a server. Supabase only ever sees
 ciphertext and cannot read stored documents. Stored documents never expire on a timer: when they
-exceed Sealdown's 100 MB budget, the least recently opened ones are removed first.
+exceed Sealdown's 100 MB budget, the least recently opened ones are removed first (a live document
+counts with all its versions, and goes whole). Creating or saving runs that cleanup right away when
+needed, besides the hourly job.
 
 The Supabase project is shared with other small projects, so everything Sealdown owns lives in the
 `sealdown` schema. Add `sealdown` to the project's exposed schemas (Settings → API → Exposed
@@ -65,7 +74,7 @@ json); on a shared link that is known once the document is unsealed.
 
 | Event | Properties |
 |---|---|
-| `$pageview` | `route`: editor, json-editor, inline-sealed, inline (legacy), stored, protected, error |
+| `$pageview` | `route`: editor, json-editor, live-edit, live-read, inline-sealed, inline (legacy), stored, protected, error |
 | `app_opened` | `route` (first page of the visit) |
 | `link_created` | `result`, `storage`, `protected`, `size_kb`, `diagram_count` and `diagram_types` (Markdown only) |
 | `link_opened` | `storage`, `protected`, `ok`, `error` |
@@ -82,6 +91,12 @@ json); on a shared link that is known once the document is unsealed.
 | `diagram_copied` | `ok` |
 | `typeset_changed` | `style` |
 | `command_run` | `command` (command id) |
+| `live_created` | — |
+| `live_opened` | `access`: edit, read |
+| `version_saved` | `merged`, `conflicts` (count) |
+| `conflict_resolved` | `conflicts` (count) |
+| `version_restored` | — |
+| `versions_viewed` | — |
 
 ## Development
 

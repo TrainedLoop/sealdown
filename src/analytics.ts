@@ -31,6 +31,12 @@ export type EventName =
   | 'code_copied'
   | 'diagram_expanded'
   | 'diagram_copied'
+  | 'live_created'
+  | 'live_opened'
+  | 'version_saved'
+  | 'conflict_resolved'
+  | 'version_restored'
+  | 'versions_viewed'
 
 type Props = Record<string, string | number | boolean | string[]>
 

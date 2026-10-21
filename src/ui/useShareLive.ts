@@ -4,6 +4,7 @@ import { buildHash } from '../router/route.ts'
 import type { DocType } from '../share/docType.ts'
 import { defaultLiveStorage } from '../storage/live.ts'
 import { loadAuthor } from '../live/author.ts'
+import { track } from '../analytics.ts'
 
 export type SharedLive = { edit: string; read: string }
 
@@ -20,6 +21,7 @@ export function useShareLive(docType: DocType) {
     try {
       const { edit, read } = await createLiveDoc({ type: docType, text }, loadAuthor() ?? '', defaultLiveStorage)
       const base = window.location.origin + import.meta.env.BASE_URL
+      track('live_created')
       setShared({ edit: base + buildHash(edit), read: base + buildHash(read) })
     } catch {
       setFailed(true)
