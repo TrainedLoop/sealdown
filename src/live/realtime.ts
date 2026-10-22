@@ -7,7 +7,6 @@ import { supabaseConfig } from '../storage/storage.ts'
 
 const EVENT = 'saved'
 let client: Promise<RealtimeClient | null> | null = null
-const channels = new Map<string, Promise<RealtimeChannel | null>>()
 
 function connect(): Promise<RealtimeClient | null> {
   const { url, anonKey } = supabaseConfig
@@ -20,18 +19,35 @@ function connect(): Promise<RealtimeClient | null> {
   return client
 }
 
-function channel(id: string): Promise<RealtimeChannel | null> {
-  let joined = channels.get(id)
-  if (!joined) {
-    joined = connect().then((realtime) => {
+type Joined = { channel: RealtimeChannel; status: 'connected' | 'offline'; listeners: Set<(status: 'connected' | 'offline') => void> }
+const joined = new Map<string, Promise<Joined | null>>()
+
+/**
+ * The page's one Realtime channel for live document `id` (shared by the collaboration transport and
+ * the JSON "saved" announcements), with its connection status. Realtime rejoins on its own after a
+ * drop; every rejoin reports 'connected' again.
+ */
+export function liveChannel(id: string): Promise<Joined | null> {
+  let found = joined.get(id)
+  if (!found) {
+    found = connect().then((realtime) => {
       if (!realtime) return null
-      const ch = realtime.channel(`sealdown-live-${id}`, { config: { broadcast: { self: false } } })
-      ch.subscribe()
-      return ch
+      const entry: Joined = { channel: realtime.channel(`sealdown-live-${id}`, { config: { broadcast: { self: false } } }), status: 'offline', listeners: new Set() }
+      entry.channel.subscribe((status) => {
+        const next = status === 'SUBSCRIBED' ? 'connected' : 'offline'
+        if (next === entry.status) return
+        entry.status = next
+        for (const listener of entry.listeners) listener(next)
+      })
+      return entry
     })
-    channels.set(id, joined)
+    joined.set(id, found)
   }
-  return joined
+  return found
+}
+
+function channel(id: string): Promise<RealtimeChannel | null> {
+  return liveChannel(id).then((entry) => entry?.channel ?? null)
 }
 
 /** Calls `onSaved` with the version number whenever another browser saves this document. */
