@@ -59,17 +59,12 @@ export function EditorPage({ theme, live }: { theme: Theme; live?: LiveEditorPro
 
   // The latest text, for the unmount flush.
   const latest = useRef(text)
-  // A live document's text from others goes to the text editor, which applies it against what it
-  // holds right then. Without a text editor on screen (Read), it lands here instead.
-  const incoming = live?.incoming
-  const textEditorShown = mode !== 'read'
+  // A collaborative document's shared text drives the page (preview, counts) even in Read, where
+  // no editor is mounted to report changes.
+  const collabText = live?.collab?.text
   useEffect(() => {
-    if (!incoming || textEditorShown) return
-    const next = incoming.rebase(latest.current)
-    if (next !== null) setText(next)
-    // Only on arrival; switching views doesn't re-apply it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incoming])
+    if (collabText !== undefined) setText(collabText)
+  }, [collabText])
   useEffect(() => {
     latest.current = text
     const timer = setTimeout(() => {
@@ -99,7 +94,9 @@ export function EditorPage({ theme, live }: { theme: Theme; live?: LiveEditorPro
     if (!isUntouched(text) && text !== content && !window.confirm(t('editor.replaceText'))) return
     track('file_opened', { via })
     if (mode === 'read') setMode(splitAvailable ? 'split' : 'write')
-    edit(content)
+    // A shared document changes through its editor, so everyone receives the new text.
+    if (live?.collab) editorApi.current?.apply((state) => ({ changes: { from: 0, to: state.doc.length, insert: content } }))
+    else edit(content)
   }
 
   function insertDiagram(template: DiagramTemplate) {
@@ -262,7 +259,7 @@ export function EditorPage({ theme, live }: { theme: Theme; live?: LiveEditorPro
           >
             <Suspense fallback={<p className="status editor-loading">{t('editor.loading')}</p>}>
               <CodeEditor
-                incoming={incoming}
+                collab={live?.collab?.extension}
                 value={text}
                 onChange={edit}
                 label={t('editor.placeholder')}

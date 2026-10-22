@@ -4,7 +4,7 @@ import type { Route } from './router/route.ts'
 import { useHashRoute } from './router/useHashRoute.ts'
 import { EditorPage } from './ui/EditorPage.tsx'
 import { JsonEditorPage } from './ui/JsonEditorPage.tsx'
-import { LiveEditPage } from './ui/LiveEditPage.tsx'
+import { LiveDoc } from './ui/LiveDoc.tsx'
 import { LiveReadPage } from './ui/LiveReadPage.tsx'
 import { LiveGate } from './ui/LiveGate.tsx'
 import { ErrorMessage } from './ui/ErrorMessage.tsx'
@@ -39,7 +39,7 @@ export default function App() {
             : 'page page-reader'}>
         {route.kind === 'editor' && <EditorPage theme={theme} />}
         {route.kind === 'json-editor' && <JsonEditorPage />}
-        {route.kind === 'live-edit' && <LiveEditPage key={route.id} route={route} theme={theme} />}
+        {route.kind === 'live-edit' && <LiveDoc key={route.id} route={route} theme={theme} />}
         {route.kind === 'live-read' && <LiveReadPage key={route.id} route={route} theme={theme} />}
         {(route.kind === 'live-edit-protected' || route.kind === 'live-read-protected') && (
           <LiveGate key={route.id} route={route} theme={theme} />

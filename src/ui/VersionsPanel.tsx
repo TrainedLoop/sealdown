@@ -16,7 +16,7 @@ export function VersionsPanel({
 }: {
   route: LiveRoute
   /** Present on the edit link only. */
-  onRestore?: (version: number) => void
+  onRestore?: (version: number, text: string) => void
   onClose: () => void
 }) {
   const { t, i18n } = useTranslation()
@@ -88,7 +88,7 @@ export function VersionsPanel({
                 <p className="seal-how">{t('live.changes')}</p>
                 <DiffView before={selected.text} after={selected.current} />
                 {onRestore && selected.version !== latestVersion && (
-                  <button type="button" className="primary" onClick={() => onRestore(selected.version)}>
+                  <button type="button" className="primary" onClick={() => onRestore(selected.version, selected.text)}>
                     {t('live.restore')}
                   </button>
                 )}

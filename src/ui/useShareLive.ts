@@ -4,6 +4,7 @@ import { buildHash } from '../router/route.ts'
 import type { DocType } from '../share/docType.ts'
 import { defaultLiveStorage } from '../storage/live.ts'
 import { loadAuthor } from '../live/author.ts'
+import { seedUpdate } from '../live/collab/seed.ts'
 import { rememberShared, storeLiveKey } from '../live/keyStore.ts'
 import { track } from '../analytics.ts'
 
@@ -19,9 +20,11 @@ export function useShareLive(docType: DocType) {
     try {
       const doc = { type: docType, text }
       const author = loadAuthor() ?? ''
+      // Markdown documents are edited in real time: they start with their Yjs state.
+      const state = docType === 'markdown' ? seedUpdate(text) : undefined
       const created = password
-        ? await createProtectedLiveDoc(doc, author, password, defaultLiveStorage)
-        : await createLiveDoc(doc, author, defaultLiveStorage)
+        ? await createProtectedLiveDoc(doc, author, password, defaultLiveStorage, state)
+        : await createLiveDoc(doc, author, defaultLiveStorage, state)
       const { edit, read } = created
       // The person who shared knows the password: their tab opens the document without asking.
       if ('key' in created) storeLiveKey(edit.id, created.key)

@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { People } from './icons.tsx'
 import { relativeTime } from './relativeTime.ts'
+import type { ConnectionStatus } from '../live/collab/channel.ts'
+import type { Peer } from '../live/collab/useCollab.ts'
 
 export type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'conflict'
 
@@ -14,6 +16,8 @@ export function LiveBar({
   conflicts = 0,
   onResolve,
   onVersions,
+  connection,
+  peers,
   children,
 }: {
   version: number
@@ -24,6 +28,9 @@ export function LiveBar({
   conflicts?: number
   onResolve?: () => void
   onVersions?: () => void
+  /** Real-time documents: the Realtime connection, and who else is editing. */
+  connection?: ConnectionStatus
+  peers?: Peer[]
   children?: ReactNode
 }) {
   const { t, i18n } = useTranslation()
@@ -32,7 +39,23 @@ export function LiveBar({
     <section className="live-bar" aria-label={t('live.region')}>
       <People />
       <span className="live-bar-version">{t('live.version', { version })}</span>
-      <span className="live-bar-by">{author ? t('live.by', { author, time }) : time}</span>
+      {connection ? (
+        <span className={`live-bar-status live-bar-${connection === 'connected' ? 'saved' : 'conflict'}`} role="status">
+          {t(connection === 'connected' ? 'live.connected' : 'live.offline')}
+        </span>
+      ) : (
+        <span className="live-bar-by">{author ? t('live.by', { author, time }) : time}</span>
+      )}
+      {peers && peers.length > 0 && (
+        <span className="live-bar-peers" aria-label={t('live.here')}>
+          {peers.map((peer) => (
+            <span key={peer.clientId} className="live-peer">
+              <span className="live-peer-dot" style={{ background: peer.color }} aria-hidden="true" />
+              {peer.name}
+            </span>
+          ))}
+        </span>
+      )}
       {status && (
         <span className={`live-bar-status live-bar-${status}`} role="status">
           {status === 'conflict' ? (

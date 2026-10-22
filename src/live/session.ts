@@ -145,6 +145,22 @@ export async function checkpointNow(route: LiveEditRoute, text: string, authors:
   )
 }
 
+/**
+ * Saves a Markdown document's current state (its text and Yjs state, both encrypted) on `base`.
+ * Throws LiveError 'stale' when someone saved first: the caller merges their state and retries.
+ * `signKey` reaches documents from before signatures, which don't have one yet.
+ */
+export async function saveCollabState(route: LiveEditRoute, text: string, state: Uint8Array, base: number, storage: LiveStorage): Promise<number> {
+  return storage.saveState(
+    route.id,
+    route.token,
+    base,
+    await seal({ type: 'markdown', text }, route.key),
+    await encryptWithKey(state, route.key),
+    (await signingKey(route.token)).publicKey,
+  )
+}
+
 /** Saves `local.draft` as the current state on `local.base`; when someone saved meanwhile, merges and saves on top. */
 export async function saveDraft(route: LiveEditRoute, local: LocalLive, type: DocType, storage: LiveStorage): Promise<SaveOutcome> {
   let { base, baseText, draft: text } = local

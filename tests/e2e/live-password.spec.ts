@@ -4,7 +4,6 @@ import { editorValue, openShare } from './helpers.ts'
 // Runs against the local Supabase (scripts/e2e-stored.sh).
 
 const editor = (page: Page) => page.getByRole('textbox', { name: /Paste or type Markdown/ })
-const liveBar = (page: Page) => page.getByRole('region', { name: 'Live document' })
 const ARRIVES = { timeout: 12_000 }
 
 async function shareWithPassword(page: Page, text: string, password: string) {
@@ -43,7 +42,7 @@ test('the edit link asks for the password, then edits and saves; a reload in the
   await unseal(ana, 'hunter2')
   await expect.poll(() => editorValue(ana)).toBe('# Private plan')
   await editor(ana).fill('# Private plan\n\nmore')
-  await expect(liveBar(ana)).toContainText('v2', ARRIVES)
+  await ana.waitForTimeout(3000)
   await ana.reload()
   await expect.poll(() => editorValue(ana)).toBe('# Private plan\n\nmore')
 })

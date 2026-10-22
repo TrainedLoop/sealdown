@@ -6,6 +6,7 @@ import type { LiveReadRoute } from '../live/links.ts'
 import { defaultLiveStorage, LiveError } from '../storage/live.ts'
 import { JsonDocument } from './JsonDocument.tsx'
 import { LiveBar } from './LiveBar.tsx'
+import { LiveCollabReader } from './LiveCollabReader.tsx'
 import { VersionsPanel } from './VersionsPanel.tsx'
 import { Document } from './ReaderPage.tsx'
 import type { Theme } from './theme.ts'
@@ -51,7 +52,9 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
     }
   }, [id, key, attempt, notice])
   // A newer version replaces the one on screen on its own.
-  useLivePolling(route, state.kind === 'ready' ? state.opened.revision : null, () => setAttempt((n) => n + 1))
+  // Markdown follows the editors in real time (LiveCollabReader); JSON reloads on new revisions.
+  const polled = state.kind === 'ready' && state.opened.doc.type === 'json' ? state.opened.revision : null
+  useLivePolling(route, polled, () => setAttempt((n) => n + 1))
 
   if (state.kind === 'loading') return <p className="status">{t('live.loading')}</p>
   if (state.kind === 'error') {
@@ -65,6 +68,14 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
         )}
       </div>
     )
+  }
+  if (state.opened.doc.type === 'markdown') {
+    const banner = notice ? (
+      <p className="notice" role="status">
+        {notice}
+      </p>
+    ) : undefined
+    return <LiveCollabReader route={route} opened={state.opened} theme={theme} notice={banner} />
   }
   const { doc, revision: version, stateAt: createdAt } = state.opened
   const author = ''

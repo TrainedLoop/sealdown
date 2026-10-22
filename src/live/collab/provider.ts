@@ -86,16 +86,18 @@ export class CollabProvider {
   destroy(): void {
     if (this.destroyed) return
     this.flush()
-    // Tell the others this person left, so their cursor disappears at once.
+    // Tell the others this person left, so their cursor disappears at once; the transport closes
+    // once that last message (encrypted and signed, so not instant) is out.
+    let last: Promise<void> = Promise.resolve()
     if (this.opts.sign) {
       removeAwarenessStates(this.opts.awareness, [this.opts.doc.clientID], this)
-      void this.send('presence', encodeAwarenessUpdate(this.opts.awareness, [this.opts.doc.clientID]))
+      last = this.send('presence', encodeAwarenessUpdate(this.opts.awareness, [this.opts.doc.clientID]))
     }
     this.destroyed = true
     clearTimeout(this.batch)
     clearTimeout(this.presence)
     for (const off of this.offs) off()
-    this.opts.transport.close()
+    void last.finally(() => this.opts.transport.close())
   }
 
   private flush() {
@@ -116,7 +118,7 @@ export class CollabProvider {
   }
 
   private async send(t: Envelope['t'], bytes: Uint8Array) {
-    if (this.destroyed) return
+    if (this.destroyed && t !== 'presence') return
     const { key, sign, transport } = this.opts
     const needsSignature = t !== 'sync1' && t !== 'saved'
     if (needsSignature && !sign) return

@@ -2692,3 +2692,31 @@ figure.diagram {
   padding: 28px 16px;
   background: var(--canvas) radial-gradient(var(--canvas-dot) 1px, transparent 1px) 0 0 / 14px 14px;
 }
+
+.live-bar-peers {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.live-peer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--text);
+}
+
+.live-peer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Other editors' cursors (y-codemirror.next): the name above the caret. */
+.cm-ySelectionInfo {
+  font: 600 0.7rem/1.2 var(--font-ui);
+  padding: 1px 4px;
+  border-radius: 4px 4px 4px 0;
+}

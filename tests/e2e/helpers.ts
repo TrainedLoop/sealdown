@@ -8,7 +8,17 @@ export function inlineHash(text: string): string {
 
 /** The editor's text. CodeMirror renders one .cm-line per line (fine for the small documents tests read). */
 export async function editorValue(page: Page): Promise<string> {
-  return (await page.locator('.cm-content .cm-line').allTextContents()).join('\n')
+  // Widgets inside the lines aren't text: other people's cursors (collaboration) and the placeholder.
+  // No editor on screen (Read) reads as empty.
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll('.cm-content .cm-line'))
+      .map((line) => {
+        const copy = line.cloneNode(true) as HTMLElement
+        copy.querySelectorAll('.cm-ySelectionCaret, .cm-ySelectionInfo, .cm-placeholder').forEach((widget) => widget.remove())
+        return copy.textContent ?? ''
+      })
+      .join('\n'),
+  )
 }
 
 /** Starts the page with a saved theme (the app is dark by default, whatever the system says). */

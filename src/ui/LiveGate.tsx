@@ -6,7 +6,7 @@ import { storedLiveKey, storeLiveKey } from '../live/keyStore.ts'
 import { unlockLive } from '../live/session.ts'
 import { buildHash } from '../router/route.ts'
 import { defaultLiveStorage, LiveError } from '../storage/live.ts'
-import { LiveEditPage } from './LiveEditPage.tsx'
+import { LiveDoc } from './LiveDoc.tsx'
 import { LiveReadPage } from './LiveReadPage.tsx'
 import { PasswordPrompt } from './PasswordPrompt.tsx'
 import type { Theme } from './theme.ts'
@@ -50,7 +50,7 @@ export function LiveGate({ route, theme }: { route: ProtectedLiveRoute; theme: T
   }
   const readHash = buildHash({ kind: 'live-read-protected', id: route.id })
   if (route.kind === 'live-edit-protected') {
-    return <LiveEditPage route={{ kind: 'live-edit', id: route.id, key, token: route.token }} theme={theme} readHash={readHash} />
+    return <LiveDoc route={{ kind: 'live-edit', id: route.id, key, token: route.token }} theme={theme} readHash={readHash} />
   }
   return <LiveReadPage route={{ kind: 'live-read', id: route.id, key }} theme={theme} />
 }

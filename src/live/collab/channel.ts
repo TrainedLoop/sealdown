@@ -39,13 +39,26 @@ export function realtimeTransport(id: string): Transport {
     },
     onStatus(cb) {
       let listener: ((s: ConnectionStatus) => void) | null = null
+      let channelStatus: ConnectionStatus = 'offline'
+      // The browser knows about a lost network long before the channel's heartbeat does.
+      const report = () => cb(navigator.onLine === false ? 'offline' : channelStatus)
       void entry.then((joined) => {
         if (!joined || closed) return cb('offline')
-        listener = (s) => cb(s)
+        listener = (s) => {
+          channelStatus = s
+          report()
+        }
         joined.listeners.add(listener)
-        cb(joined.status)
+        channelStatus = joined.status
+        report()
       })
-      const off = () => void entry.then((joined) => listener && joined?.listeners.delete(listener))
+      window.addEventListener('offline', report)
+      window.addEventListener('online', report)
+      const off = () => {
+        window.removeEventListener('offline', report)
+        window.removeEventListener('online', report)
+        void entry.then((joined) => listener && joined?.listeners.delete(listener))
+      }
       offs.push(off)
       return off
     },

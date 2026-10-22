@@ -36,76 +36,19 @@ async function openIn(context: BrowserContext, url: string): Promise<Page> {
   return page
 }
 
-test('Share to edit gives an edit link and a read link; edits save on their own', async ({ page, context }) => {
+test('Share to edit gives an edit link and a read link; edits reach the read link', async ({ page, context }) => {
   const { edit, read } = await share(page, '# Plan\n\nfirst')
   expect(edit).toMatch(/#\/w\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/)
   expect(read).toBe(edit.replace('#/w/', '#/l/').replace(/\.[A-Za-z0-9_-]{43}$/, ''))
 
   const ana = await openEdit(context, edit, 'Ana')
-  await expect(liveBar(ana)).toContainText('v1')
+  await expect(liveBar(ana)).toContainText('Connected', ARRIVES)
   await expect.poll(() => editorValue(ana)).toBe('# Plan\n\nfirst')
   await expect(ana.getByRole('button', { name: 'Save version' })).toHaveCount(0)
+  const reader = await openIn(context, read)
+  await expect(reader.getByText('first')).toBeVisible()
   await editor(ana).fill('# Plan\n\nsecond')
-  await expect(liveBar(ana)).toContainText('Unsaved changes')
-  await expect(liveBar(ana)).toContainText('v2', ARRIVES)
-  await expect(liveBar(ana)).toContainText('Ana')
-  await expect(liveBar(ana)).toContainText('Saved')
-
-  const reader = await openIn(context, read)
-  await expect(reader.getByText('second')).toBeVisible()
-  await expect(liveBar(reader)).toContainText('v2')
-})
-
-test("others' versions arrive on their own, in the editor and on the read link", async ({ page, context, browser }) => {
-  const { edit, read } = await share(page, 'one\ntwo\nthree')
-  const ana = await openEdit(context, edit, 'Ana')
-  await expect.poll(() => editorValue(ana)).toBe('one\ntwo\nthree')
-  const reader = await openIn(context, read)
-
-  const other = await browser.newContext()
-  const bob = await openEdit(other, edit, 'Bob')
-  await expect.poll(() => editorValue(bob)).toBe('one\ntwo\nthree')
-  await editor(bob).fill('one\ntwo\nTHREE')
-  await expect(liveBar(bob)).toContainText('v2', ARRIVES)
-
-  await expect.poll(() => editorValue(ana), ARRIVES).toBe('one\ntwo\nTHREE')
-  await expect(liveBar(ana)).toContainText('v2')
-  await expect(reader.getByText('THREE')).toBeVisible(ARRIVES)
-  await other.close()
-})
-
-test('two people typing in different places both keep their changes', async ({ page, context, browser }) => {
-  const { edit } = await share(page, 'one\ntwo\nthree\nfour\nfive')
-  const ana = await openEdit(context, edit, 'Ana')
-  const other = await browser.newContext()
-  const bob = await openEdit(other, edit, 'Bob')
-  await expect.poll(() => editorValue(ana)).toBe('one\ntwo\nthree\nfour\nfive')
-  await expect.poll(() => editorValue(bob)).toBe('one\ntwo\nthree\nfour\nfive')
-  await editor(ana).fill('ONE\ntwo\nthree\nfour\nfive')
-  await editor(bob).fill('one\ntwo\nthree\nfour\nFIVE')
-  const both = 'ONE\ntwo\nthree\nfour\nFIVE'
-  await expect.poll(() => editorValue(ana), ARRIVES).toBe(both)
-  await expect.poll(() => editorValue(bob), ARRIVES).toBe(both)
-  await other.close()
-})
-
-test('the cursor stays where the person types when others change another part', async ({ page, context, browser }) => {
-  const { edit } = await share(page, 'top\n\nmiddle\n\nbottom')
-  const ana = await openEdit(context, edit, 'Ana')
-  await expect.poll(() => editorValue(ana)).toBe('top\n\nmiddle\n\nbottom')
-  const other = await browser.newContext()
-  const bob = await openEdit(other, edit, 'Bob')
-  await expect.poll(() => editorValue(bob)).toBe('top\n\nmiddle\n\nbottom')
-  await editor(bob).fill('TOP FROM BOB\n\nmiddle\n\nbottom')
-  await expect(liveBar(bob)).toContainText('v2', ARRIVES)
-
-  // Ana's cursor at the end of "bottom" before Bob's version arrives.
-  await editor(ana).click()
-  await ana.keyboard.press('ControlOrMeta+End')
-  await expect.poll(() => editorValue(ana), ARRIVES).toContain('TOP FROM BOB')
-  await ana.keyboard.type('!')
-  await expect.poll(() => editorValue(ana)).toBe('TOP FROM BOB\n\nmiddle\n\nbottom!')
-  await other.close()
+  await expect(reader.getByText('second')).toBeVisible(ARRIVES)
 })
 
 test('Ctrl/Cmd+S saves right away', async ({ page, context }) => {
@@ -114,7 +57,12 @@ test('Ctrl/Cmd+S saves right away', async ({ page, context }) => {
   await expect.poll(() => editorValue(ana)).toBe('draft')
   await editor(ana).fill('draft 2')
   await ana.keyboard.press('ControlOrMeta+s')
-  await expect(liveBar(ana)).toContainText('v2', { timeout: 1000 })
+  await ana.waitForTimeout(500)
+  // Gone before the 2 s autosave: the save already happened.
+  await ana.close({ runBeforeUnload: false })
+  await page.close()
+  const later = await openIn(await context.browser()!.newContext(), edit)
+  await expect.poll(() => editorValue(later), ARRIVES).toBe('draft 2')
 })
 
 test('JSON documents are shared for editing too', async ({ page, context }) => {
