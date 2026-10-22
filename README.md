@@ -29,13 +29,19 @@ Live at https://trainedloop.github.io/sealdown/.
   both panes together, value by value), with format, compact, sort, repair and transform. Open or drop a `.json` file, export `.json`, and seal it the same way;
   a JSON link opens as a read-only tree with **Edit a copy**. The library loads only on JSON pages.
 - **Live documents** (Share to edit): an edit link and a read link to one document that several
-  people keep up to date. Sharing moves your tab into the document. Edits save on their own after
-  a short pause (Ctrl/Cmd+S saves at once), and versions others save arrive at once (a Supabase
-  Realtime broadcast carrying only the version number, with a 30 s check as a backup), merged with
-  what you are typing
-  (by line for Markdown, by path for JSON) without moving your cursor. Only changes both sides made
-  to the same part wait for you to choose. The newest 50 versions can be viewed, compared and
-  restored; a run of saves by the same browser within five minutes keeps only its last version.
+  people keep up to date. Sharing moves your tab into the document.
+  - **Markdown** is edited in real time ([Yjs](https://yjs.dev)): everyone types at once, each letter
+    arrives as it is typed, with the others' cursors and names, and nothing ever conflicts. Edits
+    travel over a Supabase Realtime broadcast, encrypted with the document key and signed with a key
+    derived from the edit token (Ed25519; readers hold only the public key), so a read link follows
+    along but cannot write. Edits made offline are sent when the connection returns. The current
+    state is saved a couple of seconds after typing stops (Ctrl/Cmd+S saves at once).
+  - **JSON** saves after a short pause and merges what others saved, by path, with what you are
+    typing; only changes both sides made to the same value wait for you to choose.
+  - **History**: a checkpoint every 5 minutes of editing and when editing goes quiet for 2, listing
+    everyone who edited; the newest 50 are kept. **Mark version** names the current text, and named
+    versions are never removed. Any version can be compared and restored for everyone from the edit
+    link; the read link can browse them.
   Still encrypted in the browser, with no accounts.
 - Text styles (Modern, Editorial, Technical), dark and light themes, English and Portuguese, and a
   command palette (Ctrl/Cmd+K).
@@ -64,7 +70,7 @@ documents are fetched once, and password attempts happen in the browser.
 Everything after `#` stays in the browser; it is never sent to a server. Supabase only ever sees
 ciphertext and cannot read stored documents. Stored documents never expire on a timer: when they
 exceed Sealdown's 100 MB budget, the least recently opened ones are removed first (a live document
-counts with all its versions, and goes whole). Creating or saving runs that cleanup right away when
+counts with its current state and all its versions, and goes whole). Creating or saving runs that cleanup right away when
 needed, besides the hourly job.
 
 The Supabase project is shared with other small projects, so everything Sealdown owns lives in the
@@ -105,11 +111,13 @@ json); on a shared link that is known once the document is unsealed.
 | `typeset_changed` | `style` |
 | `command_run` | `command` (command id) |
 | `live_created` | `protected` |
-| `live_opened` | `access`: edit, read |
-| `version_saved` | `merged`, `conflicts` (count); sent for merged saves and the first save of a visit, not every autosave |
+| `live_opened` | `access`: edit, read; `realtime` (Markdown) |
+| `version_saved` | JSON only: `merged`, `conflicts` (count); sent for merged saves and the first save of a visit, not every autosave |
 | `conflict_resolved` | `conflicts` (count) |
 | `version_restored` | — |
 | `versions_viewed` | — |
+| `version_named` | — (never the name) |
+| `collab_peers` | `max`: the most other people present at once, sent when the page is left |
 
 ## Development
 

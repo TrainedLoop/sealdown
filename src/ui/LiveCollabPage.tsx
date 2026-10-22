@@ -56,9 +56,23 @@ export function LiveCollabPage({ route, opened, theme, readHash }: { route: Live
     return () => collab.text.unobserve(update)
   }, [collab])
 
+  // The most people here at once besides this person, sent once when the page goes away (a count, never names).
+  const maxPeers = useRef(0)
   useEffect(() => {
     for (const peer of collab?.peers ?? []) authors.current.add(peer.name)
+    maxPeers.current = Math.max(maxPeers.current, collab?.peers.length ?? 0)
   }, [collab?.peers])
+
+  useEffect(() => {
+    let sent = false
+    const onLeave = () => {
+      if (sent) return
+      sent = true
+      track('collab_peers', { max: maxPeers.current }, true)
+    }
+    window.addEventListener('pagehide', onLeave)
+    return () => window.removeEventListener('pagehide', onLeave)
+  }, [])
 
   useEffect(() => {
     if (!collab) return

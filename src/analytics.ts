@@ -38,6 +38,7 @@ export type EventName =
   | 'version_restored'
   | 'versions_viewed'
   | 'version_named'
+  | 'collab_peers'
 
 type Props = Record<string, string | number | boolean | string[]>
 
@@ -120,10 +121,11 @@ const enabled = Boolean(KEY) && !optedOut()
 let client: PostHog | null = null
 const queue: [EventName, Props][] = []
 
-export function track(event: EventName, props?: Props): void {
+/** `leaving`: sent as a beacon, for events captured while the page goes away. */
+export function track(event: EventName, props?: Props, leaving = false): void {
   if (!enabled) return
   const withLang = { lang: i18n.language, ...pick(context), ...props }
-  if (client) client.capture(event, withLang)
+  if (client) client.capture(event, withLang, leaving ? { transport: 'sendBeacon' } : undefined)
   else queue.push([event, withLang])
 }
 

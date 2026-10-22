@@ -66,6 +66,22 @@ test('analytics see live events but never the token or the text', async ({ page 
   await page.addInitScript(() => {
     Object.defineProperty(Navigator.prototype, 'webdriver', { get: () => false })
     Object.defineProperty(Navigator.prototype, 'userAgentData', { get: () => undefined })
+    // Playwright can't intercept beacons; keep what they carry, decoded (data=<base64 JSON>).
+    const beacons: string[] = []
+    Object.assign(window, { beacons })
+    const decode = (text: string) => {
+      const encoded = decodeURIComponent(text.replace(/^data=/, ''))
+      try {
+        return new TextDecoder().decode(Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)))
+      } catch {
+        return encoded
+      }
+    }
+    navigator.sendBeacon = (_url, data) => {
+      if (data instanceof Blob) void data.text().then((text) => beacons.push(decode(text)))
+      else beacons.push(decode(String(data)))
+      return true
+    }
   })
   const bodies: string[] = []
   await page.route('**/ph/**', async (route) => {
@@ -76,8 +92,17 @@ test('analytics see live events but never the token or the text', async ({ page 
   await page.goto(edit)
   await editor(page).fill(`# ${secret}\n\nmore`)
   await expect.poll(() => bodies.join('\n'), { timeout: 15_000 }).toMatch(/"event":"live_opened"[\s\S]*?"realtime":true/)
+  await page.getByRole('region', { name: 'Live document' }).getByRole('button', { name: 'Versions' }).click()
+  const panel = page.getByRole('dialog', { name: 'Versions' })
+  await panel.getByRole('button', { name: 'Mark version' }).click()
+  await panel.getByLabel('Version name').fill(secret)
+  await panel.getByRole('button', { name: 'Save name' }).click()
+  await expect.poll(() => bodies.join('\n'), { timeout: 15_000 }).toContain('"event":"version_named"')
+  const beacons = () => page.evaluate(() => (window as unknown as { beacons: string[] }).beacons)
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')))
+  await expect.poll(async () => (await beacons()).join('\n'), { timeout: 15_000 }).toMatch(/"event":"collab_peers"[\s\S]*?"max":0/)
   await page.waitForTimeout(3000)
-  const sent = bodies.join('\n')
+  const sent = [...bodies, ...(await beacons())].join('\n')
   const token = edit.split('.').at(-1)!
   expect(sent).toContain('live_created')
   expect(sent).toMatch(/"event":"live_opened"[\s\S]*?"access":"edit"/)
