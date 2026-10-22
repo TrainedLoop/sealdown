@@ -1,5 +1,5 @@
 begin;
-select plan(29);
+select plan(32);
 
 -- A fixed 32-byte write token; the server only ever stores its SHA-256.
 create temp table t (name text primary key, value text);
@@ -58,6 +58,16 @@ select is((select count(*)::int from sealdown.get_state('missing000')), 0, 'get_
 select is(sealdown.live_head('missing000'), null, 'live_head of a missing document is null');
 reset role;
 
+-- The editors' public signing key: stored at creation, or by the first save of an older document; never replaced.
+set local role anon;
+insert into ids values ('k', sealdown.create_live(encode('k', 'base64'), '', (select value from t where name = 'hash'), null, null, encode('pub1', 'base64')));
+select is((select sign_key from sealdown.get_state((select id from ids where name = 'k'))), encode('pub1', 'base64'), 'get_state returns the public signing key');
+select sealdown.save_state((select id from ids where name = 'k'), (select value from t where name = 'token'), 1, encode('k2', 'base64'), null, encode('pub2', 'base64'));
+select is((select sign_key from sealdown.get_state((select id from ids where name = 'k'))), encode('pub1', 'base64'), 'a stored key is never replaced');
+select sealdown.save_state((select id from ids where name = 'a'), (select value from t where name = 'token'), 2, encode('v3', 'base64'), null, encode('pubA', 'base64'));
+select is((select sign_key from sealdown.get_state((select id from ids where name = 'a'))), encode('pubA', 'base64'), 'a document without one gets it from its first save');
+reset role;
+
 -- The stale error names the current revision.
 create function pg_temp.stale_detail() returns text language plpgsql as $$
 declare d text;
@@ -68,7 +78,7 @@ exception when sqlstate 'PT409' then
   get stacked diagnostics d = pg_exception_detail;
   return d;
 end $$;
-select is(pg_temp.stale_detail(), '2', 'the stale error detail is the current revision');
+select is(pg_temp.stale_detail(), '3', 'the stale error detail is the current revision');
 
 -- Checkpoints: the history.
 set local role anon;

@@ -20,7 +20,7 @@ import { LiveError, type LiveStorage, type LiveVersion } from '../../../src/stor
 
 /** The server's rules (token, optimistic revision, checkpoints) in memory. */
 function memoryStorage(): LiveStorage {
-  type Row = { hash: string; salt: Uint8Array | null; revision: number; content: Uint8Array; state: Uint8Array | null; versions: LiveVersion[] }
+  type Row = { hash: string; salt: Uint8Array | null; signKey: Uint8Array | null; revision: number; content: Uint8Array; state: Uint8Array | null; versions: LiveVersion[] }
   const docs = new Map<string, Row>()
   let next = 0
   const doc = (id: string) => {
@@ -32,14 +32,14 @@ function memoryStorage(): LiveStorage {
     if ((await writeHash(token)) !== row.hash) throw new LiveError('forbidden')
   }
   return {
-    async create(content, author, hash, salt, state) {
+    async create(content, author, hash, salt, state, signKey) {
       const id = `doc${String(next++).padStart(7, '0')}`
-      docs.set(id, { hash, salt: salt ?? null, revision: 1, content, state: state ?? null, versions: [{ version: 1, content, author, label: null, createdAt: 't1' }] })
+      docs.set(id, { hash, salt: salt ?? null, signKey: signKey ?? null, revision: 1, content, state: state ?? null, versions: [{ version: 1, content, author, label: null, createdAt: 't1' }] })
       return id
     },
     async state(id) {
       const row = doc(id)
-      return { revision: row.revision, content: row.content, state: row.state, stateAt: `r${row.revision}` }
+      return { revision: row.revision, content: row.content, state: row.state, stateAt: `r${row.revision}`, signKey: row.signKey }
     },
     async head(id) {
       return doc(id).revision
@@ -86,6 +86,14 @@ test('a created document opens from both links at revision 1, with no Yjs state 
   const { edit, read } = await createLiveDoc({ type: 'json', text: '{"a":1}' }, 'Ana', storage)
   expect(read).toEqual(readLinkOf(edit))
   expect(await openLive(read, storage)).toMatchObject({ doc: { type: 'json', text: '{"a":1}' }, revision: 1, state: null })
+})
+
+test('a new document stores the editors\' public signing key, derived from the write token', async () => {
+  const { signingKey } = await import('../../../src/live/collab/crypto.ts')
+  const storage = memoryStorage()
+  const { edit } = await createLiveDoc({ type: 'markdown', text: 'x' }, 'Ana', storage)
+  const opened = await openLive(edit, storage)
+  expect(Array.from(opened.signKey!)).toEqual(Array.from((await signingKey(edit.token)).publicKey))
 })
 
 test('a Yjs state given at creation comes back decrypted', async () => {

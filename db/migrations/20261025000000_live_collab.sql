@@ -10,6 +10,9 @@ alter table sealdown.live_docs
   add column state bytea,
   add column revision int not null default 1,
   add column state_at timestamptz not null default now(),
+  -- The editors' Ed25519 public key (derived from the write token): lets readers check signatures.
+  add column sign_key bytea,
+  add constraint sign_key_max_64 check (octet_length(sign_key) <= 64),
   add constraint content_max_1mb check (octet_length(content) <= 1048576),
   add constraint state_max_4mb check (octet_length(state) <= 4194304);
 
@@ -74,7 +77,7 @@ begin
   end if;
 end $$;
 
-create function sealdown.create_live(content text, author text, write_hash text, salt text default null, state text default null) returns text
+create function sealdown.create_live(content text, author text, write_hash text, salt text default null, state text default null, sign_key text default null) returns text
 language plpgsql security definer set search_path = '' as $$
 declare
   alphabet constant text := '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -89,9 +92,9 @@ begin
       new_id := new_id || substr(alphabet, get_byte(bytes, i) % 62 + 1, 1);
     end loop;
     begin
-      insert into sealdown.live_docs (id, write_hash, salt, content, state)
+      insert into sealdown.live_docs (id, write_hash, salt, content, state, sign_key)
       values (new_id, decode(create_live.write_hash, 'base64'), decode(create_live.salt, 'base64'),
-              decode(create_live.content, 'base64'), decode(create_live.state, 'base64'));
+              decode(create_live.content, 'base64'), decode(create_live.state, 'base64'), decode(create_live.sign_key, 'base64'));
       exit;
     exception when unique_violation then
       -- Astronomically unlikely; draw another id.
@@ -104,12 +107,13 @@ end $$;
 
 -- The current state (empty when the document is gone); counts as an access.
 create function sealdown.get_state(doc_id text)
-returns table (revision int, content text, state text, state_at timestamptz)
+returns table (revision int, content text, state text, state_at timestamptz, sign_key text)
 language plpgsql security definer set search_path = '' as $$
 begin
   update sealdown.live_docs set last_accessed_at = now() where id = get_state.doc_id;
   return query
-    select d.revision, replace(encode(d.content, 'base64'), E'\n', ''), replace(encode(d.state, 'base64'), E'\n', ''), d.state_at
+    select d.revision, replace(encode(d.content, 'base64'), E'\n', ''), replace(encode(d.state, 'base64'), E'\n', ''), d.state_at,
+           replace(encode(d.sign_key, 'base64'), E'\n', '')
     from sealdown.live_docs d where d.id = get_state.doc_id;
 end $$;
 
@@ -122,7 +126,8 @@ $$;
 -- Saves the current state on top of base_revision. Errors: 42501 wrong token, P0002 no such
 -- document, PT409 base is not current (detail = current revision), 53100 database near its limit,
 -- 23514 too large.
-create function sealdown.save_state(doc_id text, write_token text, base_revision int, content text, state text) returns int
+-- `sign_key` is stored only when the document has none yet (documents from before signatures).
+create function sealdown.save_state(doc_id text, write_token text, base_revision int, content text, state text, sign_key text default null) returns int
 language plpgsql security definer set search_path = '' as $$
 declare
   stored_hash bytea;
@@ -143,7 +148,8 @@ begin
   perform sealdown.make_room();
   update sealdown.live_docs
     set content = decode(save_state.content, 'base64'), state = decode(save_state.state, 'base64'),
-        revision = current_revision + 1, state_at = now()
+        revision = current_revision + 1, state_at = now(),
+        sign_key = coalesce(sealdown.live_docs.sign_key, decode(save_state.sign_key, 'base64'))
     where id = save_state.doc_id;
   return current_revision + 1;
 end $$;
@@ -205,20 +211,20 @@ $$;
 revoke execute on all functions in schema sealdown from public, anon, authenticated;
 grant execute on function
   sealdown.create_doc(text), sealdown.get_doc(text), sealdown.ping(),
-  sealdown.create_live(text, text, text, text, text), sealdown.get_state(text), sealdown.live_head(text),
-  sealdown.save_state(text, text, int, text, text), sealdown.add_checkpoint(text, text, text, text, text),
+  sealdown.create_live(text, text, text, text, text, text), sealdown.get_state(text), sealdown.live_head(text),
+  sealdown.save_state(text, text, int, text, text, text), sealdown.add_checkpoint(text, text, text, text, text),
   sealdown.get_live_version(text, int), sealdown.list_versions(text), sealdown.live_salt(text)
 to anon;
 
 -- migrate:down
-drop function sealdown.create_live(text, text, text, text, text), sealdown.get_state(text), sealdown.live_head(text),
-  sealdown.save_state(text, text, int, text, text), sealdown.add_checkpoint(text, text, text, text, text),
+drop function sealdown.create_live(text, text, text, text, text, text), sealdown.get_state(text), sealdown.live_head(text),
+  sealdown.save_state(text, text, int, text, text, text), sealdown.add_checkpoint(text, text, text, text, text),
   sealdown.get_live_version(text, int), sealdown.list_versions(text);
 
 alter table sealdown.live_versions drop column label,
   add column writer text, add column run_start timestamptz not null default now(),
   add constraint writer_max_64 check (octet_length(writer) <= 64);
-alter table sealdown.live_docs drop column content, drop column state, drop column revision, drop column state_at;
+alter table sealdown.live_docs drop column content, drop column state, drop column revision, drop column state_at, drop column sign_key;
 
 -- One budget over fixed and live documents: the least recently opened go first, live documents
 -- whole (their versions summed). Replaces the fixed-only version.

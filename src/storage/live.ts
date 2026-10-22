@@ -17,7 +17,7 @@ export class LiveError extends Error {
 }
 
 /** The current state: the text (encrypted) and, for Markdown, the encrypted Yjs state. */
-export type LiveState = { revision: number; content: Uint8Array; state: Uint8Array | null; stateAt: string }
+export type LiveState = { revision: number; content: Uint8Array; state: Uint8Array | null; stateAt: string; signKey: Uint8Array | null }
 /** A checkpoint in the history; `label` is set on named versions. */
 export type LiveVersion = { version: number; content: Uint8Array; author: Uint8Array; label: Uint8Array | null; createdAt: string }
 export type VersionInfo = { version: number; author: Uint8Array; label: Uint8Array | null; sizeBytes: number; createdAt: string }
@@ -25,12 +25,13 @@ export type VersionInfo = { version: number; author: Uint8Array; label: Uint8Arr
 /** Live documents in Supabase. Like DocStorage, it only ever handles encrypted bytes. */
 export interface LiveStorage {
   /** `salt` only for a password-protected document; `state` only for Markdown (Yjs). */
-  create(content: Uint8Array, author: Uint8Array, writeHash: string, salt?: Uint8Array, state?: Uint8Array): Promise<string>
+  /** `signKey`: the editors' Ed25519 public key, so readers can check signed messages. */
+  create(content: Uint8Array, author: Uint8Array, writeHash: string, salt?: Uint8Array, state?: Uint8Array, signKey?: Uint8Array): Promise<string>
   state(id: string): Promise<LiveState>
   /** The current revision only (the backup poll). */
   head(id: string): Promise<number>
   /** Saves the current state on top of `base`; LiveError 'stale' (with `latest`) when it moved on. */
-  saveState(id: string, token: string, base: number, content: Uint8Array, state: Uint8Array | null): Promise<number>
+  saveState(id: string, token: string, base: number, content: Uint8Array, state: Uint8Array | null, signKey?: Uint8Array): Promise<number>
   /** Adds a checkpoint; an automatic one (no label) right after another returns that one. */
   checkpoint(id: string, token: string, content: Uint8Array, authors: Uint8Array, label?: Uint8Array): Promise<number>
   version(id: string, version: number): Promise<LiveVersion>
@@ -70,32 +71,34 @@ export function createLiveStorage(config: SupabaseConfig, fetchImpl: typeof fetc
   }
 
   return {
-    async create(content, author, writeHash, salt, state) {
+    async create(content, author, writeHash, salt, state, signKey) {
       return (await rpc('create_live', {
         content: toBase64(content),
         author: toBase64(author),
         write_hash: writeHash,
         ...(salt && { salt: toBase64(salt) }),
         ...(state && { state: toBase64(state) }),
+        ...(signKey && { sign_key: toBase64(signKey) }),
       })) as string
     },
     async state(id) {
-      const [row] = (await rpc('get_state', { doc_id: id })) as { revision: number; content: string; state: string | null; state_at: string }[]
+      const [row] = (await rpc('get_state', { doc_id: id })) as { revision: number; content: string; state: string | null; state_at: string; sign_key: string | null }[]
       if (!row) throw new LiveError('missing')
-      return { revision: row.revision, content: fromBase64(row.content), state: bytesOf(row.state), stateAt: row.state_at }
+      return { revision: row.revision, content: fromBase64(row.content), state: bytesOf(row.state), stateAt: row.state_at, signKey: bytesOf(row.sign_key) }
     },
     async head(id) {
       const revision = (await rpc('live_head', { doc_id: id })) as number | null
       if (revision === null) throw new LiveError('missing')
       return revision
     },
-    async saveState(id, token, base, content, state) {
+    async saveState(id, token, base, content, state, signKey) {
       return (await rpc('save_state', {
         doc_id: id,
         write_token: token64(token),
         base_revision: base,
         content: toBase64(content),
         state: b64(state),
+        ...(signKey && { sign_key: toBase64(signKey) }),
       })) as number
     },
     async checkpoint(id, token, content, authors, label) {

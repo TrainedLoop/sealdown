@@ -4,6 +4,7 @@ import { decodeDoc, encodeDoc, type Doc, type DocType } from '../share/docType.t
 import { deriveRawKey, newSalt } from '../share/password.ts'
 import { LiveError, type LiveStorage } from '../storage/live.ts'
 import { decryptAuthors, encryptAuthors } from './author.ts'
+import { signingKey } from './collab/crypto.ts'
 import { newWriteToken, readLinkOf, writeHash, type LiveEditRoute, type LiveReadRoute, type ProtectedLiveRoute } from './links.ts'
 import type { LocalLive } from './localState.ts'
 import { mergeJson, mergeMarkdown, type MergeResult } from './merge.ts'
@@ -14,7 +15,8 @@ import { mergeJson, mergeMarkdown, type MergeResult } from './merge.ts'
 
 export type LiveRoute = LiveReadRoute | LiveEditRoute
 /** The current state: the document, its revision and (Markdown) the decrypted Yjs state. */
-export type Opened = { doc: Doc; revision: number; state: Uint8Array | null; stateAt: string }
+/** `signKey` is the editors' public key (null for a document from before signatures). */
+export type Opened = { doc: Doc; revision: number; state: Uint8Array | null; stateAt: string; signKey: Uint8Array | null }
 export type Checkpoint = { doc: Doc; version: number; authors: string[]; label: string | null; createdAt: string }
 export type Conflicted = Extract<MergeResult, { conflicts: unknown }>
 export type Latest = { revision: number; text: string }
@@ -48,6 +50,7 @@ async function create(doc: Doc, author: string, key: string, storage: LiveStorag
     await writeHash(token),
     salt,
     state && (await encryptWithKey(state, key)),
+    (await signingKey(token)).publicKey,
   )
   return { id, token }
 }
@@ -95,6 +98,7 @@ export async function openLive(route: LiveRoute, storage: LiveStorage): Promise<
     revision: current.revision,
     state: current.state && (await decrypt(current.state, route.key)),
     stateAt: current.stateAt,
+    signKey: current.signKey,
   }
 }
 

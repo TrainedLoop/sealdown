@@ -27,18 +27,19 @@ test('create sends base64 content, author, hash and optional salt and state to c
   expect(calls[0].name).toBe('create_live')
   expect(calls[0].headers.get('content-profile')).toBe('sealdown')
   expect(calls[0].body).toEqual({ content: '+//+', author: 'AQ==', write_hash: 'aGFzaA==' })
-  await storage.create(bytes(1), bytes(), 'aGFzaA==', bytes(90, 90, 90), bytes(7))
-  expect(calls[1].body).toMatchObject({ salt: 'Wlpa', state: 'Bw==' })
+  await storage.create(bytes(1), bytes(), 'aGFzaA==', bytes(90, 90, 90), bytes(7), bytes(8))
+  expect(calls[1].body).toMatchObject({ salt: 'Wlpa', state: 'Bw==', sign_key: 'CA==' })
 })
 
 test('state decodes the current state', async () => {
-  const { impl, calls } = fakeFetch(() => json([{ revision: 3, content: '+//+', state: 'Bw==', state_at: '2026-10-22T10:00:00Z' }]))
+  const { impl, calls } = fakeFetch(() => json([{ revision: 3, content: '+//+', state: 'Bw==', state_at: '2026-10-22T10:00:00Z', sign_key: 'CA==' }]))
   const current = await createLiveStorage(config, impl).state('Ab3dE5gH9k')
   expect(calls[0]).toMatchObject({ name: 'get_state', body: { doc_id: 'Ab3dE5gH9k' } })
   expect(current.revision).toBe(3)
   expect(Array.from(current.content)).toEqual([251, 255, 254])
   expect(Array.from(current.state!)).toEqual([7])
   expect(current.stateAt).toBe('2026-10-22T10:00:00Z')
+  expect(Array.from(current.signKey!)).toEqual([8])
 })
 
 test('a document without a Yjs state has state null', async () => {
@@ -58,8 +59,9 @@ test('saveState sends the base revision, content and state; the token as standar
   const storage = createLiveStorage(config, impl)
   expect(await storage.saveState('Ab3dE5gH9k', '-_8', 3, bytes(0), bytes(7))).toBe(4)
   expect(calls[0]).toMatchObject({ name: 'save_state', body: { doc_id: 'Ab3dE5gH9k', write_token: '+/8=', base_revision: 3, content: 'AA==', state: 'Bw==' } })
-  await storage.saveState('Ab3dE5gH9k', 'AQ', 4, bytes(0), null)
+  await storage.saveState('Ab3dE5gH9k', 'AQ', 4, bytes(0), null, bytes(8))
   expect(calls[1].body.state).toBeNull()
+  expect(calls[1].body.sign_key).toBe('CA==')
 })
 
 test('checkpoint sends authors and an optional label', async () => {
