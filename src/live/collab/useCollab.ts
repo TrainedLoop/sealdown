@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
-import type { LiveRoute, Opened } from '../session.ts'
+import { defaultLiveStorage } from '../../storage/live.ts'
+import { openLive, type LiveRoute, type Opened } from '../session.ts'
 import { realtimeTransport, type ConnectionStatus } from './channel.ts'
 import { signingKey, verifyingKey } from './crypto.ts'
 import { loadLocalState } from './persistence.ts'
 import { CollabProvider } from './provider.ts'
 import { seedUpdate, TEXT } from './seed.ts'
+
+/** How often the saved state is checked, in case something was missed while away. */
+const CATCH_UP_MS = 30_000
 
 // Cursor colours: the validated categorical palette, picked by the editor's Yjs client id.
 const COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767']
@@ -53,6 +57,24 @@ export function useCollab(route: LiveRoute, opened: Opened, name: string | null)
       if (!token) awareness.setLocalState(null) // readers are not shown
       provider = new CollabProvider({ doc, awareness, transport: realtimeTransport(id), key, sign: signer?.sign ?? null, verify })
       provider.on('status', setStatus)
+      // Others answer a rejoin with what they hold; when nobody is online (or the gap is too large to
+      // send), the saved state fills it. Checked on every (re)connection and every 30 s.
+      let known = opened.revision
+      const catchUp = async () => {
+        try {
+          if ((await defaultLiveStorage.head(id)) <= known) return
+          const latest = await openLive(route, defaultLiveStorage)
+          if (cancelled) return
+          known = latest.revision
+          if (latest.state) Y.applyUpdate(doc, latest.state, 'storage')
+        } catch {
+          // Next time.
+        }
+      }
+      provider.on('status', (next) => next === 'connected' && void catchUp())
+      const poll = setInterval(() => void catchUp(), CATCH_UP_MS)
+      cleanups.push(() => clearInterval(poll))
+      void catchUp()
       // Leaving (closing the tab, navigating away) takes this person's cursor off the others' screens.
       const leave = () => provider?.destroy()
       window.addEventListener('pagehide', leave)

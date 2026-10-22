@@ -10,6 +10,7 @@ import { startPersistence, type PersistenceStatus } from '../live/collab/persist
 import { useCollab } from '../live/collab/useCollab.ts'
 import { takeShared } from '../live/keyStore.ts'
 import { readLinkOf, type LiveEditRoute } from '../live/links.ts'
+import { seedUpdate } from '../live/collab/seed.ts'
 import { checkpointNow, type Opened } from '../live/session.ts'
 import { buildHash } from '../router/route.ts'
 import { defaultLiveStorage } from '../storage/live.ts'
@@ -88,6 +89,7 @@ export function LiveCollabPage({ route, opened, theme, readHash }: { route: Live
         return names
       },
       onStatus: setSaveStatus,
+      stored: opened.state ?? seedUpdate(opened.doc.text),
     })
     const onHide = () => {
       if (document.visibilityState === 'hidden') void persistence.flush()

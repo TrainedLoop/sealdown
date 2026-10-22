@@ -27,8 +27,30 @@ export function loadLocalState(id: string): Uint8Array | null {
   }
 }
 
+/** Adds to what is kept: other tabs of this browser may hold work this one hasn't seen (offline). */
 export function saveLocalState(id: string, doc: Y.Doc): void {
-  writePref(localKey(id), toBase64(Y.encodeStateAsUpdate(doc)))
+  const own = Y.encodeStateAsUpdate(doc)
+  const kept = loadLocalState(id)
+  let merged = own
+  if (kept) {
+    try {
+      merged = Y.mergeUpdates([kept, own])
+    } catch {
+      // A damaged copy is replaced by this tab's state.
+    }
+  }
+  writePref(localKey(id), toBase64(merged))
+}
+
+/** True when `doc` holds anything the stored state lacks (offline work, edits never saved). */
+function aheadOf(doc: Y.Doc, stored: Uint8Array): boolean {
+  const server = new Y.Doc()
+  Y.applyUpdate(server, stored)
+  const known = Y.decodeStateVector(Y.encodeStateVector(server))
+  const ahead = [...Y.decodeStateVector(Y.encodeStateVector(doc))].some(([client, clock]) => clock > (known.get(client) ?? 0))
+  const differs = server.getText(TEXT).toString() !== doc.getText(TEXT).toString()
+  server.destroy()
+  return ahead || differs
 }
 
 type Options = {
@@ -43,6 +65,8 @@ type Options = {
   authors: () => string[]
   onStatus: (status: PersistenceStatus) => void
   saveDelayMs?: number
+  /** The state storage holds (or the seed of its text); anything beyond it is saved at once. */
+  stored?: Uint8Array
 }
 
 /**
@@ -117,6 +141,8 @@ export function startPersistence(opts: Options): { flush: () => Promise<void>; s
         }
       } finally {
         saving = null
+        // Edits typed while this save was on the wire go in the next one.
+        if (dirty && !stopped && !waitForEdit && retryMs === 0) schedule()
       }
     })()
     return saving
@@ -134,6 +160,10 @@ export function startPersistence(opts: Options): { flush: () => Promise<void>; s
     quiet = setTimeout(() => void checkpoint(true), QUIET_AFTER_MS)
   }
   doc.on('update', onUpdate)
+  if (opts.stored && aheadOf(doc, opts.stored)) {
+    dirty = true
+    schedule()
+  }
 
   return {
     async flush() {

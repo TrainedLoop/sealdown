@@ -119,6 +119,31 @@ test('a document from before real-time editing opened in two places at once has 
   await Promise.all([x.close(), y.close()])
 })
 
+test('a reader that missed edits catches up from the saved state when no editor is online', async ({ page, browser }) => {
+  const { read } = await share(page, '# Notes')
+  const reader = await browser.newContext()
+  const r = await reader.newPage()
+  // The reader's copy is from before the edit (as after a laptop sleep with the editors gone since).
+  let old: string | null = null
+  let calls = 0
+  await r.route('**/rpc/get_state', async (route) => {
+    // First load: recorded. The reload: that old copy. Anything later: the real one.
+    if (calls++ === 1) return route.fulfill({ status: 200, contentType: 'application/json', body: old! })
+    const response = await route.fetch()
+    old ??= await response.text()
+    return route.fulfill({ response })
+  })
+  await r.goto(read)
+  await expect(r.getByRole('heading', { name: 'Notes' })).toBeVisible()
+  await typeAtEnd(page, '\n\nwritten while away')
+  await page.waitForTimeout(3000) // saved
+  await page.close()
+  await r.reload()
+  await expect(r.getByRole('heading', { name: 'Notes' })).toBeVisible()
+  await expect(r.getByText('written while away')).toBeVisible({ timeout: 15_000 })
+  await reader.close()
+})
+
 test('two tabs of one browser edit together', async ({ page }) => {
   const { edit } = await share(page, 'tabs')
   const second = await page.context().newPage()

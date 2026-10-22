@@ -63,11 +63,12 @@ async function until(check: () => boolean, ms = 3000) {
 
 const REMOTE = Symbol('remote')
 
-async function setup(text = 'start') {
+async function setup(text = 'start', opts: { stored?: (doc: Y.Doc) => void } = {}) {
   const storage = stateStorage()
   const { edit } = await createLiveDoc({ type: 'markdown', text }, 'Ana', storage)
   const doc = new Y.Doc()
   Y.applyUpdate(doc, seedUpdate(text), REMOTE)
+  opts.stored?.(doc)
   const statuses: string[] = []
   const persistence = startPersistence({
     route: edit,
@@ -78,6 +79,7 @@ async function setup(text = 'start') {
     authors: () => ['Ana'],
     onStatus: (s) => statuses.push(s),
     saveDelayMs: 10,
+    stored: seedUpdate(text),
   })
   return { storage, edit, doc, persistence, statuses }
 }
@@ -138,4 +140,41 @@ test('the Yjs state is kept in the browser for reloads and offline work', () => 
   Y.applyUpdate(back, loadLocalState('doc0000042')!)
   expect(back.getText(TEXT).toString()).toBe('kept')
   expect(loadLocalState('missing000')).toBeNull()
+})
+
+test('an edit typed while a save is in flight is saved after it', async () => {
+  const { storage, edit, doc, persistence } = await setup()
+  const slow = storage.saveState.bind(storage)
+  storage.saveState = async (...args) => {
+    await new Promise((r) => setTimeout(r, 100))
+    return slow(...args)
+  }
+  doc.getText(TEXT).insert(5, ' one')
+  await new Promise((r) => setTimeout(r, 40)) // the first save is on the wire
+  doc.getText(TEXT).insert(9, ' two')
+  await until(() => storage.saves === 2)
+  expect((await openLive(edit, storage)).doc.text).toBe('start one two')
+  persistence.stop()
+})
+
+test('work this browser holds beyond the stored state is saved without a new edit', async () => {
+  // Offline work merged in from localStorage before persistence started.
+  const { storage, edit, persistence } = await setup('start', { stored: (doc) => doc.getText(TEXT).insert(5, ' offline') })
+  await until(() => storage.saves === 1)
+  expect((await openLive(edit, storage)).doc.text).toBe('start offline')
+  persistence.stop()
+})
+
+test('two tabs keeping the state in one browser add to it rather than replace it', () => {
+  const a = new Y.Doc()
+  Y.applyUpdate(a, seedUpdate('base'))
+  const b = new Y.Doc()
+  Y.applyUpdate(b, seedUpdate('base'))
+  a.getText(TEXT).insert(4, ' from a')
+  b.getText(TEXT).insert(0, 'from b ')
+  saveLocalState('tabs000042', a)
+  saveLocalState('tabs000042', b)
+  const back = new Y.Doc()
+  Y.applyUpdate(back, loadLocalState('tabs000042')!)
+  expect(back.getText(TEXT).toString()).toBe('from b base from a')
 })
