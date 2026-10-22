@@ -54,7 +54,10 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.16",
-    "vanilla-jsoneditor": "^3.13.0"
+    "vanilla-jsoneditor": "^3.13.0",
+    "y-codemirror.next": "^0.3.6",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
