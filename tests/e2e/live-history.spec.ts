@@ -111,6 +111,8 @@ test('typing on while a save merges keeps the other person change', async ({ pag
   await editor(ana).press('ControlOrMeta+End')
   await ana.keyboard.type('\nmore')
   await expect.poll(() => editorValue(ana), ARRIVES).toBe('BOB\nb\nc\nd\nANA\nmore')
+  // Ana can't announce her saves (no Realtime here): let the last one land before reading.
+  await expect(liveBar(ana)).toContainText('Saved', ARRIVES)
   // A reader in a browser of its own: this one can't hear about new versions.
   const readerContext = await browser.newContext()
   const reader = await openIn(readerContext, read)

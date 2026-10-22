@@ -49,7 +49,7 @@ Channel `sealdown-live-<id>`, broadcast event `m`. Payload (JSON):
   - `live_head(doc_id) → revision` — unchanged role (polling backup).
   - `save_state(doc_id, write_token, base_revision, content, state) → revision` — PT409 when `base_revision` isn't current; runs `make_room`.
   - `add_checkpoint(doc_id, write_token, content, authors, label default null) → version` — automatic ones (label null) are skipped (return the latest version) when one was made in the last 60 s; keeps the newest 50 automatic checkpoints, never deletes labelled ones.
-  - `list_versions`, `get_live_version` return `label` too. `get_live` and `save_version` stay for one release for old clients, then go.
+  - `list_versions`, `get_live_version` return `label` too. `get_live` and `save_version` are dropped in the same migration (no one uses live documents yet), with the client code that called them.
 - Existing live documents: the migration copies each document's newest version into `content`, `revision = 1`, `state = null`.
 
 ## 5. Browser
