@@ -77,7 +77,7 @@ test('an editor whose fetch of a new version fails tries again soon', async ({ p
   await page.keyboard.press('Escape')
   await expect(liveBar(page)).toContainText('v1')
   await deaf(page)
-  await page.route('**/rpc/get_live', (route) => route.abort())
+  await page.route('**/rpc/get_state', (route) => route.abort())
 
   const other = await browser.newContext()
   await other.addInitScript(() => localStorage.setItem('sealdown.author', 'Bob'))
@@ -87,7 +87,7 @@ test('an editor whose fetch of a new version fails tries again soon', async ({ p
   await editor(bob).fill('one\ntwo')
   await expect(liveBar(bob)).toContainText('v2', { timeout: 6000 })
   await page.waitForTimeout(1500)
-  await page.unroute('**/rpc/get_live')
+  await page.unroute('**/rpc/get_state')
   await expect.poll(() => editorValue(page), { timeout: 8000 }).toBe('one\ntwo')
   await other.close()
 })

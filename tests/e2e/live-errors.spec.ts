@@ -21,7 +21,7 @@ async function share(page: Page, text: string): Promise<{ edit: string; read: st
 }
 
 const failSave = (page: Page, code: string) =>
-  page.route('**/rpc/save_version', (route) =>
+  page.route('**/rpc/save_state', (route) =>
     route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code, details: null, hint: null, message: 'x' }) }),
   )
 
@@ -44,10 +44,10 @@ test('a full database keeps the draft', async ({ page }) => {
 test('a failed connection keeps the draft, even after a reload', async ({ page }) => {
   const { edit } = await share(page, 'small')
   await page.goto(edit)
-  await page.route('**/rpc/save_version', (route) => route.abort())
+  await page.route('**/rpc/save_state', (route) => route.abort())
   await editor(page).fill('kept offline')
   await expect(page.getByRole('alert')).toHaveText("Couldn't save. Your changes are kept in this browser.", ARRIVES)
-  await page.unroute('**/rpc/save_version')
+  await page.unroute('**/rpc/save_state')
   await page.reload()
   await expect.poll(() => editorValue(page)).toBe('kept offline')
 })
@@ -56,7 +56,7 @@ test('a removed document says so on both links', async ({ page }) => {
   const { edit, read } = await share(page, 'gone')
   for (const url of [edit, read]) {
     const fresh = await page.context().newPage()
-    await fresh.route('**/rpc/get_live', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+    await fresh.route('**/rpc/get_state', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
     await fresh.goto(url)
     await expect(fresh.getByRole('alert')).toContainText('This document was removed.')
   }
@@ -90,7 +90,7 @@ test('a version that is too large is not retried until the text changes', async 
   const { edit } = await share(page, 'small')
   await page.goto(edit)
   let attempts = 0
-  await page.route('**/rpc/save_version', (route) => {
+  await page.route('**/rpc/save_state', (route) => {
     attempts++
     return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code: '23514', details: null, hint: null, message: 'x' }) })
   })
@@ -104,7 +104,7 @@ test('an edit link whose token stopped working turns read-only and stops saving'
   const { edit } = await share(page, 'small')
   await page.goto(edit)
   let attempts = 0
-  await page.route('**/rpc/save_version', (route) => {
+  await page.route('**/rpc/save_state', (route) => {
     attempts++
     return route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: '42501', details: null, hint: null, message: 'x' }) })
   })
@@ -118,7 +118,7 @@ test('the read link keeps the document when a refresh fails', async ({ page, bro
   const { edit, read } = await share(page, 'kept on screen')
   await page.goto(read)
   await expect(page.getByText('kept on screen')).toBeVisible()
-  await page.route('**/rpc/get_live', (route) => route.abort())
+  await page.route('**/rpc/get_state', (route) => route.abort())
   const other = await browser.newContext()
   await other.addInitScript(() => localStorage.setItem('sealdown.author', 'Bob'))
   const bob = await other.newPage()
@@ -127,7 +127,7 @@ test('the read link keeps the document when a refresh fails', async ({ page, bro
   await expect(bob.getByRole('region', { name: 'Live document' })).toContainText('v2', ARRIVES)
   await page.waitForTimeout(7000)
   await expect(page.getByText('kept on screen')).toBeVisible()
-  await page.unroute('**/rpc/get_live')
+  await page.unroute('**/rpc/get_state')
   await expect(page.getByText('changed by bob')).toBeVisible(ARRIVES)
   await other.close()
 })

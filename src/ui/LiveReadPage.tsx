@@ -51,7 +51,7 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
     }
   }, [id, key, attempt, notice])
   // A newer version replaces the one on screen on its own.
-  useLivePolling(route, state.kind === 'ready' ? state.opened.version : null, () => setAttempt((n) => n + 1))
+  useLivePolling(route, state.kind === 'ready' ? state.opened.revision : null, () => setAttempt((n) => n + 1))
 
   if (state.kind === 'loading') return <p className="status">{t('live.loading')}</p>
   if (state.kind === 'error') {
@@ -66,7 +66,8 @@ export function LiveReadPage({ route, theme, notice }: { route: LiveReadRoute; t
       </div>
     )
   }
-  const { doc, version, author, createdAt } = state.opened
+  const { doc, revision: version, stateAt: createdAt } = state.opened
+  const author = ''
   const banner = (
     <>
       {notice && (

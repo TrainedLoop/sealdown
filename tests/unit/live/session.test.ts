@@ -1,176 +1,182 @@
+import { decryptAuthors, encryptAuthor, encryptAuthors, loadAuthor, saveAuthor } from '../../../src/live/author.ts'
 import { readLinkOf, writeHash } from '../../../src/live/links.ts'
 import { loadLocal, saveLocal } from '../../../src/live/localState.ts'
-import { loadAuthor, saveAuthor } from '../../../src/live/author.ts'
 import {
+  carryOver,
+  checkpointNow,
   createLiveDoc,
+  createProtectedLiveDoc,
   listVersions,
   openLive,
   openVersion,
   restoreVersion,
   saveDraft,
   saveResolved,
+  unlockLive,
   updateFromLatest,
 } from '../../../src/live/session.ts'
+import { newKey } from '../../../src/share/crypto.ts'
 import { LiveError, type LiveStorage, type LiveVersion } from '../../../src/storage/live.ts'
 
-/** The server's rules (token, optimistic base, history) in memory. */
-function memoryStorage(): LiveStorage & { saves: number; writers: (string | undefined)[] } {
-  const docs = new Map<string, { hash: string; versions: LiveVersion[] }>()
+/** The server's rules (token, optimistic revision, checkpoints) in memory. */
+function memoryStorage(): LiveStorage {
+  type Row = { hash: string; salt: Uint8Array | null; revision: number; content: Uint8Array; state: Uint8Array | null; versions: LiveVersion[] }
+  const docs = new Map<string, Row>()
   let next = 0
   const doc = (id: string) => {
     const found = docs.get(id)
     if (!found) throw new LiveError('missing')
     return found
   }
-  const storage = {
-    saves: 0,
-    writers: [] as (string | undefined)[],
-    async create(content: Uint8Array, author: Uint8Array, hash: string) {
+  const allowed = async (row: Row, token: string) => {
+    if ((await writeHash(token)) !== row.hash) throw new LiveError('forbidden')
+  }
+  return {
+    async create(content, author, hash, salt, state) {
       const id = `doc${String(next++).padStart(7, '0')}`
-      docs.set(id, { hash, versions: [{ version: 1, content, author, createdAt: 't1' }] })
+      docs.set(id, { hash, salt: salt ?? null, revision: 1, content, state: state ?? null, versions: [{ version: 1, content, author, label: null, createdAt: 't1' }] })
       return id
     },
-    async latest(id: string) {
-      return doc(id).versions.at(-1)!
+    async state(id) {
+      const row = doc(id)
+      return { revision: row.revision, content: row.content, state: row.state, stateAt: `r${row.revision}` }
     },
-    async salt() {
-      return null
+    async head(id) {
+      return doc(id).revision
     },
-    async head(id: string) {
-      return doc(id).versions.at(-1)!.version
+    async saveState(id, token, base, content, state) {
+      const row = doc(id)
+      await allowed(row, token)
+      if (base !== row.revision) throw new LiveError('stale', { latest: row.revision })
+      Object.assign(row, { revision: row.revision + 1, content, state })
+      return row.revision
     },
-    async version(id: string, n: number) {
+    async checkpoint(id, token, content, author, label) {
+      const row = doc(id)
+      await allowed(row, token)
+      const version = row.versions.at(-1)!.version + 1
+      row.versions.push({ version, content, author, label: label ?? null, createdAt: `t${version}` })
+      return version
+    },
+    async version(id, n) {
       const found = doc(id).versions.find((v) => v.version === n)
       if (!found) throw new LiveError('missing')
       return found
     },
-    async list(id: string) {
+    async list(id) {
       return doc(id)
-        .versions.map((v) => ({ version: v.version, author: v.author, sizeBytes: v.content.length, createdAt: v.createdAt }))
+        .versions.map((v) => ({ version: v.version, author: v.author, label: v.label, sizeBytes: v.content.length, createdAt: v.createdAt }))
         .reverse()
     },
-    async save(id: string, token: string, base: number, content: Uint8Array, author: Uint8Array, writer?: string) {
-      storage.writers.push(writer)
-      const d = doc(id)
-      if ((await writeHash(token)) !== d.hash) throw new LiveError('forbidden')
-      const latest = d.versions.at(-1)!.version
-      if (base !== latest) throw new LiveError('stale', { latest })
-      d.versions.push({ version: latest + 1, content, author, createdAt: `t${latest + 1}` })
-      storage.saves++
-      return latest + 1
+    async salt(id) {
+      return doc(id).salt
     },
   }
-  return storage
 }
 
 const base = '# Notes\n\none\ntwo\nthree\n'
 
-async function start(storage: LiveStorage, text = base, type: 'markdown' | 'json' = 'markdown') {
+async function start(storage: LiveStorage, text = base, type: 'markdown' | 'json' = 'json') {
   const { edit } = await createLiveDoc({ type, text }, 'Ana', storage)
   return { edit, local: { base: 1, baseText: text, draft: text } }
 }
 
-test('a created document opens from both links, type and author included', async () => {
+test('a created document opens from both links at revision 1, with no Yjs state yet', async () => {
   const storage = memoryStorage()
   const { edit, read } = await createLiveDoc({ type: 'json', text: '{"a":1}' }, 'Ana', storage)
-  expect(edit.kind).toBe('live-edit')
   expect(read).toEqual(readLinkOf(edit))
-  const opened = await openLive(read, storage)
-  expect(opened).toMatchObject({ doc: { type: 'json', text: '{"a":1}' }, version: 1, author: 'Ana' })
+  expect(await openLive(read, storage)).toMatchObject({ doc: { type: 'json', text: '{"a":1}' }, revision: 1, state: null })
 })
 
-test('saving on the current base creates the next version', async () => {
+test('a Yjs state given at creation comes back decrypted', async () => {
+  const storage = memoryStorage()
+  const { edit } = await createLiveDoc({ type: 'markdown', text: 'x' }, 'Ana', storage, new Uint8Array([1, 2, 3]))
+  expect(Array.from((await openLive(edit, storage)).state!)).toEqual([1, 2, 3])
+})
+
+test('saving on the current revision moves it on', async () => {
   const storage = memoryStorage()
   const { edit, local } = await start(storage)
-  const outcome = await saveDraft(edit, { ...local, draft: base + 'four\n' }, 'markdown', 'Bob', storage)
-  expect(outcome).toEqual({ kind: 'saved', version: 2, text: base + 'four\n', merged: false })
-  expect(await openLive(edit, storage)).toMatchObject({ version: 2, author: 'Bob', doc: { text: base + 'four\n' } })
+  const outcome = await saveDraft(edit, { ...local, draft: base + 'four\n' }, 'json', storage)
+  expect(outcome).toEqual({ kind: 'saved', revision: 2, text: base + 'four\n', merged: false })
+  expect(await openLive(edit, storage)).toMatchObject({ revision: 2, doc: { text: base + 'four\n' } })
 })
 
 test('a stale save with separate changes merges and saves on top', async () => {
   const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: base.replace('one', 'ONE') }, 'markdown', 'Ana', storage)
-  const outcome = await saveDraft(edit, { ...local, draft: base.replace('three', 'THREE') }, 'markdown', 'Bob', storage)
-  expect(outcome).toEqual({ kind: 'saved', version: 3, text: '# Notes\n\nONE\ntwo\nTHREE\n', merged: true })
-})
-
-test('a stale save touching the same line returns the conflicts, and the resolution saves', async () => {
-  const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: base.replace('two', 'ana') }, 'markdown', 'Ana', storage)
-  const outcome = await saveDraft(edit, { ...local, draft: base.replace('two', 'bob') }, 'markdown', 'Bob', storage)
-  if (outcome.kind !== 'conflicts') throw new Error('expected conflicts')
-  expect(outcome.latest).toEqual({ version: 2, text: base.replace('two', 'ana') })
-  expect(outcome.merge.conflicts).toHaveLength(1)
-  const resolved = outcome.merge.resolve({ 0: 'both' })
-  const saved = await saveResolved(edit, outcome.latest, resolved, 'markdown', 'Bob', storage)
-  expect(saved).toMatchObject({ kind: 'saved', version: 3, text: '# Notes\n\none\nbob\nana\nthree\n' })
-})
-
-test('JSON documents merge by path', async () => {
-  const storage = memoryStorage()
   const text = '{"a": 1, "b": 1}'
-  const { edit, local } = await start(storage, text, 'json')
-  await saveDraft(edit, { ...local, draft: '{"a": 2, "b": 1}' }, 'json', 'Ana', storage)
-  const outcome = await saveDraft(edit, { ...local, draft: '{"a": 1, "b": 3}' }, 'json', 'Bob', storage)
-  expect(outcome.kind).toBe('saved')
+  const { edit, local } = await start(storage, text)
+  await saveDraft(edit, { ...local, draft: '{"a": 2, "b": 1}' }, 'json', storage)
+  const outcome = await saveDraft(edit, { ...local, draft: '{"a": 1, "b": 3}' }, 'json', storage)
+  expect(outcome).toMatchObject({ kind: 'saved', revision: 3, merged: true })
   expect(JSON.parse((await openLive(edit, storage)).doc.text)).toEqual({ a: 2, b: 3 })
 })
 
-test('updating merges the latest version into an unsaved draft', async () => {
+test('a stale save touching the same value returns the conflicts, and the resolution saves', async () => {
   const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: base.replace('one', 'ONE') }, 'markdown', 'Ana', storage)
-  const update = await updateFromLatest(edit, { ...local, draft: base.replace('three', 'THREE') }, 'markdown', storage)
-  expect(update).toEqual({
-    kind: 'updated',
-    local: { base: 2, baseText: base.replace('one', 'ONE'), draft: '# Notes\n\nONE\ntwo\nTHREE\n' },
-    author: 'Ana',
-    createdAt: 't2',
-  })
+  const { edit, local } = await start(storage, '{"a": 1}')
+  await saveDraft(edit, { ...local, draft: '{"a": 2}' }, 'json', storage)
+  const outcome = await saveDraft(edit, { ...local, draft: '{"a": 3}' }, 'json', storage)
+  if (outcome.kind !== 'conflicts') throw new Error('expected conflicts')
+  expect(outcome.latest).toEqual({ revision: 2, text: '{"a": 2}' })
+  const saved = await saveResolved(edit, outcome.latest, outcome.merge.resolve({ 0: 'theirs' }), 'json', storage)
+  expect(saved).toMatchObject({ kind: 'saved', revision: 3 })
 })
 
-test('updating with no unsaved changes just takes the latest', async () => {
+test('updating merges the latest state into an unsaved draft', async () => {
   const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: 'new\n' }, 'markdown', 'Ana', storage)
-  const update = await updateFromLatest(edit, local, 'markdown', storage)
-  expect(update).toMatchObject({ kind: 'updated', local: { base: 2, baseText: 'new\n', draft: 'new\n' } })
+  const { edit, local } = await start(storage, '{"a": 1, "b": 1}')
+  await saveDraft(edit, { ...local, draft: '{"a": 2, "b": 1}' }, 'json', storage)
+  const update = await updateFromLatest(edit, { ...local, draft: '{"a": 1, "b": 3}' }, 'json', storage)
+  if (update.kind !== 'updated') throw new Error('expected an update')
+  expect(update.local.base).toBe(2)
+  expect(JSON.parse(update.local.draft)).toEqual({ a: 2, b: 3 })
 })
 
-test('updating into a conflicting draft returns the conflicts', async () => {
+test('checkpoints carry every author and an optional label; the list decrypts them', async () => {
   const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: base.replace('two', 'ana') }, 'markdown', 'Ana', storage)
-  const update = await updateFromLatest(edit, { ...local, draft: base.replace('two', 'bob') }, 'markdown', storage)
-  expect(update.kind).toBe('conflicts')
-})
-
-test('restoring saves an old version as the newest', async () => {
-  const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: 'second\n' }, 'markdown', 'Ana', storage)
-  const outcome = await restoreVersion(edit, 1, { base: 2, baseText: 'second\n', draft: 'second\n' }, 'markdown', 'Bob', storage)
-  expect(outcome).toMatchObject({ kind: 'saved', version: 3, text: base })
-  expect((await openVersion(readLinkOf(edit), 2, storage)).doc.text).toBe('second\n')
-})
-
-test('the version list carries decrypted authors', async () => {
-  const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: 'x\n' }, 'markdown', 'Bob', storage)
-  expect((await listVersions(readLinkOf(edit), storage)).map((v) => [v.version, v.author])).toEqual([
-    [2, 'Bob'],
-    [1, 'Ana'],
+  const { edit } = await start(storage)
+  await checkpointNow(edit, 'later', ['Ana', 'Bob'], storage)
+  await checkpointNow(edit, 'named', ['Ana'], storage, 'Approved')
+  const list = await listVersions(readLinkOf(edit), storage)
+  expect(list.map((v) => [v.version, v.authors, v.label])).toEqual([
+    [3, ['Ana'], 'Approved'],
+    [2, ['Ana', 'Bob'], null],
+    [1, ['Ana'], null],
   ])
+  expect(await openVersion(readLinkOf(edit), 3, storage)).toMatchObject({ doc: { text: 'named' }, label: 'Approved', authors: ['Ana'] })
+})
+
+test('an author card from before lists one name', async () => {
+  const key = newKey()
+  expect(await decryptAuthors(await encryptAuthor('Ana', key), key)).toEqual(['Ana'])
+  expect(await decryptAuthors(await encryptAuthors(['Ana', 'Bob'], key), key)).toEqual(['Ana', 'Bob'])
+  expect(await decryptAuthors(new Uint8Array(), key)).toEqual([])
+})
+
+test('restoring saves an old checkpoint text as the current state', async () => {
+  const storage = memoryStorage()
+  const { edit, local } = await start(storage)
+  await saveDraft(edit, { ...local, draft: 'second\n' }, 'json', storage)
+  const outcome = await restoreVersion(edit, 1, { base: 2, baseText: 'second\n', draft: 'second\n' }, 'json', storage)
+  expect(outcome).toMatchObject({ kind: 'saved', revision: 3, text: base })
 })
 
 test('a wrong token cannot save', async () => {
   const storage = memoryStorage()
   const { edit, local } = await start(storage)
-  await expect(saveDraft({ ...edit, token: 'A'.repeat(43) }, local, 'markdown', 'Eve', storage)).rejects.toMatchObject({ kind: 'forbidden' })
+  await expect(saveDraft({ ...edit, token: 'A'.repeat(43) }, local, 'json', storage)).rejects.toMatchObject({ kind: 'forbidden' })
 })
+
+test('a password-protected document opens with the key derived from its password', async () => {
+  const storage = memoryStorage()
+  const { edit, read, key } = await createProtectedLiveDoc({ type: 'markdown', text: 'secret' }, 'Ana', 'pw', storage)
+  expect(edit.kind).toBe('live-edit-protected')
+  await expect(unlockLive(read, 'wrong', storage)).resolves.toBeNull()
+  const unlocked = await unlockLive(read, 'pw', storage)
+  expect(unlocked!.key).toBe(key)
+  expect(unlocked!.opened.doc.text).toBe('secret')
+}, 30_000)
 
 test('local state and author name persist in the browser', () => {
   saveLocal('doc0000000', { base: 3, baseText: 'b', draft: 'd' })
@@ -181,58 +187,14 @@ test('local state and author name persist in the browser', () => {
   expect(loadAuthor()).toBe('Ana')
 })
 
-test('text typed after Save or Update is carried onto the new text', async () => {
-  const { carryOver } = await import('../../../src/live/session.ts')
-  // Clicked with "X\n", kept typing "X\nmore\n"; the merged save brought in "Y".
+test('text typed after a save or update is carried onto the new text', () => {
   expect(carryOver('markdown', 'X\n', 'X\nmore\n', 'Y\nX\n')).toBe('Y\nX\nmore\n')
   expect(carryOver('markdown', 'same\n', 'same\n', 'new\n')).toBe('new\n')
-  // The late typing overlaps the incoming change: nothing safe to apply.
   expect(carryOver('markdown', 'a\n', 'b\n', 'c\n')).toBeNull()
 })
 
 test('a tab reload finds its own draft even when another tab saved meanwhile', () => {
   saveLocal('tabs000000', { base: 1, baseText: 'b', draft: 'tab B draft' })
-  // Another tab of the same browser writes the shared copy.
   localStorage.setItem('sealdown.live.tabs000000', JSON.stringify({ base: 2, baseText: 'x', draft: 'x' }))
   expect(loadLocal('tabs000000')).toEqual({ base: 1, baseText: 'b', draft: 'tab B draft' })
 })
-
-test('the writer id is random, stable per browser', async () => {
-  const { writerId } = await import('../../../src/live/author.ts')
-  const id = writerId()
-  expect(id).toMatch(/^[A-Za-z0-9_-]{16,}$/)
-  expect(writerId()).toBe(id)
-})
-
-test('restores and conflict resolutions never collapse into the previous version', async () => {
-  const storage = memoryStorage()
-  const { edit, local } = await start(storage)
-  await saveDraft(edit, { ...local, draft: 'second\n' }, 'markdown', 'Ana', storage)
-  await restoreVersion(edit, 1, { base: 2, baseText: 'second\n', draft: 'second\n' }, 'markdown', 'Ana', storage)
-  await saveResolved(edit, { version: 3, text: base }, 'resolved\n', 'markdown', 'Ana', storage)
-  expect(storage.writers[0]).toMatch(/^[A-Za-z0-9_-]+$/)
-  expect(storage.writers.slice(1)).toEqual([undefined, undefined])
-})
-
-test('a password-protected document opens with the key derived from its password', async () => {
-  const { createProtectedLiveDoc, unlockLive } = await import('../../../src/live/session.ts')
-  const storage = memoryStorage()
-  const salts = new Map<string, Uint8Array>()
-  const create = storage.create.bind(storage)
-  Object.assign(storage, {
-    create: async (c: Uint8Array, a: Uint8Array, h: string, salt?: Uint8Array) => {
-      const id = await create(c, a, h)
-      if (salt) salts.set(id, salt)
-      return id
-    },
-    salt: async (id: string) => salts.get(id) ?? null,
-  })
-  const { edit, read } = await createProtectedLiveDoc({ type: 'markdown', text: 'secret' }, 'Ana', 'pw', storage)
-  expect(edit.kind).toBe('live-edit-protected')
-  expect(read).toEqual({ kind: 'live-read-protected', id: edit.id })
-  await expect(unlockLive(read, 'wrong', storage)).resolves.toBeNull()
-  const unlocked = await unlockLive(read, 'pw', storage)
-  expect(unlocked!.opened.doc.text).toBe('secret')
-  const again = await openLive({ kind: 'live-read', id: edit.id, key: unlocked!.key }, storage)
-  expect(again.doc.text).toBe('secret')
-}, 30_000)

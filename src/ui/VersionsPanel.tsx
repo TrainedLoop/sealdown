@@ -6,7 +6,7 @@ import { useFocusTrap } from './focusTrap.ts'
 import { DiffView } from './DiffView.tsx'
 import { relativeTime } from './relativeTime.ts'
 
-type Item = { version: number; author: string; createdAt: string }
+type Item = { version: number; authors: string[]; label: string | null; createdAt: string }
 
 /** The saved versions of a live document: who saved each and when, what changed since, and Restore. */
 export function VersionsPanel({
@@ -75,7 +75,7 @@ export function VersionsPanel({
                     {item.version === latestVersion && ` · ${t('live.current')}`}
                   </span>
                   <span className="versions-meta">
-                    {item.author ? `${item.author}, ` : ''}
+                    {item.authors.length > 0 ? `${item.authors.join(', ')}, ` : ''}
                     {relativeTime(item.createdAt, i18n.language)}
                   </span>
                 </button>

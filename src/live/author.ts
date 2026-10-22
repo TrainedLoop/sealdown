@@ -1,4 +1,3 @@
-import { base64urlEncode } from '../share/base64url.ts'
 import { decrypt, encryptWithKey } from '../share/crypto.ts'
 import { readPref, writePref } from '../ui/prefs.ts'
 
@@ -6,23 +5,29 @@ import { readPref, writePref } from '../ui/prefs.ts'
 // version they save, so only people with the link see who edited.
 
 const KEY = 'sealdown.author'
-const WRITER_KEY = 'sealdown.writer'
-
-/** A random id for this browser (not a name), sent with saves so a run of autosaves collapses. */
-export function writerId(): string {
-  const saved = readPref(WRITER_KEY)
-  if (saved) return saved
-  const id = base64urlEncode(crypto.getRandomValues(new Uint8Array(12)))
-  writePref(WRITER_KEY, id)
-  return id
-}
-
 export function loadAuthor(): string | null {
   return readPref(KEY)
 }
 
 export function saveAuthor(name: string): void {
   writePref(KEY, name)
+}
+
+/** The names of everyone who edited between two checkpoints, encrypted like the document. */
+export function encryptAuthors(names: string[], key: string): Promise<Uint8Array> {
+  return encryptWithKey(new TextEncoder().encode(JSON.stringify({ names })), key)
+}
+
+/** The names on a checkpoint ([] when none or unreadable); a one-name card from before counts too. */
+export async function decryptAuthors(bytes: Uint8Array, key: string): Promise<string[]> {
+  if (bytes.length === 0) return []
+  try {
+    const card = JSON.parse(new TextDecoder().decode(await decrypt(bytes, key))) as { names?: unknown; name?: unknown }
+    if (Array.isArray(card.names)) return card.names.filter((n): n is string => typeof n === 'string' && n !== '')
+    return typeof card.name === 'string' && card.name !== '' ? [card.name] : []
+  } catch {
+    return []
+  }
 }
 
 export function encryptAuthor(name: string, key: string): Promise<Uint8Array> {

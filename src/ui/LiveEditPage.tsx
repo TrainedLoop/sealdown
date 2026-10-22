@@ -7,8 +7,10 @@ import { takeShared } from '../live/keyStore.ts'
 import { loadLocal, saveLocal, type LocalLive } from '../live/localState.ts'
 import { announceLive } from '../live/realtime.ts'
 import type { Choice } from '../live/merge.ts'
+import { checkpointDue, QUIET_AFTER_MS } from '../live/checkpoints.ts'
 import {
   carryOver,
+  checkpointNow,
   openLive,
   restoreVersion,
   saveDraft,
@@ -107,11 +109,11 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
       const opened = await openLive(edit, defaultLiveStorage)
       if (cancelled) return
       const stored = loadLocal(id)
-      const unsaved = stored !== null && stored.draft !== stored.baseText && stored.base <= opened.version
+      const unsaved = stored !== null && stored.draft !== stored.baseText && stored.base <= opened.revision
       // Unsaved changes from an earlier visit are kept; their first save merges whatever came since.
-      local.current = unsaved ? stored : { base: opened.version, baseText: opened.doc.text, draft: opened.doc.text }
+      local.current = unsaved ? stored : { base: opened.revision, baseText: opened.doc.text, draft: opened.doc.text }
       saveLocal(id, local.current)
-      setInfo({ type: opened.doc.type, version: opened.version, author: opened.author, createdAt: opened.createdAt })
+      setInfo({ type: opened.doc.type, version: opened.revision, author: '', createdAt: opened.stateAt })
       setStatus(unsaved ? 'unsaved' : 'saved')
       track('live_opened', { access: 'edit' })
       setState({ kind: 'ready' })
@@ -123,8 +125,29 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
       cancelled = true
       clearTimeout(timer.current)
       clearTimeout(receiveRetry.current)
+      clearTimeout(quiet.current)
     }
   }, [id, key, token])
+
+  // History: a checkpoint every 5 minutes of activity, and one when editing goes quiet for 2.
+  const lastCheckpoint = useRef(Date.now())
+  const lastEdit = useRef(0)
+  const quiet = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  async function checkpointAfterSave(text: string, author: string, force = false) {
+    const now = Date.now()
+    if (!force && !checkpointDue(now, lastEdit.current, lastCheckpoint.current, lastEdit.current > lastCheckpoint.current)) {
+      clearTimeout(quiet.current)
+      quiet.current = setTimeout(() => void checkpointAfterSave(getText.current(), author, true), QUIET_AFTER_MS)
+      return
+    }
+    lastCheckpoint.current = now
+    try {
+      await checkpointNow(route, text, author ? [author] : [], defaultLiveStorage, undefined, infoRef.current?.type)
+    } catch {
+      // The history misses one point; the current state is saved either way.
+    }
+  }
 
   function persist(next: LocalLive) {
     local.current = next
@@ -179,10 +202,11 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
       return false
     }
     // Merged saves, and the first of the visit: one event per autosave pause would be noise.
-    announceLive(id, outcome.version)
+    announceLive(id, outcome.revision)
+    void checkpointAfterSave(outcome.text, author)
     if (outcome.merged || firstSave.current) track('version_saved', { merged: outcome.merged, conflicts: 0 })
     firstSave.current = false
-    const saved = { base: outcome.version, baseText: outcome.text }
+    const saved = { base: outcome.revision, baseText: outcome.text }
     const current = getText.current()
     if (current === typed) {
       persist({ ...saved, draft: outcome.text })
@@ -200,7 +224,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
         persist({ ...local.current!, draft: current })
       }
     }
-    setInfo((old) => old && { ...old, version: outcome.version, author, createdAt: new Date().toISOString() })
+    setInfo((old) => old && { ...old, version: outcome.revision, author, createdAt: new Date().toISOString() })
     succeeded()
     return true
   }
@@ -242,7 +266,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
     const author = loadAuthor() ?? ''
     await exclusive(async () => {
       try {
-        settle(await saveDraft(route, local.current!, infoRef.current!.type, author, defaultLiveStorage), typed, author)
+        settle(await saveDraft(route, local.current!, infoRef.current!.type, defaultLiveStorage), typed, author)
       } catch (error) {
         fail(error)
       }
@@ -259,7 +283,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
         const outcome = await updateFromLatest(route, local.current!, infoRef.current!.type, defaultLiveStorage)
         if (outcome.kind === 'conflicts') {
           held.current = true
-          setConflict({ during: 'update', mine: before, latest: outcome.latest, author: outcome.author, createdAt: outcome.createdAt, merge: outcome.merge })
+          setConflict({ during: 'update', mine: before, latest: outcome.latest, author: '', createdAt: outcome.stateAt, merge: outcome.merge })
           return
         }
         const now = getText.current()
@@ -267,7 +291,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
         if (carried === null) return // typed over the incoming change meanwhile: the next save merges it
         persist({ ...outcome.local, draft: carried })
         show(now, carried)
-        setInfo((old) => old && { ...old, version: outcome.local.base, author: outcome.author, createdAt: outcome.createdAt })
+        setInfo((old) => old && { ...old, version: outcome.local.base, author: '', createdAt: outcome.stateAt })
       } catch {
         clearTimeout(receiveRetry.current)
         receiveRetry.current = setTimeout(() => void receiveRef.current(), RECEIVE_RETRY_MS)
@@ -292,6 +316,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
         local.current = { ...local.current, draft: text }
         saveLocal(id, local.current)
         waitForEdit.current = false
+        lastEdit.current = Date.now()
         if (text === local.current.baseText || held.current || stopped.current) return
         if (!busy.current) setStatus('unsaved')
         clearTimeout(timer.current)
@@ -319,8 +344,8 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
     }
     show(now, text)
     if (pending.during === 'update') {
-      persist({ base: pending.latest.version, baseText: pending.latest.text, draft: text })
-      setInfo((old) => old && { ...old, version: pending.latest.version, author: pending.author, createdAt: pending.createdAt || old.createdAt })
+      persist({ base: pending.latest.revision, baseText: pending.latest.text, draft: text })
+      setInfo((old) => old && { ...old, version: pending.latest.revision, author: pending.author, createdAt: pending.createdAt || old.createdAt })
       setStatus(text === pending.latest.text ? 'saved' : 'unsaved')
       if (text !== pending.latest.text) schedule()
       return
@@ -330,7 +355,7 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
     const author = loadAuthor() ?? ''
     await exclusive(async () => {
       try {
-        settle(await saveResolved(route, pending.latest, text, infoRef.current!.type, author, defaultLiveStorage), text, author)
+        settle(await saveResolved(route, pending.latest, text, infoRef.current!.type, defaultLiveStorage), text, author)
       } catch (error) {
         fail(error)
       }
@@ -347,14 +372,15 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
     const author = loadAuthor() ?? ''
     await exclusive(async () => {
       try {
-        const outcome = await restoreVersion(route, version, local.current!, infoRef.current!.type, author, defaultLiveStorage)
+        const outcome = await restoreVersion(route, version, local.current!, infoRef.current!.type, defaultLiveStorage)
         if (outcome.kind !== 'saved') return void settle(outcome, getText.current(), author)
         track('version_restored')
-        announceLive(id, outcome.version)
-        persist({ base: outcome.version, baseText: outcome.text, draft: outcome.text })
+        announceLive(id, outcome.revision)
+        void checkpointAfterSave(outcome.text, author, true)
+        persist({ base: outcome.revision, baseText: outcome.text, draft: outcome.text })
         show(getText.current(), outcome.text)
         succeeded()
-        setInfo((old) => old && { ...old, version: outcome.version, author, createdAt: new Date().toISOString() })
+        setInfo((old) => old && { ...old, version: outcome.revision, author, createdAt: new Date().toISOString() })
       } catch (error) {
         fail(error)
       }

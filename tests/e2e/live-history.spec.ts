@@ -102,7 +102,7 @@ test('typing on while a save merges keeps the other person change', async ({ pag
   await editor(bob).fill('BOB\nb\nc\nd\ne')
   await expect(liveBar(bob)).toContainText('v2', ARRIVES)
   // Slow saves on Ana's side, so she keeps typing while hers is merged and retried.
-  await ana.route('**/rpc/save_version', async (route) => {
+  await ana.route('**/rpc/save_state', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 800))
     await route.continue()
   })
@@ -169,7 +169,7 @@ test('restoring asks before replacing unsaved changes', async ({ page, context }
   await editor(ana).fill('second')
   await expect(liveBar(ana)).toContainText('v2', ARRIVES)
   // Saving fails from now on, so the next edit stays unsaved.
-  await ana.route('**/rpc/save_version', (route) => route.abort())
+  await ana.route('**/rpc/save_state', (route) => route.abort())
   await editor(ana).fill('unsaved work')
   await expect(ana.getByRole('alert')).toBeVisible(ARRIVES)
   await liveBar(ana).getByRole('button', { name: 'Versions' }).click()
