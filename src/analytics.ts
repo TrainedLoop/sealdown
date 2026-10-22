@@ -37,6 +37,7 @@ export type EventName =
   | 'conflict_resolved'
   | 'version_restored'
   | 'versions_viewed'
+  | 'version_named'
 
 type Props = Record<string, string | number | boolean | string[]>
 

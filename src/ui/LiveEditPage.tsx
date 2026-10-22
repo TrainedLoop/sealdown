@@ -465,7 +465,19 @@ export function LiveEditPage({ route, theme, readHash }: { route: LiveEditRoute;
           setShowVersions(true)
         }}
       />
-      {showVersions && <VersionsPanel route={route} onRestore={conflict ? undefined : (n) => void restore(n)} onClose={closeVersions} />}
+      {showVersions && (
+        <VersionsPanel
+          route={route}
+          current={getText.current()}
+          onRestore={conflict ? undefined : (n) => void restore(n)}
+          onMark={async (label) => {
+            const author = loadAuthor()
+            await checkpointNow(route, getText.current(), author ? [author] : [], defaultLiveStorage, label, infoRef.current?.type)
+            track('version_named')
+          }}
+          onClose={closeVersions}
+        />
+      )}
       {problem && ERROR_COPY[problem] && (
         <div className="notice" role="alert">
           <p>{t(ERROR_COPY[problem] as 'live.errors.network')}</p>

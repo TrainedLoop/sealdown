@@ -10,7 +10,7 @@ import { startPersistence, type PersistenceStatus } from '../live/collab/persist
 import { useCollab } from '../live/collab/useCollab.ts'
 import { takeShared } from '../live/keyStore.ts'
 import { readLinkOf, type LiveEditRoute } from '../live/links.ts'
-import type { Opened } from '../live/session.ts'
+import { checkpointNow, type Opened } from '../live/session.ts'
 import { buildHash } from '../router/route.ts'
 import { defaultLiveStorage } from '../storage/live.ts'
 import { EditorPage } from './EditorPage.tsx'
@@ -132,6 +132,17 @@ export function LiveCollabPage({ route, opened, theme, readHash }: { route: Live
     },
     [collab],
   )
+  const mark = useCallback(
+    async (label: string) => {
+      if (!collab) return
+      // Everyone who took part: edits since the last checkpoint, whoever is here now, and this person.
+      const names = new Set([...authors.current, ...collab.peers.map((peer) => peer.name)])
+      if (name) names.add(name)
+      await checkpointNow(route, collab.text.toString(), [...names], defaultLiveStorage, label)
+      track('version_named')
+    },
+    [collab, name, route],
+  )
   const closeVersions = useCallback(() => setShowVersions(false), [])
   const closeShared = useCallback(() => setJustShared(null), [])
   const submitName = useCallback((value: string) => {
@@ -182,7 +193,7 @@ export function LiveCollabPage({ route, opened, theme, readHash }: { route: Live
           <p>{t(problem as 'live.errors.network')}</p>
         </div>
       )}
-      {showVersions && <VersionsPanel route={route} onRestore={restore} onClose={closeVersions} />}
+      {showVersions && <VersionsPanel route={route} current={text} onRestore={restore} onMark={mark} onClose={closeVersions} />}
       <EditorPage theme={theme} live={live} />
       {justShared && (
         <ShareLiveModal edit={justShared.edit} read={justShared.read} protected={justShared.protected} onClose={closeShared} />

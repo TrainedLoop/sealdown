@@ -2720,3 +2720,34 @@ figure.diagram {
   padding: 1px 4px;
   border-radius: 4px 4px 4px 0;
 }
+
+.versions-side {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.versions-mark {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.versions-mark input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.versions-named .versions-number {
+  color: var(--accent);
+}
+
+.versions-named .versions-number::before {
+  content: '★ ';
+}
