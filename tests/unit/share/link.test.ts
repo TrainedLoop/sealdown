@@ -47,15 +47,28 @@ async function open(url: string, storage: DocStorage) {
   return openRoute(route, storage)
 }
 
-test('short text stays in the URL, encrypted', async () => {
+test('short text is stored too: every link is short (id and key)', async () => {
   const { storage, saves } = memoryStorage()
   const result = await createLink('# Hi ✓', { storage, baseUrl })
-  expect(result.kind).toBe('ok')
-  if (result.kind !== 'ok') return
-  expect(result.url).toMatch(/#\/e\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/)
-  expect(decodeURIComponent(result.url)).not.toContain('Hi')
-  expect(saves()).toBe(0)
+  if (result.kind !== 'ok') throw new Error('expected ok')
+  expect(result.url).toMatch(/#\/s\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{22}$/)
+  expect(result.url.length).toBeLessThan(baseUrl.length + 40)
+  expect(saves()).toBe(1)
   expect(await open(result.url, storage)).toBe('# Hi ✓')
+})
+
+test('short text falls back to a link holding it when storage is unavailable', async () => {
+  const result = await createLink('# Hi ✓', { storage: unavailable, baseUrl })
+  if (result.kind !== 'fallback') throw new Error('expected fallback')
+  expect(result.url).toMatch(/#\/e\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{22}$/)
+  expect(decodeURIComponent(result.url)).not.toContain('Hi')
+  expect(await open(result.url, unavailable)).toBe('# Hi ✓')
+})
+
+test('without storage set up (a build with no Supabase), text stays in the link as before', async () => {
+  const result = await createLink('# Hi ✓', { storage: { ...unavailable, configured: false }, baseUrl })
+  if (result.kind !== 'ok') throw new Error('expected ok')
+  expect(result.url).toContain('#/e/')
 })
 
 test('large text goes to storage', async () => {
@@ -64,7 +77,7 @@ test('large text goes to storage', async () => {
   const result = await createLink(text, { storage, baseUrl })
   expect(result.kind).toBe('ok')
   if (result.kind !== 'ok') return
-  expect(result.url).toMatch(/#\/s\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{43}$/)
+  expect(result.url).toMatch(/#\/s\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{22}$/)
   expect(saves()).toBe(1)
   expect(await open(result.url, storage)).toBe(text)
 })
@@ -113,12 +126,12 @@ async function openWithPassword(url: string, storage: DocStorage, password: stri
   return openProtected(await fetchProtected(route, storage), password)
 }
 
-test('short protected text stays in the URL and needs the password', async () => {
+test('short protected text is stored, its link only the id, and needs the password', async () => {
   const { storage, saves } = memoryStorage()
   const result = await createLink('# Secret ✓', { storage, baseUrl, password: 'pw' })
   if (result.kind !== 'ok') throw new Error('expected ok')
-  expect(result.url).toMatch(/#\/p\/[A-Za-z0-9_-]+$/)
-  expect(saves()).toBe(0)
+  expect(result.url).toMatch(/#\/q\/[A-Za-z0-9]{10}$/)
+  expect(saves()).toBe(1)
   expect(await openWithPassword(result.url, storage, 'pw')).toBe('# Secret ✓')
   await expect(openWithPassword(result.url, storage, 'nope')).rejects.toMatchObject({ kind: 'wrong-password' })
 })
@@ -162,7 +175,7 @@ test('legacy plaintext #/v/ links still open', async () => {
 })
 
 test('a sealed inline link with the wrong key is corrupt', async () => {
-  const { storage } = memoryStorage()
+  const storage = { ...unavailable, configured: false }
   const result = await createLink('# Small', { storage, baseUrl })
   if (result.kind !== 'ok') throw new Error('expected ok')
   const route = parseRoute(result.url.slice(result.url.indexOf('#')))

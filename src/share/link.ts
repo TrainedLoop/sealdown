@@ -6,7 +6,7 @@ import { decrypt, encrypt } from './crypto.ts'
 import { LinkError } from './errors.ts'
 import { decryptWithPassword, encryptWithPassword, PROTECTED_HEADER_BYTES } from './password.ts'
 
-/** Largest encoded payload kept in the URL; anything bigger is encrypted and stored. */
+/** Largest encoded payload kept in the URL, when storage is unavailable or not set up. */
 export const INLINE_LIMIT = 4096
 /** Largest encrypted document accepted by storage (mirrors the database constraint). */
 export const MAX_STORED_BYTES = 1048576
@@ -16,8 +16,9 @@ export type CreateLinkResult = { kind: 'ok'; url: string } | { kind: 'fallback';
 export type CreateLinkOptions = { storage: DocStorage; baseUrl: string; password?: string }
 
 /**
- * Every link is encrypted. Small documents travel in the link itself (`#/e/<ciphertext>.<key>`);
- * larger ones are stored and the link carries only their id and key (`#/s/<id>.<key>`).
+ * Every link is encrypted and short: the document is stored and the link carries only its id and
+ * key (`#/s/<id>.<key>`). When storage can't be reached, small documents travel in the link itself
+ * (`#/e/<ciphertext>.<key>`), shown as a fallback; a build without storage always does that.
  */
 export async function createLink(text: string, opts: CreateLinkOptions): Promise<CreateLinkResult> {
   const compressed = await compress(text)
@@ -26,7 +27,7 @@ export async function createLink(text: string, opts: CreateLinkOptions): Promise
   const { bytes, key } = await encrypt(compressed)
   const payload = base64urlEncode(bytes)
   const inlineUrl = opts.baseUrl + buildHash({ kind: 'inline-sealed', payload, key })
-  if (payload.length <= INLINE_LIMIT) return { kind: 'ok', url: inlineUrl }
+  if (opts.storage.configured === false && payload.length <= INLINE_LIMIT) return { kind: 'ok', url: inlineUrl }
   if (bytes.length > MAX_STORED_BYTES) return { kind: 'too-large' }
   try {
     const id = await opts.storage.save(bytes)
@@ -37,12 +38,12 @@ export async function createLink(text: string, opts: CreateLinkOptions): Promise
   }
 }
 
-/** With a password the key is never in the link: inline as #/p/<ciphertext>, stored as #/q/<id>. */
+/** With a password the key is never in the link: stored as #/q/<id>, else inline as #/p/<ciphertext>. */
 async function createProtectedLink(compressed: Uint8Array, password: string, opts: CreateLinkOptions): Promise<CreateLinkResult> {
   const bytes = await encryptWithPassword(compressed, password)
   const payload = base64urlEncode(bytes)
   const inlineUrl = opts.baseUrl + buildHash({ kind: 'inline-protected', payload })
-  if (payload.length <= INLINE_LIMIT) return { kind: 'ok', url: inlineUrl }
+  if (opts.storage.configured === false && payload.length <= INLINE_LIMIT) return { kind: 'ok', url: inlineUrl }
   if (bytes.length > MAX_STORED_BYTES) return { kind: 'too-large' }
   try {
     const id = await opts.storage.save(bytes)

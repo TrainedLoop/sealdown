@@ -2,6 +2,8 @@ import { fromBase64, toBase64 } from '../share/base64url.ts'
 
 /** The only code that talks to Supabase. Stores and returns opaque (already encrypted) bytes. */
 export interface DocStorage {
+  /** False when this build has no storage at all (no Supabase); links then carry the document. */
+  configured?: boolean
   save(bytes: Uint8Array): Promise<string>
   load(id: string): Promise<Uint8Array | null>
 }
@@ -59,6 +61,7 @@ export function createSupabaseStorage(
   }
 
   return {
+    configured: Boolean(config.url && config.anonKey),
     async save(bytes) {
       return (await rpc('create_doc', { content: toBase64(bytes) })) as string
     },

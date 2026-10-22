@@ -28,7 +28,7 @@ async function unseal(page: Page, password: string) {
 
 test('a password-protected live document keeps the key out of both links', async ({ page }) => {
   const { edit, read } = await shareWithPassword(page, '# Private plan', 'hunter2')
-  expect(edit).toMatch(/#\/n\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{43}$/)
+  expect(edit).toMatch(/#\/n\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{22}$/)
   expect(read).toMatch(/#\/m\/[A-Za-z0-9]{10}$/)
 })
 

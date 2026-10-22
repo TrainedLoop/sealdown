@@ -50,15 +50,17 @@ Live at https://trainedloop.github.io/sealdown/.
 
 | Link | Content |
 |---|---|
-| `#/e/<ciphertext>.<key>` | Small documents (up to 4 KB encoded): encrypted in the browser with AES-GCM, ciphertext and key both in the link. Nothing is stored. |
-| `#/s/<id>.<key>` | Larger documents: encrypted the same way and stored in Supabase; the link carries the id and the key. |
-| `#/p/<ciphertext>` | Password-protected, small: the ciphertext in the link, no key. |
-| `#/q/<id>` | Password-protected, large: stored in Supabase, no key in the link. |
+| `#/s/<id>.<key>` | Every document: encrypted in the browser with AES-GCM (a 128-bit key) and stored in Supabase; the link carries the id and the key, so it is always short. |
+| `#/q/<id>` | Password-protected: stored in Supabase, no key in the link. |
+| `#/e/<ciphertext>.<key>` | Fallback when storage can't be reached (and the only kind in a build without Supabase): small documents (up to 4 KB encoded) travel in the link, ciphertext and key both in it. |
+| `#/p/<ciphertext>` | The same fallback with a password: the ciphertext in the link, no key. |
 | `#/w/<id>.<key>.<token>` | Live document, edit link: stored versions encrypted with `key`; `token` lets the browser save. The server keeps only the token's SHA-256. |
 | `#/l/<id>.<key>` | Live document, read link: the edit link without the token. Always the latest version. |
 | `#/n/<id>.<token>` | Password-protected live document, edit link: the key is derived from the password (PBKDF2, a public per-document salt kept in Supabase), so the link has none. |
 | `#/m/<id>` | Password-protected live document, read link. After the password, the derived key is kept for that tab only (sessionStorage). |
 | `#/v/<payload>` | Legacy plaintext links from before Sealdown encrypted everything: still opened, never created. |
+
+Links made before keep working: their 256-bit keys and tokens still open, and so do older inline links.
 
 A JSON document starts with an invisible marker (`\u0001json\n`) before it is compressed and
 encrypted, so the link doesn't reveal the type and Markdown links are exactly what they always were.

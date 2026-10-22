@@ -38,8 +38,8 @@ async function openIn(context: BrowserContext, url: string): Promise<Page> {
 
 test('Share to edit gives an edit link and a read link; edits reach the read link', async ({ page, context }) => {
   const { edit, read } = await share(page, '# Plan\n\nfirst')
-  expect(edit).toMatch(/#\/w\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/)
-  expect(read).toBe(edit.replace('#/w/', '#/l/').replace(/\.[A-Za-z0-9_-]{43}$/, ''))
+  expect(edit).toMatch(/#\/w\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{22}$/)
+  expect(read).toBe(edit.replace('#/w/', '#/l/').replace(/\.[A-Za-z0-9_-]{22}$/, ''))
 
   const ana = await openEdit(context, edit, 'Ana')
   await expect(liveBar(ana)).toContainText('Connected', ARRIVES)

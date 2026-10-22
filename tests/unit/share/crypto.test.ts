@@ -3,7 +3,7 @@ import { decrypt, encrypt } from '../../../src/share/crypto.ts'
 test('round trip', async () => {
   const data = new TextEncoder().encode('secret ✓')
   const { bytes, key } = await encrypt(data)
-  expect(key).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  expect(key).toMatch(/^[A-Za-z0-9_-]{22}$/) // 128-bit: shorter links
   expect(Array.from(await decrypt(bytes, key))).toEqual(Array.from(data))
 })
 
@@ -41,9 +41,17 @@ test('too-short ciphertext fails', async () => {
 test('a fixed key encrypts what decrypt opens', async () => {
   const { newKey, encryptWithKey } = await import('../../../src/share/crypto.ts')
   const key = newKey()
-  expect(key).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  expect(key).toMatch(/^[A-Za-z0-9_-]{22}$/)
   const data = new TextEncoder().encode('version ✓')
   const bytes = await encryptWithKey(data, key)
   expect(new TextDecoder().decode(await decrypt(bytes, key))).toBe('version ✓')
   expect(await encryptWithKey(data, key)).not.toEqual(bytes) // fresh IV each time
+})
+
+test('256-bit keys from links made before still open', async () => {
+  const { encryptWithKey } = await import('../../../src/share/crypto.ts')
+  const { base64urlEncode } = await import('../../../src/share/base64url.ts')
+  const key = base64urlEncode(crypto.getRandomValues(new Uint8Array(32)))
+  const bytes = await encryptWithKey(new TextEncoder().encode('old ✓'), key)
+  expect(new TextDecoder().decode(await decrypt(bytes, key))).toBe('old ✓')
 })

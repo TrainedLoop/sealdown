@@ -1,8 +1,8 @@
 import { newWriteToken, readLinkOf, writeHash } from '../../../src/live/links.ts'
 
-test('write tokens are 32 random bytes in base64url', () => {
+test('write tokens are 16 random bytes in base64url', () => {
   const token = newWriteToken()
-  expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  expect(token).toMatch(/^[A-Za-z0-9_-]{22}$/)
   expect(newWriteToken()).not.toBe(token)
 })
 

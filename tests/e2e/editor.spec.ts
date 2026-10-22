@@ -40,7 +40,7 @@ test('short document produces an inline link that opens', async ({ page, context
   await editor(page).fill('# Shared\n\nHello')
   await (await openShare(page)).getByRole('button', { name: 'Seal link' }).click()
   const url = await page.getByTestId('share-url').inputValue()
-  expect(url).toMatch(/#\/e\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/)
+  expect(url).toMatch(/#\/e\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{22}$/)
   await expect(page.getByRole('status')).toHaveText('Link copied to the clipboard.')
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url)
 

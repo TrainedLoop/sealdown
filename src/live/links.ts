@@ -7,7 +7,7 @@ export type ProtectedLiveRoute = Extract<Route, { kind: 'live-read-protected' | 
 
 /** The secret that lets an edit link save: 32 random bytes, base64url. */
 export function newWriteToken(): string {
-  return base64urlEncode(crypto.getRandomValues(new Uint8Array(32)))
+  return base64urlEncode(crypto.getRandomValues(new Uint8Array(16)))
 }
 
 /** What the server stores and checks: SHA-256 of the raw token, standard base64. */

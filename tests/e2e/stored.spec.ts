@@ -17,11 +17,20 @@ async function share(page: Page, text: string): Promise<string> {
 
 test('large document is stored and opens from a short link', async ({ page, context }) => {
   const url = await share(page, largeDoc('Stored doc'))
-  expect(url).toMatch(/#\/s\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{43}$/)
+  expect(url).toMatch(/#\/s\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{22}$/)
   await expect(page.getByRole('alert')).toHaveCount(0)
   const reader = await context.newPage()
   await reader.goto(url)
   await expect(reader.getByRole('heading', { name: 'Stored doc' })).toBeVisible()
+})
+
+test('a small document gets a short link too', async ({ page, context }) => {
+  const url = await share(page, '# Tiny')
+  expect(url).toMatch(/#\/s\/[A-Za-z0-9]{10}\.[A-Za-z0-9_-]{22}$/)
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  const reader = await context.newPage()
+  await reader.goto(url)
+  await expect(reader.getByRole('heading', { name: 'Tiny' })).toBeVisible()
 })
 
 test('editing a copy creates a new document and keeps the original', async ({ page, context }) => {

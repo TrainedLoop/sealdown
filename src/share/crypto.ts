@@ -3,9 +3,11 @@ import { LinkError } from './errors.ts'
 
 const ALGORITHM = 'AES-GCM'
 const IV_BYTES = 12
-const KEY_BYTES = 32
+// 128-bit keys keep links short; links made before carry 256-bit keys, which still open.
+const KEY_BYTES = 16
+const KEY_SIZES = [16, 32]
 
-/** Encrypts with a fresh 256-bit key. `bytes` is IV followed by ciphertext; `key` is the raw key in base64url. */
+/** Encrypts with a fresh 128-bit key. `bytes` is IV followed by ciphertext; `key` is the raw key in base64url. */
 export async function encrypt(data: Uint8Array): Promise<{ bytes: Uint8Array; key: string }> {
   const cryptoKey = await crypto.subtle.generateKey({ name: ALGORITHM, length: KEY_BYTES * 8 }, true, ['encrypt'])
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
@@ -17,7 +19,7 @@ export async function encrypt(data: Uint8Array): Promise<{ bytes: Uint8Array; ke
   return { bytes, key: base64urlEncode(raw) }
 }
 
-/** A fresh random 256-bit key, raw in base64url (the form links carry). */
+/** A fresh random 128-bit key, raw in base64url (the form links carry). */
 export function newKey(): string {
   return base64urlEncode(crypto.getRandomValues(new Uint8Array(KEY_BYTES)))
 }
@@ -36,7 +38,7 @@ export async function encryptWithKey(data: Uint8Array, key: string): Promise<Uin
 /** Throws LinkError('corrupt') on a malformed key, wrong key or tampered bytes. */
 export async function decrypt(bytes: Uint8Array, key: string): Promise<Uint8Array> {
   const raw = base64urlDecode(key)
-  if (raw.length !== KEY_BYTES || bytes.length <= IV_BYTES) throw new LinkError('corrupt')
+  if (!KEY_SIZES.includes(raw.length) || bytes.length <= IV_BYTES) throw new LinkError('corrupt')
   try {
     const cryptoKey = await crypto.subtle.importKey('raw', raw as BufferSource, ALGORITHM, false, ['decrypt'])
     const plain = await crypto.subtle.decrypt(
