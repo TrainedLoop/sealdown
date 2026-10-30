@@ -233,6 +233,8 @@ const en = {
     wrongPassword: 'Wrong password. Try again.',
     tooLarge: 'This document is too large to share by link. Download the .md or export a PDF instead.',
     diagram: "This diagram couldn't be rendered:",
+    diagramLoad: "Part of Sealdown didn't load, maybe because it was just updated. Reload the page to show this diagram.",
+    reload: 'Reload',
     png: "This diagram can't be exported as PNG in this browser. Download the SVG instead.",
     copyImage: "Couldn't copy the image. Download the SVG or PNG instead.",
     loadFailed: "Couldn't load what this block needs.",

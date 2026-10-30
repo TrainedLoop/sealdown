@@ -236,6 +236,8 @@ const pt: typeof en = {
     wrongPassword: 'Senha incorreta. Tente de novo.',
     tooLarge: 'Este documento é grande demais para compartilhar por link. Baixe o .md ou exporte um PDF.',
     diagram: 'Não foi possível renderizar este diagrama:',
+    diagramLoad: 'Uma parte do Sealdown não carregou, talvez porque ele acabou de ser atualizado. Recarregue a página para ver este diagrama.',
+    reload: 'Recarregar',
     png: 'Este diagrama não pode ser exportado como PNG neste navegador. Baixe o SVG.',
     copyImage: 'Não foi possível copiar a imagem. Baixe o SVG ou o PNG.',
     loadFailed: 'Não foi possível carregar o que este bloco precisa.',

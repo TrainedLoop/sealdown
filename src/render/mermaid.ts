@@ -299,6 +299,34 @@ export function collectDiagrams(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>('figure.diagram'))
 }
 
+/** A piece of the app's code that didn't arrive (a network blip, or a deploy replaced it). */
+function isLoadFailure(error: unknown): boolean {
+  return /dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(
+    error instanceof Error ? error.message : String(error),
+  )
+}
+
+/** Renders, trying once more when a piece of code failed to load. */
+async function renderWithRetry(source: string, theme: Theme): Promise<string> {
+  try {
+    return await renderSvg(source, theme, true)
+  } catch (error) {
+    if (!isLoadFailure(error)) throw error
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    return renderSvg(source, theme, true)
+  }
+}
+
+function loadFailureNotice(): HTMLElement {
+  const notice = createNotice(i18n.t('errors.diagramLoad'))
+  const reload = document.createElement('button')
+  reload.type = 'button'
+  reload.textContent = i18n.t('errors.reload')
+  reload.addEventListener('click', () => window.location.reload())
+  notice.append(reload)
+  return notice
+}
+
 export async function renderDiagrams(container: HTMLElement, theme: Theme): Promise<void> {
   const figures = collectDiagrams(container)
   if (figures.length === 0) return
@@ -312,11 +340,16 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
     const source = figure.dataset.source ?? ''
     let content: HTMLElement
     try {
-      const svg = await renderSvg(source, theme, true)
+      const svg = await renderWithRetry(source, theme)
       content = document.createElement('div')
       content.className = 'diagram-svg'
       content.innerHTML = svg
     } catch (error) {
+      if (isLoadFailure(error)) {
+        if (passes.get(container) !== pass) return
+        figure.replaceChildren(loadFailureNotice())
+        continue
+      }
       content = createNotice(`${i18n.t('errors.diagram')} ${error instanceof Error ? error.message : String(error)}`)
       const hint = mermaidHint(source)
       if (hint) {

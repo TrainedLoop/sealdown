@@ -59,3 +59,20 @@ test('diagram actions stay out of the way until the diagram is hovered or focuse
   const actionsBox = (await actions.boundingBox())!
   expect(actionsBox.y).toBeLessThan(figureBox.y + 40)
 })
+
+test('a diagram whose code failed to load once is drawn on a second try', async ({ page }) => {
+  let blocked = 0
+  await page.route(/\/assets\/flowDiagram-[^/]+\.js$/, (route) => (blocked++ === 0 ? route.abort() : route.continue()))
+  await page.goto('/' + inlineHash(doc))
+  await expect(page.locator('figure.diagram svg').first()).toBeVisible()
+  expect(blocked).toBeGreaterThan(0)
+})
+
+test('a diagram whose code keeps failing to load offers to reload the page', async ({ page }) => {
+  await page.route(/\/assets\/flowDiagram-[^/]+\.js$/, (route) => route.abort())
+  await page.goto('/' + inlineHash(doc))
+  const figure = page.locator('figure.diagram')
+  await expect(figure).toContainText("Part of Sealdown didn't load, maybe because it was just updated.", { timeout: 15_000 })
+  await expect(figure).not.toContainText('dynamically imported module')
+  await expect(figure.getByRole('button', { name: 'Reload' })).toBeVisible()
+})
