@@ -66,6 +66,8 @@ test('inserting a diagram from the palette works when the editor opened in Read 
     localStorage.setItem('sealdown.draft', '# Doc\n')
   })
   await page.goto('/')
+  // The shortcut works once the page is up; on a slow machine an early key press would go nowhere.
+  await expect(page.getByRole('heading', { name: 'Doc' })).toBeVisible()
   await page.keyboard.press('ControlOrMeta+k')
   await expect(page.getByRole('dialog', { name: 'Command palette' }).getByRole('combobox')).toBeFocused()
   await page.keyboard.type('insert flowchart')
