@@ -200,6 +200,8 @@ function renderSvg(source: string, theme: Theme, htmlLabels: boolean): Promise<s
       theme: 'base',
       themeVariables: { ...DIAGRAM_THEMES[theme], xyChart: { plotColorPalette: XY_PALETTE[theme] } },
       htmlLabels,
+      // Mermaid wraps flowchart labels past 120px, which breaks short lines like "Sonnet 5.5".
+      flowchart: { wrappingWidth: 240 },
     })
     const id = `rmd-${++counter}`
     try {
@@ -344,6 +346,9 @@ export async function renderDiagrams(container: HTMLElement, theme: Theme): Prom
       content = document.createElement('div')
       content.className = 'diagram-svg'
       content.innerHTML = svg
+      // Mermaid caps the drawing at its natural width; the reader lets it grow a little past that.
+      const natural = content.querySelector('svg')?.style.maxWidth
+      if (natural) figure.style.setProperty('--diagram-width', natural)
     } catch (error) {
       if (isLoadFailure(error)) {
         if (passes.get(container) !== pass) return

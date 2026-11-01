@@ -1597,7 +1597,7 @@ figure.diagram {
 }
 
 .reader-body {
-  max-width: 1180px;
+  max-width: 1260px;
   margin: 0 auto;
 }
 
@@ -1617,7 +1617,7 @@ figure.diagram {
 }
 
 .reader-sheet {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   width: 100%;
 }
@@ -1629,6 +1629,13 @@ figure.diagram {
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: var(--shadow);
+}
+
+/* Diagrams sit centered and grow up to 1.5 times their natural size, within the sheet. */
+.reader-sheet .markdown-body > figure.diagram svg {
+  width: min(100%, var(--diagram-width, 100%) * 1.5);
+  max-width: 100% !important;
+  max-height: 80vh;
 }
 
 .unsealed-badge {
