@@ -36,9 +36,12 @@ jobs:
           node-version: lts/*
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm db:start
+      # pgTAP needs only Postgres; skipping the other containers saves pulling and starting them.
+      - run: node_modules/.bin/supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor && scripts/db-migrate.sh local
       - run: pnpm db:test
 
+  # The three browser suites run side by side. Browsers run in the Playwright Docker image
+  # (scripts/playwright-docker.sh), same as locally, so the visual baselines match.
   e2e:
     runs-on: ubuntu-latest
     steps:
@@ -49,16 +52,54 @@ jobs:
           node-version: lts/*
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Browsers run in the Playwright Docker image (scripts/playwright-docker.sh), same as locally,
-      # so the visual baselines match.
       - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test:visual
-      - run: pnpm db:start
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-visual
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  stored:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Skips what the site never uses. Realtime stops relaying without gotrue, postgres-meta or
+      # supavisor running, so those stay.
+      - run: node_modules/.bin/supabase start -x storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector && scripts/db-migrate.sh local
       - run: pnpm test:e2e:stored
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-stored
           path: |
             playwright-report
             test-results
@@ -66,7 +107,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: [check, db, e2e]
+    needs: [check, db, e2e, visual, stored]
     runs-on: ubuntu-latest
     permissions:
       contents: read
